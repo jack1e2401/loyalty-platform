@@ -123,26 +123,26 @@ enum LoyaltyPolicyVersionSource {
 }
 
 model User {
-  challengeLimitNoticeReads        ChallengeLimitNoticeRead[]
-  id                               Int                        @id @default(autoincrement())
-  email                            String                     @unique @db.VarChar(191)
-  passwordHash                     String                     @db.VarChar(255)
+  challengeLimitNoticeReads ChallengeLimitNoticeRead[]
+  id                               Int                       @id @default(autoincrement())
+  email                            String                    @unique @db.VarChar(191)
+  passwordHash                     String                    @db.VarChar(255)
   role                             UserRole
-  accountStatus                    AccountStatus              @default(ACTIVE)
-  createdAt                        DateTime                   @default(now())
-  updatedAt                        DateTime                   @updatedAt
-  merchant                         Merchant?                  @relation("MerchantOwner")
-  memberships                      MerchantMembership[]       @relation("MemberMemberships")
-  orders                           Order[]                    @relation("MemberOrders")
-  fulfilledRewards                 RewardFulfillment[]        @relation("RewardFulfiller")
-  cancelledRewards                 RewardCancellation[]       @relation("RewardCanceller")
-  refundsRequested                 OrderRefund[]              @relation("RefundRequester")
-  publishedLoyaltyPolicies         LoyaltyPolicyVersion[]     @relation("LoyaltyPolicyPublisher")
-  inventoryMovements               InventoryMovement[]        @relation("InventoryMovementActor")
-  updatedStorefrontDrafts          StorefrontDraft[]          @relation("StorefrontDraftUpdater")
-  publishedStorefrontVersions      StorefrontConfigVersion[]  @relation("StorefrontVersionPublisher")
-  refundRequestsAsMember           RefundRequest[]            @relation("RefundMember")
-  refundRequestsAsMerchantReviewer RefundRequest[]            @relation("RefundMerchantReviewer")
+  accountStatus                    AccountStatus             @default(ACTIVE)
+  createdAt                        DateTime                  @default(now())
+  updatedAt                        DateTime                  @updatedAt
+  merchant                         Merchant?                 @relation("MerchantOwner")
+  memberships                      MerchantMembership[]      @relation("MemberMemberships")
+  orders                           Order[]                   @relation("MemberOrders")
+  fulfilledRewards                 RewardFulfillment[]       @relation("RewardFulfiller")
+  cancelledRewards                 RewardCancellation[]      @relation("RewardCanceller")
+  refundsRequested                 OrderRefund[]             @relation("RefundRequester")
+  publishedLoyaltyPolicies         LoyaltyPolicyVersion[]    @relation("LoyaltyPolicyPublisher")
+  inventoryMovements               InventoryMovement[]       @relation("InventoryMovementActor")
+  updatedStorefrontDrafts          StorefrontDraft[]         @relation("StorefrontDraftUpdater")
+  publishedStorefrontVersions      StorefrontConfigVersion[] @relation("StorefrontVersionPublisher")
+  refundRequestsAsMember           RefundRequest[]           @relation("RefundMember")
+  refundRequestsAsMerchantReviewer RefundRequest[]           @relation("RefundMerchantReviewer")
   refreshSessions                  RefreshSession[]
 }
 
@@ -317,37 +317,37 @@ model MerchantEvent {
 }
 
 model Order {
-  id                           Int                      @id @default(autoincrement())
-  merchantId                   Int
-  memberId                     Int
-  status                       OrderStatus              @default(PENDING)
-  paymentProvider              PaymentProvider          @default(UNKNOWN)
-  paymentProviderReference     String?                  @db.VarChar(100)
-  paymentProviderTransactionNo String?                  @db.VarChar(64)
-  subtotal                     Decimal                  @db.Decimal(15, 0)
-  discountAmount               Decimal                  @default(0) @db.Decimal(15, 0)
-  total                        Decimal                  @db.Decimal(15, 0)
-  voucherId                    Int?
-  earnedPointsExact            Decimal?                 @db.Decimal(38, 12)
-  loyaltySnapshot              Json?
-  loyaltyPolicyVersionId       Int?
-  stockReservedAt              DateTime?
-  stockReservedUntil           DateTime?
-  stockReleasedAt              DateTime?
-  paidAt                       DateTime?
-  createdAt                    DateTime                 @default(now())
-  updatedAt                    DateTime                 @updatedAt
-  merchant                     Merchant                 @relation(fields: [merchantId], references: [id])
-  member                       User                     @relation("MemberOrders", fields: [memberId], references: [id])
-  voucher                      MemberVoucher?           @relation("AppliedVoucher", fields: [voucherId], references: [id])
-  items                        OrderItem[]
-  pointTransactions            PointTransaction[]
-  voucherReservation           OrderVoucherReservation?
-  refund                       OrderRefund?
-  activities                   MemberActivity[]
-  loyaltyPolicyVersion         LoyaltyPolicyVersion?    @relation(fields: [loyaltyPolicyVersionId], references: [id], onDelete: Restrict)
-  inventoryMovements           InventoryMovement[]
-  refundRequest                RefundRequest?
+  id                     Int                      @id @default(autoincrement())
+  merchantId             Int
+  memberId               Int
+  status                 OrderStatus              @default(PENDING)
+  paymentProvider        PaymentProvider          @default(UNKNOWN)
+  paymentProviderReference String?                 @db.VarChar(100)
+  paymentProviderTransactionNo String?             @db.VarChar(64)
+  subtotal               Decimal                  @db.Decimal(15, 0)
+  discountAmount         Decimal                  @default(0) @db.Decimal(15, 0)
+  total                  Decimal                  @db.Decimal(15, 0)
+  voucherId              Int?
+  earnedPointsExact      Decimal?                 @db.Decimal(38, 12)
+  loyaltySnapshot        Json?
+  loyaltyPolicyVersionId Int?
+  stockReservedAt        DateTime?
+  stockReservedUntil     DateTime?
+  stockReleasedAt        DateTime?
+  paidAt                 DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  merchant               Merchant                 @relation(fields: [merchantId], references: [id])
+  member                 User                     @relation("MemberOrders", fields: [memberId], references: [id])
+  voucher                MemberVoucher?           @relation("AppliedVoucher", fields: [voucherId], references: [id])
+  items                  OrderItem[]
+  pointTransactions      PointTransaction[]
+  voucherReservation     OrderVoucherReservation?
+  refund                 OrderRefund?
+  activities             MemberActivity[]
+  loyaltyPolicyVersion   LoyaltyPolicyVersion?    @relation(fields: [loyaltyPolicyVersionId], references: [id], onDelete: Restrict)
+  inventoryMovements     InventoryMovement[]
+  refundRequest          RefundRequest?
 
   @@index([merchantId, status])
   @@index([merchantId, status, paidAt])
@@ -681,43 +681,43 @@ enum RefundRequestStatus {
 }
 
 model Challenge {
-  id                  Int                    @id @default(autoincrement())
-  merchantId          Int
-  title               String                 @db.VarChar(191)
-  description         String                 @db.Text
-  type                ChallengeType
-  status              ChallengeStatus        @default(DRAFT)
-  targetValue         Decimal                @db.Decimal(15, 0)
-  rewardPoints        Decimal                @db.Decimal(38, 12)
-  budgetTotal         Decimal                @db.Decimal(38, 12)
-  budgetSpent         Decimal                @default(0) @db.Decimal(38, 12)
+  id           Int                 @id @default(autoincrement())
+  merchantId   Int
+  title        String              @db.VarChar(191)
+  description  String              @db.Text
+  type         ChallengeType
+  status       ChallengeStatus     @default(DRAFT)
+  targetValue  Decimal             @db.Decimal(15, 0)
+  rewardPoints Decimal             @db.Decimal(38, 12)
+  budgetTotal  Decimal             @db.Decimal(38, 12)
+  budgetSpent  Decimal             @default(0) @db.Decimal(38, 12)
   maxRewardRecipients Int?
-  rewardSlotsClaimed  Int                    @default(0)
-  startsAt            DateTime
-  endsAt              DateTime
-  isFeatured          Boolean                @default(false)
-  activatedAt         DateTime?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  merchant            Merchant               @relation(fields: [merchantId], references: [id], onDelete: Restrict)
-  progresses          ChallengeProgress[]
-  milestones          ChallengeMilestone[]
-  limitNotices        ChallengeLimitNotice[]
+  rewardSlotsClaimed  Int           @default(0)
+  startsAt     DateTime
+  endsAt       DateTime
+  isFeatured   Boolean             @default(false)
+  activatedAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  progresses   ChallengeProgress[]
+  milestones   ChallengeMilestone[]
+  limitNotices ChallengeLimitNotice[]
 
   @@index([merchantId, status, startsAt])
   @@index([merchantId, type])
 }
 
 model ChallengeLimitNotice {
-  id            Int                        @id @default(autoincrement())
-  challengeId   Int?
-  title         String                     @db.VarChar(191)
+  id          Int       @id @default(autoincrement())
+  challengeId Int?
+  title       String    @db.VarChar(191)
   previousLimit Int
-  newLimit      Int
-  actorId       Int
-  createdAt     DateTime                   @default(now())
-  challenge     Challenge?                 @relation(fields: [challengeId], references: [id], onDelete: SetNull)
-  reads         ChallengeLimitNoticeRead[]
+  newLimit    Int
+  actorId     Int
+  createdAt   DateTime  @default(now())
+  challenge   Challenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  reads       ChallengeLimitNoticeRead[]
 
   @@index([challengeId, id])
 }
@@ -726,7 +726,7 @@ model ChallengeLimitNoticeRead {
   noticeId Int
   memberId Int
   notice   ChallengeLimitNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-  member   User                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member   User @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@id([memberId, noticeId])
   @@index([noticeId])
@@ -763,20 +763,20 @@ model MemberActivity {
 }
 
 model ChallengeProgress {
-  id                Int                      @id @default(autoincrement())
-  challengeId       Int
-  membershipId      Int
-  currentValue      Decimal                  @default(0) @db.Decimal(15, 0)
-  rewardState       ChallengeRewardState     @default(IN_PROGRESS)
-  rewardCycle       Int                      @default(1)
-  rewardSlotClaimed Boolean                  @default(false)
-  completedAt       DateTime?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  challenge         Challenge                @relation(fields: [challengeId], references: [id], onDelete: Restrict)
-  membership        MerchantMembership       @relation(fields: [membershipId], references: [id], onDelete: Restrict)
-  entries           ChallengeProgressEntry[]
-  grants            ChallengeRewardGrant[]
+  id           Int                      @id @default(autoincrement())
+  challengeId  Int
+  membershipId Int
+  currentValue Decimal                  @default(0) @db.Decimal(15, 0)
+  rewardState  ChallengeRewardState     @default(IN_PROGRESS)
+  rewardCycle  Int                      @default(1)
+  rewardSlotClaimed Boolean             @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  challenge    Challenge                @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+  membership   MerchantMembership       @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  entries      ChallengeProgressEntry[]
+  grants       ChallengeRewardGrant[]
 
   @@unique([challengeId, membershipId])
   @@index([challengeId, rewardState, completedAt])
