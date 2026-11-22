@@ -1,6 +1,7 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import type {
   OrderStatus,
+  PaymentProvider,
   PointTransactionSource,
   PointTransactionType,
   RefundStatus,
@@ -14,6 +15,9 @@ type OrderRecord = {
   merchantId: number;
   memberId: number;
   status: OrderStatus;
+  paymentProvider: PaymentProvider;
+  paymentProviderReference: string | null;
+  paymentProviderTransactionNo: string | null;
   subtotal: Prisma.Decimal;
   discountAmount: Prisma.Decimal;
   total: Prisma.Decimal;
@@ -122,6 +126,9 @@ export function toOrderDto(order: OrderRecord): OrderDto {
     merchantId: order.merchantId,
     memberId: order.memberId,
     status: order.status,
+    paymentProvider: order.paymentProvider,
+    paymentProviderReference: order.paymentProviderReference,
+    paymentProviderTransactionNo: order.paymentProviderTransactionNo,
     subtotal: order.subtotal.toFixed(0),
     discountAmount: order.discountAmount.toFixed(0),
     total: order.total.toFixed(0),

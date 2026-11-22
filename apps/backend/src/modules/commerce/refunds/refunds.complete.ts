@@ -17,6 +17,7 @@ export async function completeMockRefund(
     include: { items: true, refund: true, refundRequest: true, pointTransactions: true },
   });
   if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
+  if (!replay && order.paymentProvider !== "MOCK") throw new HttpError(409, "REFUND_REQUIRES_MANUAL_RECONCILIATION");
 
   const memberId = order.memberId;
   const getWallet = () => tx.loyaltyWallet.findFirst({ where: { membership: { memberId, merchantId } } });

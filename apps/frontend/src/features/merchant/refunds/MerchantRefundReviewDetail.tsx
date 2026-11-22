@@ -140,6 +140,12 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
   if (!data) return null;
 
   const pending = isRefundAwaitingMerchant(data.refundRequest.status);
+  const requiresManualReconciliation = data.order.paymentProvider !== "MOCK";
+  const paymentProviderLabel = data.order.paymentProvider === "VNPAY"
+    ? "VNPay (lịch sử)"
+    : data.order.paymentProvider === "MOCK"
+      ? "Mock"
+      : "Chưa xác định";
   const statusTone =
     data.refundRequest.status === "COMPLETED"
       ? "success"
@@ -182,6 +188,9 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
             {data.member?.email ?? `#${data.order.memberId}`}
           </Descriptions.Item>
           <Descriptions.Item label="Tổng tiền">{money(data.order.total)}</Descriptions.Item>
+          <Descriptions.Item label="Nguồn thanh toán">{paymentProviderLabel}</Descriptions.Item>
+          {data.order.paymentProviderReference ? <Descriptions.Item label="Mã thanh toán">{data.order.paymentProviderReference}</Descriptions.Item> : null}
+          {data.order.paymentProviderTransactionNo ? <Descriptions.Item label="Mã giao dịch nhà cung cấp">{data.order.paymentProviderTransactionNo}</Descriptions.Item> : null}
           <Descriptions.Item label="Gửi lúc">
             {new Date(data.refundRequest.requestedAt).toLocaleString("vi-VN")}
           </Descriptions.Item>
@@ -200,10 +209,21 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       </Card>
       {pending ? (
         <Card title="Tác động dự kiến khi hoàn tiền" size="small">
-          <Typography.Paragraph type="secondary" className="!mb-3">
-            Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
-          </Typography.Paragraph>
-          <RefundPreview preview={data.preview} />
+          {requiresManualReconciliation ? (
+            <Alert
+              type="warning"
+              showIcon
+              title="Cần đối soát hoàn tiền thủ công"
+              description="Duyệt yêu cầu chỉ chuyển sang đối soát. Hệ thống không xác nhận hoàn tiền, hoàn điểm hoặc khôi phục voucher trước khi nhà cung cấp xác nhận."
+            />
+          ) : (
+            <>
+              <Typography.Paragraph type="secondary" className="!mb-3">
+                Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
+              </Typography.Paragraph>
+              <RefundPreview preview={data.preview} />
+            </>
+          )}
         </Card>
       ) : (
         <Card title="Kết quả xử lý" size="small">
@@ -232,12 +252,16 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                 showIcon
                 title={
                   confirming === "approve"
-                    ? `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
+                    ? requiresManualReconciliation
+                      ? `Chuyển yêu cầu của đơn #${data.order.id} sang đối soát thủ công?`
+                      : `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
                     : "Xác nhận từ chối yêu cầu hoàn tiền?"
                 }
                 description={
                   confirming === "approve"
-                    ? "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
+                    ? requiresManualReconciliation
+                      ? "Yêu cầu sẽ chuyển sang trạng thái đối soát. Hệ thống chưa xác nhận hoàn tiền hoặc điều chỉnh điểm, voucher."
+                      : "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
                     : `Yêu cầu sẽ bị từ chối với lý do: “${note.trim()}”.`
                 }
                 action={
@@ -251,7 +275,9 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                       loading={busy}
                       onClick={() => void decide(confirming)}
                     >
-                      {confirming === "approve" ? "Xác nhận hoàn tiền" : "Xác nhận từ chối"}
+                      {confirming === "approve"
+                        ? requiresManualReconciliation ? "Xác nhận đối soát" : "Xác nhận hoàn tiền"
+                        : "Xác nhận từ chối"}
                     </Button>
                   </Flex>
                 }
@@ -266,7 +292,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                   disabled={busy}
                   onClick={() => setConfirming("approve")}
                 >
-                  Duyệt hoàn tiền
+                  {requiresManualReconciliation ? "Chuyển đối soát" : "Duyệt hoàn tiền"}
                 </Button>
               </Flex>
             )}

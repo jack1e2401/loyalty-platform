@@ -558,3 +558,102 @@ test("ledger reads stay merchant-scoped and pending orders remain cancellable", 
   assert.equal(memberOrder.json.order.status, "PENDING");
   assert.equal(memberOrder.json.order.actions.canCancel, true);
 });
+
+test("settled legacy provider refunds require manual reconciliation and preserve order effects", async () => {
+  const created = await request("/api/orders", "POST", memberAToken, {
+    items: [{ productId: productAId, quantity: 1 }],
+  });
+  assert.equal(created.response.status, 201);
+  const orderId = created.json.order.id as number;
+  const paid = await request(`/api/orders/${orderId}/pay`, "POST", memberAToken);
+  assert.equal(paid.response.status, 200);
+  assert.equal(paid.json.order.paymentProvider, "MOCK");
+
+  const providerReference = `legacy-vnpay-${suffix}`;
+  const providerTransactionNo = `txn-${suffix}`;
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      paymentProvider: "VNPAY",
+      paymentProviderReference: providerReference,
+      paymentProviderTransactionNo: providerTransactionNo,
+    },
+  });
+  const walletBefore = await prisma.loyaltyWallet.findFirstOrThrow({
+    where: { membership: { memberId: memberAId, merchantId: merchantAId } },
+  });
+  const ledgerBefore = await prisma.pointTransaction.findMany({ where: { orderId }, orderBy: { id: "asc" } });
+  const inventoryBefore = await prisma.inventoryBalance.findFirstOrThrow({
+    where: { merchantId: merchantAId, productId: productAId },
+  });
+
+  const submitted = await request(`/api/orders/${orderId}/refund-request`, "POST", memberAToken, { reason: "Legacy provider refund" });
+  assert.equal(submitted.response.status, 201);
+  const requestId = submitted.json.refundRequest.id as number;
+  const approval = await request(`/api/merchant/refund-requests/${requestId}/approve`, "POST", merchantAToken, {});
+  assert.equal(approval.response.status, 200);
+  assert.equal(approval.json.manualReconciliationRequired, true);
+  assert.equal(approval.json.refundRequest.status, "PROCESSING");
+  assert.deepEqual(approval.json.paymentProvenance, {
+    provider: "VNPAY",
+    providerReference,
+    providerTransactionNo,
+  });
+
+  const persistedOrder = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  const persistedRequest = await prisma.refundRequest.findUniqueOrThrow({ where: { orderId } });
+  const walletAfter = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { id: walletBefore.id } });
+  const ledgerAfter = await prisma.pointTransaction.findMany({ where: { orderId }, orderBy: { id: "asc" } });
+  const inventoryAfter = await prisma.inventoryBalance.findFirstOrThrow({
+    where: { merchantId: merchantAId, productId: productAId },
+  });
+  assert.equal(persistedOrder.status, "PAID");
+  assert.equal(persistedOrder.paymentProvider, "VNPAY");
+  assert.equal(persistedOrder.paymentProviderReference, providerReference);
+  assert.equal(persistedOrder.paymentProviderTransactionNo, providerTransactionNo);
+  assert.equal(persistedRequest.status, "PROCESSING");
+  assert.match(persistedRequest.merchantDecisionReason ?? "", /Manual reconciliation required/);
+  assert.equal(await prisma.orderRefund.count({ where: { orderId } }), 0);
+  assert.equal(walletAfter.exactBalance.toString(), walletBefore.exactBalance.toString());
+  assert.equal(walletAfter.netLifetimeEarned.toString(), walletBefore.netLifetimeEarned.toString());
+  assert.deepEqual(ledgerAfter.map((row) => row.id), ledgerBefore.map((row) => row.id));
+  assert.equal(inventoryAfter.onHandQuantity, inventoryBefore.onHandQuantity);
+  assert.equal(inventoryAfter.reservedQuantity, inventoryBefore.reservedQuantity);
+
+  const detail = await request(`/api/merchant/refund-requests/${requestId}`, "GET", merchantAToken);
+  assert.equal(detail.response.status, 200);
+  assert.equal(detail.json.order.paymentProvider, "VNPAY");
+  assert.equal(detail.json.order.paymentProviderReference, providerReference);
+  assert.equal(detail.json.order.paymentProviderTransactionNo, providerTransactionNo);
+  assert.equal(detail.json.settlement, null);
+
+  const historicalOrderResponse = await request("/api/orders", "POST", memberAToken, {
+    items: [{ productId: productAId, quantity: 1 }],
+  });
+  const historicalOrderId = historicalOrderResponse.json.order.id as number;
+  await request(`/api/orders/${historicalOrderId}/pay`, "POST", memberAToken);
+  await prisma.order.update({ where: { id: historicalOrderId }, data: { paymentProvider: "VNPAY", paymentProviderReference: `old-${suffix}` } });
+  const historicalRequestResponse = await request(
+    `/api/orders/${historicalOrderId}/refund-request`,
+    "POST",
+    memberAToken,
+    { reason: "Legacy completed request" },
+  );
+  const historicalRequestId = historicalRequestResponse.json.refundRequest.id as number;
+  await prisma.refundRequest.update({
+    where: { id: historicalRequestId },
+    data: { status: "COMPLETED" },
+  });
+  await prisma.order.update({ where: { id: historicalOrderId }, data: { status: "REFUNDED" } });
+  const historicalReplay = await request(
+    `/api/merchant/refund-requests/${historicalRequestId}/approve`,
+    "POST",
+    merchantAToken,
+    {},
+  );
+  assert.equal(historicalReplay.response.status, 200);
+  assert.equal(historicalReplay.json.manualReconciliationRequired, true);
+  assert.equal(historicalReplay.json.refund, undefined);
+  assert.equal(historicalReplay.json.refundRequest.status, "COMPLETED");
+  assert.equal(await prisma.orderRefund.count({ where: { orderId: historicalOrderId } }), 0);
+});

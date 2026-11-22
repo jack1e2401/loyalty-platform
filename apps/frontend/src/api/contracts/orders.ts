@@ -9,6 +9,7 @@ import type {
 export type OrderStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUND_PENDING" | "REFUNDED";
 
 export type RefundStatus = "PENDING_PROVIDER" | "COMPLETED" | "FAILED";
+export type PaymentProvider = "UNKNOWN" | "MOCK" | "VNPAY";
 
 export interface OrderItemDto {
   productId: number;
@@ -46,6 +47,9 @@ export interface OrderDto {
   merchantId: number;
   memberId: number;
   status: OrderStatus;
+  paymentProvider?: PaymentProvider;
+  paymentProviderReference?: string | null;
+  paymentProviderTransactionNo?: string | null;
   subtotal: string;
   discountAmount: string;
   total: string;

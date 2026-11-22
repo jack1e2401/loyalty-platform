@@ -1,4 +1,4 @@
-import type { OrderDto, RefundDto, RefundPreviewDto } from "./contracts/orders";
+import type { OrderDto, PaymentProvider, RefundDto, RefundPreviewDto } from "./contracts/orders";
 import type { ChallengeRewardGrantStatus, ChallengeRewardState, ChallengeType } from "./challenges-types";
 
 export type RefundRequestStatus =
@@ -76,13 +76,25 @@ export interface RefundRequestDetailResponse {
   settlement?: Pick<RefundDto, "status" | "amountVnd" | "completedAt"> | null;
 }
 
-export interface MerchantApproveRefundResponse {
+export interface MockMerchantApproveRefundResponse {
   refundRequest: RefundRequestDto;
   refund: RefundDto;
   order: OrderDto;
   walletImpact: unknown;
   challengeReversals: number;
 }
+
+export interface ManualReconciliationResponse {
+  refundRequest: RefundRequestDto;
+  manualReconciliationRequired: true;
+  paymentProvenance: {
+    provider: PaymentProvider;
+    providerReference: string | null;
+    providerTransactionNo: string | null;
+  };
+}
+
+export type MerchantApproveRefundResponse = MockMerchantApproveRefundResponse | ManualReconciliationResponse;
 
 export interface ListRefundRequestsParams {
   status?: RefundRequestStatus | "";

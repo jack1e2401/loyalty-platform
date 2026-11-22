@@ -42,6 +42,9 @@ const detail = {
     merchantId: 2,
     memberId: 4,
     status: "PAID" as const,
+    paymentProvider: "MOCK" as const,
+    paymentProviderReference: null,
+    paymentProviderTransactionNo: null,
     subtotal: "50000",
     discountAmount: "0",
     total: "50000",
@@ -123,7 +126,7 @@ describe("merchant refund request approvals", () => {
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "Lọc trạng thái" }));
     expect(await screen.findByTitle("Tất cả trạng thái")).toBeInTheDocument();
     expect(screen.getByTitle("Đã duyệt")).toBeInTheDocument();
-    expect(screen.getByTitle("Đang xử lý hoàn tiền")).toBeInTheDocument();
+    expect(screen.getByTitle("Chờ đối soát hoàn tiền thủ công")).toBeInTheDocument();
     fireEvent.click(screen.getByTitle("Đã duyệt"));
     await waitFor(() =>
       expect(mocks.list).toHaveBeenCalledWith(
@@ -181,5 +184,37 @@ describe("merchant refund request approvals", () => {
     expect(await screen.findByText(/nợ 0\.4/)).toBeInTheDocument();
     expect(screen.getByText("SILVER")).toBeInTheDocument();
     expect(screen.getByText("BRONZE")).toBeInTheDocument();
+  });
+
+  it("routes legacy VNPay refunds to manual reconciliation without showing a completed refund preview", async () => {
+    mocks.get.mockResolvedValue({
+      ...detail,
+      order: {
+        ...detail.order,
+        paymentProvider: "VNPAY",
+        paymentProviderReference: "legacy-ref",
+        paymentProviderTransactionNo: "provider-txn",
+      },
+    });
+    mocks.approve.mockResolvedValue({
+      refundRequest: { ...item, status: "PROCESSING" },
+      manualReconciliationRequired: true,
+      paymentProvenance: {
+        provider: "VNPAY",
+        providerReference: "legacy-ref",
+        providerTransactionNo: "provider-txn",
+      },
+    });
+    renderPage();
+    await screen.findByText("Hàng lỗi");
+    fireEvent.click(screen.getByRole("button", { name: "Xem & Duyệt" }));
+    expect(await screen.findByText("Cần đối soát hoàn tiền thủ công")).toBeInTheDocument();
+    expect(screen.getByText("legacy-ref")).toBeInTheDocument();
+    expect(screen.getByText("provider-txn")).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Tác động dự kiến" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Chuyển đối soát" }));
+    expect(screen.getByText(/chưa xác nhận hoàn tiền/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận đối soát" }));
+    await waitFor(() => expect(mocks.approve).toHaveBeenCalledWith(11, "merchant-token", undefined));
   });
 });
