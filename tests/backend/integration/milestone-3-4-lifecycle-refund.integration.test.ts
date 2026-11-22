@@ -125,6 +125,7 @@ after(async () => {
   const merchantIds = merchants.map((m) => m.id);
 
   await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
+  await prisma.refundReconciliationAttempt.deleteMany({ where: { refundRequest: { merchantId: { in: merchantIds } } } });
   await prisma.refundRequest.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.challengeProgressEntry.deleteMany({ where: { progress: { challenge: { merchantId: { in: merchantIds } } } } });
   await prisma.challengeRewardGrant.deleteMany({ where: { progress: { challenge: { merchantId: { in: merchantIds } } } } });
@@ -626,6 +627,66 @@ test("settled legacy provider refunds require manual reconciliation and preserve
   assert.equal(detail.json.order.paymentProviderReference, providerReference);
   assert.equal(detail.json.order.paymentProviderTransactionNo, providerTransactionNo);
   assert.equal(detail.json.settlement, null);
+
+  const failedEvidence = {
+    outcome: "FAILED",
+    providerReference: `refund-failed-${suffix}`,
+    providerTransactionNo: `refund-txn-failed-${suffix}`,
+    failureReason: "Provider declined the refund",
+  };
+  const otherMerchant = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantBToken, failedEvidence);
+  assert.equal(otherMerchant.response.status, 404);
+  assert.equal(await prisma.refundReconciliationAttempt.count({ where: { refundRequestId: requestId } }), 0);
+  const failedResult = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, failedEvidence);
+  assert.equal(failedResult.response.status, 200);
+  assert.equal(failedResult.json.refundRequest.status, "PROCESSING");
+  assert.equal(failedResult.json.manualReconciliationRequired, true);
+  assert.equal(failedResult.json.reconciliationAttempt.outcome, "FAILED");
+  assert.equal(failedResult.json.reconciliationAttempt.providerReference, failedEvidence.providerReference);
+  const duplicateFailure = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, failedEvidence);
+  assert.equal(duplicateFailure.response.status, 200);
+  assert.equal(duplicateFailure.json.reconciliationAttempt.id, failedResult.json.reconciliationAttempt.id);
+  assert.equal(await prisma.refundReconciliationAttempt.count({ where: { refundRequestId: requestId } }), 1);
+  const conflictingReference = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, {
+    ...failedEvidence,
+    failureReason: "Different payload with same provider reference",
+  });
+  assert.equal(conflictingReference.response.status, 409);
+  assert.equal(conflictingReference.json.error, "REFUND_SETTLEMENT_REFERENCE_CONFLICT");
+  const failedOrder = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  const walletAfterFailure = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { id: walletBefore.id } });
+  const ledgerAfterFailure = await prisma.pointTransaction.findMany({ where: { orderId }, orderBy: { id: "asc" } });
+  assert.equal(failedOrder.status, "PAID");
+  assert.equal(await prisma.orderRefund.count({ where: { orderId } }), 0);
+  assert.equal(walletAfterFailure.exactBalance.toString(), walletBefore.exactBalance.toString());
+  assert.deepEqual(ledgerAfterFailure.map((row) => row.id), ledgerBefore.map((row) => row.id));
+
+  const settledEvidence = {
+    outcome: "SETTLED",
+    providerReference: `refund-settled-${suffix}`,
+    providerTransactionNo: `refund-txn-settled-${suffix}`,
+  };
+  const settledResult = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, settledEvidence);
+  assert.equal(settledResult.response.status, 200);
+  assert.equal(settledResult.json.refundRequest.status, "COMPLETED");
+  assert.equal(settledResult.json.manualReconciliationRequired, false);
+  assert.equal(settledResult.json.refund.providerReference, settledEvidence.providerReference);
+  assert.equal(settledResult.json.order.status, "REFUNDED");
+  const successAttempt = await prisma.refundReconciliationAttempt.findUniqueOrThrow({ where: { id: settledResult.json.reconciliationAttempt.id } });
+  const completedRefund = await prisma.orderRefund.findUniqueOrThrow({ where: { orderId } });
+  assert.equal(successAttempt.outcome, "SETTLED");
+  assert.equal(completedRefund.providerReference, settledEvidence.providerReference);
+  assert.equal(completedRefund.status, "COMPLETED");
+  const completedLedger = await prisma.pointTransaction.findMany({ where: { orderId } });
+  const completedWallet = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { id: walletBefore.id } });
+  assert.equal(completedLedger.filter((entry) => entry.type === "EARN_REVERSAL").length, 1);
+  assert.equal(completedWallet.netLifetimeEarned.toString(), "0");
+  const duplicateSettlement = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, settledEvidence);
+  assert.equal(duplicateSettlement.response.status, 200);
+  assert.equal(duplicateSettlement.json.refund.id, settledResult.json.refund.id);
+  assert.equal(await prisma.refundReconciliationAttempt.count({ where: { refundRequestId: requestId } }), 2);
+  assert.equal(await prisma.orderRefund.count({ where: { orderId } }), 1);
+  assert.equal((await prisma.pointTransaction.findMany({ where: { orderId } })).filter((entry) => entry.type === "EARN_REVERSAL").length, 1);
 
   const historicalOrderResponse = await request("/api/orders", "POST", memberAToken, {
     items: [{ productId: productAId, quantity: 1 }],

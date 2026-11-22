@@ -6,12 +6,13 @@ import { MemoryRouter } from "react-router-dom";
 import { AuthSessionProvider } from "../../../apps/frontend/src/api/auth-session";
 import { MerchantRefundRequestsPage } from "../../../apps/frontend/src/features/merchant/refunds/MerchantRefundRequestsPage";
 
-const mocks = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn(), approve: vi.fn(), reject: vi.fn() }));
+const mocks = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn(), approve: vi.fn(), reconcile: vi.fn(), reject: vi.fn() }));
 vi.mock("../../../apps/frontend/src/api/refunds-client", () => ({
   createRefundsClient: () => ({
     listMerchantRefundRequests: mocks.list,
     getMerchantRefundRequest: mocks.get,
     approveMerchantRefundRequest: mocks.approve,
+    reconcileMerchantRefundRequest: mocks.reconcile,
     rejectMerchantRefundRequest: mocks.reject,
   }),
 }));
@@ -106,6 +107,11 @@ describe("merchant refund request approvals", () => {
     });
     mocks.get.mockResolvedValue(detail);
     mocks.approve.mockResolvedValue({ refundRequest: { ...item, status: "COMPLETED" } });
+    mocks.reconcile.mockResolvedValue({
+      refundRequest: { ...item, status: "COMPLETED" },
+      reconciliationAttempt: { id: 1, providerReference: "refund-456", providerTransactionNo: null, outcome: "SETTLED", failureReason: null, createdAt: "" },
+      manualReconciliationRequired: false,
+    });
     mocks.reject.mockResolvedValue({ refundRequest: { ...item, status: "REJECTED" } });
   });
   afterEach(() => {
@@ -216,5 +222,57 @@ describe("merchant refund request approvals", () => {
     expect(screen.getByText(/chưa xác nhận hoàn tiền/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận đối soát" }));
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledWith(11, "merchant-token", undefined));
+  });
+
+  it("records a failed provider reconciliation without completing the request and allows a later retry", async () => {
+    mocks.get.mockResolvedValue({
+      ...detail,
+      refundRequest: { ...item, status: "PROCESSING" },
+      order: { ...detail.order, paymentProvider: "VNPAY", paymentProviderReference: "order-ref" },
+      reconciliationAttempts: [{ id: 1, providerReference: "refund-fail-1", providerTransactionNo: null, outcome: "FAILED", failureReason: "Bank rejected", createdAt: "2026-11-20T00:00:00Z" }],
+    });
+    mocks.reconcile.mockResolvedValue({
+      refundRequest: { ...item, status: "PROCESSING" },
+      reconciliationAttempt: { id: 2, providerReference: "refund-fail-2", providerTransactionNo: "txn-2", outcome: "FAILED", failureReason: "Declined", createdAt: "" },
+      manualReconciliationRequired: true,
+    });
+    renderPage("/merchant/refund-requests?requestId=11");
+    expect(await screen.findByText("Chưa ghi nhận kết quả từ nhà cung cấp")).toBeInTheDocument();
+    expect(screen.getByText(/refund-fail-1/)).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "Kết quả đối soát" }));
+    const failureOptions = await screen.findAllByText("Nhà cung cấp báo thất bại");
+    fireEvent.click(failureOptions[failureOptions.length - 1]);
+    fireEvent.change(screen.getByRole("textbox", { name: "Mã giao dịch hoàn tiền" }), { target: { value: "refund-fail-2" } });
+    const submit = screen.getByRole("button", { name: "Ghi nhận kết quả đối soát" });
+    expect(submit).toBeDisabled();
+    fireEvent.change(screen.getByRole("textbox", { name: "Lý do thất bại đối soát" }), { target: { value: "Declined" } });
+    fireEvent.click(submit);
+    await waitFor(() => expect(mocks.reconcile).toHaveBeenCalledWith(11, {
+      outcome: "FAILED",
+      providerReference: "refund-fail-2",
+      providerTransactionNo: undefined,
+      failureReason: "Declined",
+    }, "merchant-token"));
+    expect(mocks.reconcile).toHaveBeenCalledTimes(1);
+  });
+
+  it("submits settlement evidence for a retry and completes only after provider confirmation", async () => {
+    mocks.get.mockResolvedValue({
+      ...detail,
+      refundRequest: { ...item, status: "PROCESSING" },
+      order: { ...detail.order, paymentProvider: "VNPAY", paymentProviderReference: "order-ref" },
+      reconciliationAttempts: [{ id: 1, providerReference: "refund-fail-1", providerTransactionNo: null, outcome: "FAILED", failureReason: "Bank rejected", createdAt: "2026-11-20T00:00:00Z" }],
+    });
+    renderPage("/merchant/refund-requests?requestId=11");
+    expect(await screen.findByText(/Bank rejected/)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "Mã giao dịch hoàn tiền" }), { target: { value: "refund-settled-2" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Mã tham chiếu giao dịch nhà cung cấp" }), { target: { value: "txn-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ghi nhận kết quả đối soát" }));
+    await waitFor(() => expect(mocks.reconcile).toHaveBeenCalledWith(11, {
+      outcome: "SETTLED",
+      providerReference: "refund-settled-2",
+      providerTransactionNo: "txn-2",
+      failureReason: undefined,
+    }, "merchant-token"));
   });
 });

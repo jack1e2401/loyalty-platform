@@ -74,6 +74,34 @@ export interface RefundRequestDetailResponse {
   member?: { id: number; email: string };
   preview: ExtendedRefundPreviewDto;
   settlement?: Pick<RefundDto, "status" | "amountVnd" | "completedAt"> | null;
+  reconciliationAttempts?: RefundReconciliationAttemptDto[];
+}
+
+export interface RefundReconciliationAttemptDto {
+  id: number;
+  recordedById: number;
+  providerReference: string;
+  providerTransactionNo: string | null;
+  outcome: "FAILED" | "SETTLED";
+  failureReason: string | null;
+  createdAt: string;
+}
+
+export interface ManualRefundEvidenceInput {
+  outcome: "FAILED" | "SETTLED";
+  providerReference: string;
+  providerTransactionNo?: string;
+  failureReason?: string;
+}
+
+export interface MerchantReconcileRefundResponse {
+  refundRequest: RefundRequestDto;
+  reconciliationAttempt: RefundReconciliationAttemptDto;
+  manualReconciliationRequired: boolean;
+  refund?: RefundDto;
+  order?: OrderDto;
+  walletImpact?: unknown;
+  challengeReversals?: number;
 }
 
 export interface MockMerchantApproveRefundResponse {

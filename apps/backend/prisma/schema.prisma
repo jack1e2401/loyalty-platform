@@ -143,6 +143,7 @@ model User {
   publishedStorefrontVersions      StorefrontConfigVersion[] @relation("StorefrontVersionPublisher")
   refundRequestsAsMember           RefundRequest[]           @relation("RefundMember")
   refundRequestsAsMerchantReviewer RefundRequest[]           @relation("RefundMerchantReviewer")
+  refundReconciliationAttempts     RefundReconciliationAttempt[] @relation("RefundReconciliationActor")
   refreshSessions                  RefreshSession[]
 }
 
@@ -680,6 +681,11 @@ enum RefundRequestStatus {
   FAILED
 }
 
+enum RefundReconciliationOutcome {
+  FAILED
+  SETTLED
+}
+
 model Challenge {
   id           Int                 @id @default(autoincrement())
   merchantId   Int
@@ -832,7 +838,25 @@ model RefundRequest {
   member                 User                @relation("RefundMember", fields: [memberId], references: [id], onDelete: Restrict)
   merchant               Merchant            @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   merchantReviewer       User?               @relation("RefundMerchantReviewer", fields: [merchantReviewedById], references: [id], onDelete: SetNull)
+  reconciliationAttempts RefundReconciliationAttempt[]
 
   @@index([merchantId, status, requestedAt])
   @@index([status, requestedAt])
+}
+
+model RefundReconciliationAttempt {
+  id                   Int                         @id @default(autoincrement())
+  refundRequestId      Int
+  recordedById         Int
+  providerReference    String                      @db.VarChar(191)
+  providerTransactionNo String?                    @db.VarChar(64)
+  outcome              RefundReconciliationOutcome
+  failureReason        String?                     @db.VarChar(255)
+  requestHash          String                      @db.VarChar(64)
+  createdAt            DateTime                    @default(now())
+  refundRequest        RefundRequest               @relation(fields: [refundRequestId], references: [id], onDelete: Restrict)
+  recordedBy           User                        @relation("RefundReconciliationActor", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([refundRequestId, providerReference], map: "RefundRecon_request_providerRef_key")
+  @@index([refundRequestId, createdAt], map: "RefundRecon_request_created_idx")
 }
