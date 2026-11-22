@@ -71,4 +71,3 @@ CREATE TABLE `TierResetRun` (
   INDEX `TierResetRun_completedAt_idx` (`completedAt`),
   CONSTRAINT `TierResetRun_merchantId_fkey` FOREIGN KEY (`merchantId`) REFERENCES `Merchant` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
