@@ -35,7 +35,7 @@ function renderMerchantPage(initialEntry: string, element: React.ReactNode) {
     <AuthSessionProvider>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
-          <Route path="/merchant/loyalty" element={element} />
+          <Route path="/merchant/loyalty/*" element={element} />
           <Route path="/merchant/orders" element={element} />
         </Routes>
       </MemoryRouter>
@@ -111,7 +111,7 @@ describe("M7 Merchant Experience", () => {
     renderMerchantPage("/merchant/loyalty", <MerchantLoyalty />);
 
     await waitFor(() => {
-      expect(screen.getByText("Cấu hình Loyalty")).toBeInTheDocument();
+      expect(screen.getByText("Cấu hình điểm")).toBeInTheDocument();
       expect(screen.getByText(/lưu ý: thay đổi tỷ lệ hoặc hạng/i)).toBeInTheDocument();
     });
 
@@ -198,7 +198,7 @@ describe("M7 Merchant Experience", () => {
     expect(screen.queryByRole("link", { name: "Xử lý yêu cầu hoàn tiền" })).not.toBeInTheDocument();
   });
 
-  it("handles merchant refund preview and reasoned refund submission in MerchantOrders", async () => {
+  it("links paid orders to the merchant refund review queue", async () => {
     const orders = [
       {
         id: 77,
@@ -216,66 +216,13 @@ describe("M7 Merchant Experience", () => {
         earnedPoints: 10,
         earnedPointsExact: "10.0",
         refundStatus: null,
+        refundRequest: { id: 5, status: "PENDING_MERCHANT" },
         actions: { canCancel: false, canRefund: true },
       },
     ];
 
-    const refundPreview = {
-      orderId: 77,
-      refundAmountVnd: "100000",
-      refundStatus: null,
-      earningReversalExact: "10.0",
-      walletBefore: {
-        exactBalance: "10.0",
-        availablePoints: 10,
-        fractionalCarry: "0.0",
-        pointDebt: "0",
-        netLifetimeEarned: "10.0",
-        lifetimeEarnedPoints: 10,
-        tier: "BRONZE",
-      },
-      walletAfter: {
-        exactBalance: "0.0",
-        availablePoints: 0,
-        fractionalCarry: "0.0",
-        pointDebt: "0",
-        netLifetimeEarned: "0.0",
-        lifetimeEarnedPoints: 0,
-        tier: "BRONZE",
-      },
-      tierBefore: "BRONZE",
-      tierAfter: "BRONZE",
-      discountVoucherRestorable: false,
-    };
-
-    const refundResult = {
-      refund: {
-        id: 99,
-        status: "COMPLETED",
-        amountVnd: "100000",
-        reason: "Khách đổi trả sản phẩm lỗi",
-        requestedById: 2,
-        requestedAt: "2026-11-11T12:00:00.000Z",
-        completedAt: "2026-11-11T12:00:00.000Z",
-        providerReference: null,
-      },
-      order: {
-        ...orders[0],
-        status: "REFUNDED",
-        refundStatus: "COMPLETED",
-        actions: { canCancel: false, canRefund: false },
-      },
-      walletImpact: {},
-    };
-
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.includes("/api/merchant/orders/77/refund-preview")) {
-        return Response.json(refundPreview);
-      }
-      if (url.includes("/api/merchant/orders/77/refund") && init?.method === "POST") {
-        return Response.json(refundResult);
-      }
       if (url.includes("/api/merchant/orders") && (!init || init.method === "GET")) {
         return Response.json({ orders });
       }
@@ -293,7 +240,7 @@ describe("M7 Merchant Experience", () => {
     });
 
     const refundLink = screen.getByRole("link", { name: /xử lý yêu cầu hoàn tiền/i });
-    expect(refundLink).toHaveAttribute("href", "/merchant/refund-requests");
+    expect(refundLink).toHaveAttribute("href", "/merchant/refund-requests?requestId=5");
   });
 
   it("allows merchant to cancel unfulfilled reward voucher with reason", async () => {
@@ -337,6 +284,7 @@ describe("M7 Merchant Experience", () => {
     });
 
     renderMerchantPage("/merchant/orders", <MerchantOrders />);
+    fireEvent.click(screen.getByText("Quà đổi thưởng"));
 
     await waitFor(() => {
       expect(screen.getByText("Bình giữ nhiệt")).toBeInTheDocument();
@@ -414,14 +362,11 @@ describe("M7 Merchant Experience", () => {
       return Response.json({ error: "Not found" }, { status: 404 });
     });
 
-    renderMerchantPage("/merchant/loyalty", <MerchantLoyalty />);
+    renderMerchantPage("/merchant/loyalty/transactions", <MerchantLoyalty />);
 
     await waitFor(() => {
-      expect(screen.getByText("Cấu hình Loyalty")).toBeInTheDocument();
+      expect(screen.getByText("Giao dịch điểm")).toBeInTheDocument();
     });
-
-    const ledgerTabBtn = screen.getByRole("button", { name: /lịch sử giao dịch điểm/i });
-    fireEvent.click(ledgerTabBtn);
 
     const ledger = await screen.findByRole("table", { name: "Sổ giao dịch điểm" });
     const firstRow = within(ledger).getByRole("row", { name: /#101/ });
@@ -538,6 +483,7 @@ describe("M7 Merchant Experience", () => {
     });
 
     renderMerchantPage("/merchant/orders", <MerchantOrders />);
+    fireEvent.click(screen.getByText("Quà đổi thưởng"));
 
     await waitFor(() => {
       expect(screen.getByText("Áo thun kỷ niệm")).toBeInTheDocument();
@@ -555,71 +501,6 @@ describe("M7 Merchant Experience", () => {
       expect(screen.getByText("Người xác nhận #2")).toBeInTheDocument();
       expect(screen.getByText("Ghi chú: Trao quà tại quầy")).toBeInTheDocument();
     });
-  });
-
-  it("shows the exact wallet debt and tier projected by a refund preview", async () => {
-    const orders = [
-      {
-        id: 99,
-        merchantId: 7,
-        memberId: 9,
-        memberEmail: "member@test.local",
-        status: "PAID",
-        subtotal: "6000",
-        discountAmount: "0",
-        total: "6000",
-        paidAt: "2026-11-11T10:00:00.000Z",
-        items: [{ productId: 1, productName: "Cà phê", unitPrice: "6000", quantity: 1, lineTotal: "6000" }],
-        earnedPoints: 0,
-        earnedPointsExact: "0.6",
-        refundStatus: null,
-        actions: { canCancel: false, canRefund: true },
-      },
-    ];
-    const refundPreview = {
-      orderId: 99,
-      refundAmountVnd: "6000",
-      refundStatus: null,
-      earningReversalExact: "0.6",
-      walletBefore: {
-        exactBalance: "0.2",
-        availablePoints: 0,
-        fractionalCarry: "0.2",
-        pointDebt: "0",
-        netLifetimeEarned: "1.2",
-        lifetimeEarnedPoints: 1,
-        tier: "SILVER",
-      },
-      walletAfter: {
-        exactBalance: "-0.4",
-        availablePoints: 0,
-        fractionalCarry: "0",
-        pointDebt: "0.4",
-        netLifetimeEarned: "0.6",
-        lifetimeEarnedPoints: 0,
-        tier: "BRONZE",
-      },
-      tierBefore: "SILVER",
-      tierAfter: "BRONZE",
-      discountVoucherRestorable: false,
-    };
-
-    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes("/api/merchant/orders/99/refund-preview")) return Response.json(refundPreview);
-      if (url.includes("/api/merchant/orders") && (!init || init.method === "GET"))
-        return Response.json({ orders });
-      if (url.includes("/api/merchant/rewards")) return Response.json({ rewards: [] });
-      return Response.json({ error: "Not found" }, { status: 404 });
-    });
-
-    renderMerchantPage("/merchant/orders", <MerchantOrders />);
-
-    await waitFor(() => expect(screen.getByText("#99")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: /xử lý yêu cầu hoàn tiền/i })).toHaveAttribute(
-      "href",
-      "/merchant/refund-requests",
-    );
   });
 
 });

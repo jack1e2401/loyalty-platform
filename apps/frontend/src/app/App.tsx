@@ -87,7 +87,7 @@ function BackendRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route element={<RequireRole role="MERCHANT" />}>
-        <Route path="/merchant" element={<BackendConsoleLayout role="merchant" />}>
+        <Route path="/merchant" element={<BackendConsoleLayout />}>
           <Route index element={<MerchantOverview />} />
           <Route path="store" element={<MerchantStore />} />
           <Route path="storefront" element={<MerchantStorefrontEditor />} />

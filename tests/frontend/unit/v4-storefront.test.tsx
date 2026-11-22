@@ -364,25 +364,12 @@ describe("V4 Storefront UI & Auth returnTo/slug", () => {
     });
   });
 
-  it("allows Merchant registration with optional slug on RegisterPage", async () => {
+  it("registers a local Member account", async () => {
     let submittedBody: Record<string, unknown> | null = null;
-    milestone2FetchHandler = async (_input, init) => {
+    milestone2FetchHandler = async (input, init) => {
+      expect(String(input)).toContain("/api/auth/register/member");
       submittedBody = JSON.parse(String(init?.body));
-      return Response.json(
-        {
-          user: { id: 20, email: "shop@example.com", role: "MERCHANT", isActive: false },
-          application: {
-            id: 9,
-            applicantId: 20,
-            storeName: "Tiệm Trà Mộc",
-            slug: "tiem-tra-moc",
-            status: "PENDING",
-            reviewedById: null,
-            reviewedAt: null,
-          },
-        },
-        { status: 201 },
-      );
+      return Response.json({ member: { id: 20, email: "member@example.com" } }, { status: 201 });
     };
 
     render(
@@ -395,27 +382,18 @@ describe("V4 Storefront UI & Auth returnTo/slug", () => {
       </AuthSessionProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Merchant/i }));
-    fireEvent.change(screen.getByPlaceholderText("Tên cửa hàng của bạn"), {
-      target: { value: "Tiệm Trà Mộc" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("vd: ca-phe-moc"), {
-      target: { value: "tiem-tra-moc" },
-    });
     fireEvent.change(screen.getByPlaceholderText("ban@example.com"), {
-      target: { value: "shop@example.com" },
+      target: { value: "member@example.com" },
     });
     fireEvent.change(screen.getByPlaceholderText("Tạo mật khẩu mạnh"), {
       target: { value: "a-very-strong-password-123" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Gửi hồ sơ Merchant/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Tạo tài khoản Member/i }));
 
-    await screen.findByText(/Đường dẫn dự kiến: \/s\/tiem-tra-moc/);
+    expect(await screen.findByText(/Đăng ký thành công/)).toBeInTheDocument();
     expect(submittedBody).toEqual({
-      email: "shop@example.com",
+      email: "member@example.com",
       password: "a-very-strong-password-123",
-      storeName: "Tiệm Trà Mộc",
-      slug: "tiem-tra-moc",
     });
   });
 });

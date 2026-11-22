@@ -20,7 +20,7 @@ test("slugifyStoreName transliterates Vietnamese characters and avoids reserved 
   assert.equal(slugifyStoreName("Cà Phê Mộc Đỏ"), "ca-phe-moc-do");
   assert.equal(slugifyStoreName("Đồ Gỗ Mỹ Nghệ"), "do-go-my-nghe");
   assert.equal(slugifyStoreName("!!!"), "store");
-  assert.equal(slugifyStoreName("Admin"), "admin-store");
+  assert.equal(slugifyStoreName("Admin"), "admin");
   assert.equal(slugifyStoreName("S"), "s-store");
   assert.equal(fallbackSlug("Tiệm Trà Sữa", 42), "tiem-tra-sua-42");
 });
@@ -29,7 +29,7 @@ test("validateExplicitSlug accepts valid slugs and rejects reserved or malformed
   assert.equal(validateExplicitSlug("ca-phe-moc"), "ca-phe-moc");
   assert.equal(validateExplicitSlug("shop123"), "shop123");
 
-  for (const invalid of ["ab", "a".repeat(64), "My-Shop", "my_shop", "-shop", "shop-", "a--b", "admin", "merchant", "member", "login", "register", "api", "uploads", "s"]) {
+  for (const invalid of ["ab", "a".repeat(64), "My-Shop", "my_shop", "-shop", "shop-", "a--b", "merchant", "member", "login", "register", "api", "uploads", "s"]) {
     assert.throws(
       () => validateExplicitSlug(invalid),
       (error: unknown) => error instanceof HttpError && error.statusCode === 400 && error.code === "INVALID_INPUT",

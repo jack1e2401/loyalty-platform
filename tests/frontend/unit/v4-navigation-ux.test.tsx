@@ -49,7 +49,7 @@ describe("V4 navigation UX", () => {
   it("keeps Marketing expanded on deep merchant routes with separate Events and Challenges links", async () => {
     sessionStorage.setItem("loyalty.m2.session", JSON.stringify({ accessToken: "token", user: { id: 2, email: "merchant@example.com", role: "MERCHANT", isActive: true } }));
     commerceClient.getOwnMerchant.mockResolvedValue({ merchant: { id: 5, isActive: true } });
-    render(<AuthSessionProvider><MemoryRouter initialEntries={["/merchant/challenges/12"]}><Routes><Route path="/merchant" element={<BackendConsoleLayout role="merchant" />}><Route path="challenges/:challengeId" element={<p>Chi tiết nhiệm vụ</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
+    render(<AuthSessionProvider><MemoryRouter initialEntries={["/merchant/challenges/12"]}><Routes><Route path="/merchant" element={<BackendConsoleLayout />}><Route path="challenges/:challengeId" element={<p>Chi tiết nhiệm vụ</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
     expect(await within(screen.getByRole("main")).findByText("Chi tiết nhiệm vụ")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("button", { name: /Marketing/ })).toHaveAttribute("aria-expanded", "true"));
     const navigation = screen.getByRole("navigation", { name: "Điều hướng chính" });
@@ -61,7 +61,7 @@ describe("V4 navigation UX", () => {
   it("shows an accessible breadcrumb inside the Merchant console", async () => {
     sessionStorage.setItem("loyalty.m2.session", JSON.stringify({ accessToken: "token", user: { id: 2, email: "merchant@example.com", role: "MERCHANT", isActive: true } }));
     commerceClient.getOwnMerchant.mockResolvedValue({ merchant: { id: 5, isActive: true } });
-    render(<AuthSessionProvider><MemoryRouter initialEntries={["/merchant/challenges/12"]}><Routes><Route path="/merchant" element={<BackendConsoleLayout role="merchant" />}><Route path="challenges/:challengeId" element={<p>Chi tiết nhiệm vụ</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
+    render(<AuthSessionProvider><MemoryRouter initialEntries={["/merchant/challenges/12"]}><Routes><Route path="/merchant" element={<BackendConsoleLayout />}><Route path="challenges/:challengeId" element={<p>Chi tiết nhiệm vụ</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
     const breadcrumb = await screen.findByRole("navigation", { name: "Breadcrumb" });
     expect(breadcrumb).toHaveTextContent("Tổng quan");
     expect(breadcrumb).toHaveTextContent("Nhiệm vụ");
@@ -74,7 +74,7 @@ describe("V4 navigation UX", () => {
   ])("shows the correct console title for %s", async (path, expectedTitle) => {
     sessionStorage.setItem("loyalty.m2.session", JSON.stringify({ accessToken: "token", user: { id: 2, email: "merchant@example.com", role: "MERCHANT", isActive: true } }));
     commerceClient.getOwnMerchant.mockResolvedValue({ merchant: { id: 5, isActive: true } });
-    render(<AuthSessionProvider><MemoryRouter initialEntries={[path]}><Routes><Route path="/merchant" element={<BackendConsoleLayout role="merchant" />}><Route path="challenges/new" element={<p>Editor page</p>} /><Route path="challenges/:challengeId/edit" element={<p>Editor page</p>} /><Route path="challenges/:challengeId" element={<p>Detail page</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
+    render(<AuthSessionProvider><MemoryRouter initialEntries={[path]}><Routes><Route path="/merchant" element={<BackendConsoleLayout />}><Route path="challenges/new" element={<p>Editor page</p>} /><Route path="challenges/:challengeId/edit" element={<p>Editor page</p>} /><Route path="challenges/:challengeId" element={<p>Detail page</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
     await screen.findByText(/(Editor|Detail) page/);
     expect(screen.getByRole("banner")).toHaveTextContent(expectedTitle);
   });
@@ -82,7 +82,7 @@ describe("V4 navigation UX", () => {
   it("resets merchant content to the top after navigating to a new management page", async () => {
     sessionStorage.setItem("loyalty.m2.session", JSON.stringify({ accessToken: "token", user: { id: 2, email: "merchant@example.com", role: "MERCHANT", isActive: true } }));
     commerceClient.getOwnMerchant.mockResolvedValue({ merchant: { id: 5, isActive: true } });
-    render(<AuthSessionProvider><MemoryRouter initialEntries={["/merchant/challenges/12"]}><Routes><Route path="/merchant" element={<BackendConsoleLayout role="merchant" />}><Route path="challenges" element={<p>Danh sách nhiệm vụ</p>} /><Route path="challenges/:challengeId" element={<p>Chi tiết nhiệm vụ</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
+    render(<AuthSessionProvider><MemoryRouter initialEntries={["/merchant/challenges/12"]}><Routes><Route path="/merchant" element={<BackendConsoleLayout />}><Route path="challenges" element={<p>Danh sách nhiệm vụ</p>} /><Route path="challenges/:challengeId" element={<p>Chi tiết nhiệm vụ</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
     expect(await within(screen.getByRole("main")).findByText("Chi tiết nhiệm vụ")).toBeInTheDocument();
     document.documentElement.scrollTop = 480;
     fireEvent.click(within(screen.getByRole("navigation", { name: "Điều hướng chính" })).getByRole("link", { name: "Nhiệm vụ" }));
