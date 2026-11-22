@@ -1,4 +1,3 @@
-import type { PlatformFeeFilters } from "../contracts/finance";
 import type { ProductListQuery, PublicProductListQuery } from "../contracts/catalog";
 import { fetchWithSessionRefresh } from "../session-http";
 
@@ -61,15 +60,6 @@ export async function requestJson<T>(
     throw new Error(error);
   }
   return payload as T;
-}
-
-/** Only endpoints currently mounted by apps/backend/src/app.ts. */
-export function financePath(path: string, filters: PlatformFeeFilters) {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined) query.set(key, String(value));
-  }
-  return query.size ? `${path}?${query}` : path;
 }
 
 export function productQueryPath(path: string, filters: ProductListQuery | PublicProductListQuery = {}) {

@@ -3,7 +3,6 @@ import type { ChallengeRewardGrantStatus, ChallengeRewardState, ChallengeType } 
 
 export type RefundRequestStatus =
   | "PENDING_MERCHANT"
-  | "PENDING_ADMIN"
   | "REJECTED"
   | "APPROVED"
   | "PROCESSING"

@@ -71,7 +71,6 @@ export const ordersService = {
     const result = await ordersRepository.markPaid(memberId, orderId);
     if (result === "missing") throw new HttpError(404, "ORDER_NOT_FOUND");
     if (result === "already_paid") throw new HttpError(409, "ORDER_ALREADY_PAID");
-    if (result === "vnpay_attempt_exists") throw new HttpError(409, "VNPAY_ATTEMPT_EXISTS");
     if (result === "reservation_expired") throw new HttpError(409, "ORDER_RESERVATION_EXPIRED");
     return result;
   },

@@ -48,7 +48,7 @@ const detail = {
     paidAt: null,
     items: [{ productId: 1, productName: "Tea", unitPrice: "50000", quantity: 1, lineTotal: "50000" }],
     earnedPointsExact: "5",
-    actions: { canRefund: false, canCancel: false, requiresReconciliation: false },
+    actions: { canRefund: false, canCancel: false },
   },
   preview: {
     orderId: 21,
@@ -60,7 +60,6 @@ const detail = {
     tierBefore: "BRONZE",
     tierAfter: "BRONZE",
     discountVoucherRestorable: true,
-    providerConfirmationRequired: false,
     challenges: [
       {
         challengeId: 1,
@@ -103,7 +102,7 @@ describe("merchant refund request approvals", () => {
       pagination: { page: 1, limit: 20, totalItems: 1, totalPages: 1 },
     });
     mocks.get.mockResolvedValue(detail);
-    mocks.approve.mockResolvedValue({ refundRequest: { ...item, status: "PENDING_ADMIN" } });
+    mocks.approve.mockResolvedValue({ refundRequest: { ...item, status: "COMPLETED" } });
     mocks.reject.mockResolvedValue({ refundRequest: { ...item, status: "REJECTED" } });
   });
   afterEach(() => {

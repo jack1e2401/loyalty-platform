@@ -1,14 +1,13 @@
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { consumeOrderInventory } from "../inventory/inventory.order.js";
 import { processPaidOrderChallenges } from "../../loyalty/challenges/challenges.engine.js";
-import { creditOrderPoints, type EarningSnapshot } from "../../loyalty/program/loyalty.earning.js";
+import { creditOrderPoints } from "../../loyalty/program/loyalty.earning.js";
 import { consumeOrderVoucher } from "../../loyalty/vouchers/vouchers.order.js";
-import { recordMerchantFee } from "../../merchants/profile/merchant.finance.js";
 import { toOrderDto } from "./orders.serialization.js";
 import type { OrderDto } from "./orders.types.js";
 
 export async function completePaidOrder(
-  tx: Prisma.TransactionClient, orderId: number, memberId: number, snapshot?: EarningSnapshot,
+  tx: Prisma.TransactionClient, orderId: number, memberId: number,
 ): Promise<OrderDto | "missing" | "already_paid"> {
   const changed = await tx.order.updateMany({
     where: { id: orderId, memberId, status: "PENDING" }, data: { status: "PAID", paidAt: new Date() },
@@ -23,8 +22,7 @@ export async function completePaidOrder(
   await consumeOrderInventory(tx, order);
   await consumeOrderVoucher(tx, order);
   const paidOrder = { ...order, paidAt: order.paidAt! };
-  const { paid, promotedToTier, membershipId } = await creditOrderPoints(tx, paidOrder, snapshot);
-  await recordMerchantFee(tx, paidOrder);
+  const { paid, promotedToTier, membershipId } = await creditOrderPoints(tx, paidOrder);
   await processPaidOrderChallenges(tx, paidOrder, membershipId);
   return { ...toOrderDto(paid), promotedToTier };
 }

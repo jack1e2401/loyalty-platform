@@ -140,7 +140,6 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
   if (!data) return null;
 
   const pending = isRefundAwaitingMerchant(data.refundRequest.status);
-  const providerRequired = data.preview.providerConfirmationRequired;
   const statusTone =
     data.refundRequest.status === "COMPLETED"
       ? "success"
@@ -205,15 +204,6 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
             Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
           </Typography.Paragraph>
           <RefundPreview preview={data.preview} />
-          {providerRequired ? (
-            <Alert
-              className="mt-4"
-              type="warning"
-              showIcon
-              title="Chưa thể hoàn qua VNPay"
-              description="Đơn đã thanh toán qua VNPay. Hệ thống chưa hỗ trợ hoàn tiền qua cổng này."
-            />
-          ) : null}
         </Card>
       ) : (
         <Card title="Kết quả xử lý" size="small">
@@ -273,7 +263,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                 </Button>
                 <Button
                   type="primary"
-                  disabled={busy || providerRequired}
+                  disabled={busy}
                   onClick={() => setConfirming("approve")}
                 >
                   Duyệt hoàn tiền

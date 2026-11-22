@@ -23,8 +23,7 @@ test("authentication screens stay focused and reuse local photo art", async ({ p
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const [path, heading] of [
     ["/login", "Đăng nhập"],
-    ["/register", "Tạo tài khoản"],
-    ["/application/status", "Trạng thái hồ sơ Merchant"],
+    ["/register", "Tạo tài khoản Member"],
   ]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
@@ -37,47 +36,6 @@ test("authentication screens stay focused and reuse local photo art", async ({ p
   await expect(page.getByLabel("Email")).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   expect(overflow).toBe(false);
-});
-
-test("Admin review shows only application fields supplied by the backend", async ({ page }) => {
-  await page.route("**/api/admin/merchants/history", (route) =>
-    route.fulfill({ json: { applications: [] } }),
-  );
-  await page.addInitScript(() => {
-    sessionStorage.setItem(
-      "loyalty.m2.session",
-      JSON.stringify({
-        accessToken: "admin-token",
-        user: { id: 1, email: "admin@test.local", role: "ADMIN", isActive: true },
-      }),
-    );
-  });
-  await page.route("**/api/admin/merchants/pending", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        applications: [
-          {
-            id: 42,
-            applicantId: 9,
-            storeName: "Nhà Mây",
-            status: "PENDING",
-            reviewedById: null,
-            reviewedAt: null,
-          },
-        ],
-      }),
-    }),
-  );
-
-  await page.goto("/admin/applications");
-  await expect(page.getByRole("heading", { name: "Duyệt hồ sơ cửa hàng" })).toBeVisible();
-  const queue = page.getByRole("region", { name: "Danh sách hồ sơ" });
-  const application = queue.getByRole("listitem");
-  await expect(application.getByRole("heading", { name: "Nhà Mây", exact: true })).toBeVisible();
-  await expect(application.getByText("#9", { exact: true })).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(/milestone|backend api|mock api/i);
-  await page.screenshot({ path: "test-results/admin-review-desktop.png", fullPage: true });
 });
 
 test("Member wallet shows backend balances in a visible card without invented tier thresholds", async ({

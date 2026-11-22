@@ -181,7 +181,7 @@ describe("M7 Merchant Experience", () => {
       items: [{ productId: 1, productName: "Sản phẩm A", unitPrice: "100000", quantity: 1, lineTotal: "100000" }],
       earnedPoints: 10,
       earnedPointsExact: "10.0",
-      actions: { canCancel: false, canRefund: true, requiresReconciliation: false },
+      actions: { canCancel: false, canRefund: true },
     };
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -215,9 +215,8 @@ describe("M7 Merchant Experience", () => {
         ],
         earnedPoints: 10,
         earnedPointsExact: "10.0",
-        paymentStatus: "SUCCEEDED",
         refundStatus: null,
-        actions: { canCancel: false, canRefund: true, requiresReconciliation: false },
+        actions: { canCancel: false, canRefund: true },
       },
     ];
 
@@ -247,7 +246,6 @@ describe("M7 Merchant Experience", () => {
       tierBefore: "BRONZE",
       tierAfter: "BRONZE",
       discountVoucherRestorable: false,
-      providerConfirmationRequired: false,
     };
 
     const refundResult = {
@@ -265,7 +263,7 @@ describe("M7 Merchant Experience", () => {
         ...orders[0],
         status: "REFUNDED",
         refundStatus: "COMPLETED",
-        actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+        actions: { canCancel: false, canRefund: false },
       },
       walletImpact: {},
     };
@@ -499,51 +497,6 @@ describe("M7 Merchant Experience", () => {
     expect(screen.queryByRole("button", { name: /^hoàn tiền$/i })).not.toBeInTheDocument();
   });
 
-  it("renders pending provider refund status for VNPay orders without inferring success", async () => {
-    const orders = [
-      {
-        id: 88,
-        merchantId: 7,
-        memberId: 9,
-        memberEmail: "member@test.local",
-        status: "REFUND_PENDING",
-        subtotal: "200000",
-        discountAmount: "0",
-        total: "200000",
-        paidAt: "2026-11-10T10:00:00.000Z",
-        items: [
-          { productId: 1, productName: "Sản phẩm B", unitPrice: "200000", quantity: 1, lineTotal: "200000" },
-        ],
-        earnedPoints: 20,
-        earnedPointsExact: "20.0",
-        paymentStatus: "SUCCEEDED",
-        refundStatus: "PENDING_PROVIDER",
-        actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
-      },
-    ];
-
-    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes("/api/merchant/orders") && (!init || init.method === "GET")) {
-        return Response.json({ orders });
-      }
-      if (url.includes("/api/merchant/rewards")) {
-        return Response.json({ rewards: [] });
-      }
-      return Response.json({ error: "Not found" }, { status: 404 });
-    });
-
-    renderMerchantPage("/merchant/orders", <MerchantOrders />);
-
-    await waitFor(() => {
-      expect(screen.getByText("#88")).toBeInTheDocument();
-      expect(screen.getByText("Đang hoàn tiền")).toBeInTheDocument();
-      expect(screen.getByText("Chờ cổng xác nhận hoàn tiền")).toBeInTheDocument();
-      // Since actions.canRefund is false, refund button should not be rendered
-      expect(screen.queryByRole("button", { name: /^hoàn tiền$/i })).not.toBeInTheDocument();
-    });
-  });
-
   it("fulfills a pending reward voucher with optional note", async () => {
     const rewards = [
       {
@@ -619,9 +572,8 @@ describe("M7 Merchant Experience", () => {
         items: [{ productId: 1, productName: "Cà phê", unitPrice: "6000", quantity: 1, lineTotal: "6000" }],
         earnedPoints: 0,
         earnedPointsExact: "0.6",
-        paymentStatus: null,
         refundStatus: null,
-        actions: { canCancel: false, canRefund: true, requiresReconciliation: false },
+        actions: { canCancel: false, canRefund: true },
       },
     ];
     const refundPreview = {
@@ -650,7 +602,6 @@ describe("M7 Merchant Experience", () => {
       tierBefore: "SILVER",
       tierAfter: "BRONZE",
       discountVoucherRestorable: false,
-      providerConfirmationRequired: true,
     };
 
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -671,38 +622,4 @@ describe("M7 Merchant Experience", () => {
     );
   });
 
-  it("reports a provider refund as pending without inferring completed status", async () => {
-    const pendingOrder = {
-      id: 88,
-      merchantId: 7,
-      memberId: 9,
-      memberEmail: "member@test.local",
-      status: "REFUND_PENDING",
-      subtotal: "200000",
-      discountAmount: "0",
-      total: "200000",
-      paidAt: "2026-11-11T10:00:00.000Z",
-      items: [
-        { productId: 1, productName: "Sản phẩm B", unitPrice: "200000", quantity: 1, lineTotal: "200000" },
-      ],
-      earnedPoints: 20,
-      earnedPointsExact: "20",
-      paymentStatus: "SUCCEEDED",
-      refundStatus: "PENDING_PROVIDER",
-      actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
-    };
-    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes("/api/merchant/orders") && (!init || init.method === "GET")) {
-        return Response.json({ orders: [pendingOrder] });
-      }
-      if (url.includes("/api/merchant/rewards")) return Response.json({ rewards: [] });
-      return Response.json({ error: "Not found" }, { status: 404 });
-    });
-
-    renderMerchantPage("/merchant/orders", <MerchantOrders />);
-    await waitFor(() => expect(screen.getByText("#88")).toBeInTheDocument());
-    expect(screen.getByText("Chờ cổng xác nhận hoàn tiền")).toBeInTheDocument();
-    expect(screen.queryByText(/^Đã hoàn tiền$/i)).not.toBeInTheDocument();
-  });
 });

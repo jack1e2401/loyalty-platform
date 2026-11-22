@@ -257,22 +257,6 @@ test("checkout stays pending until the mock payment endpoint confirms PAID", asy
   await expect(page.getByText(/Chúc mừng.*Gold/)).toBeVisible();
 });
 
-test("a VNPay return query never marks a pending order paid by itself", async ({ page }) => {
-  await signInAsMember(page);
-  await page.route("**/api/member/orders/41", (route) =>
-    route.fulfill({ contentType: "application/json", body: JSON.stringify({ order: pendingOrder }) }),
-  );
-  await page.route("**/api/orders/41/payment-status", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({ orderStatus: "PENDING", paymentStatus: "CREATED" }),
-    }),
-  );
-  await page.goto("/member/7/orders/41?vnp_ResponseCode=00");
-  await expect(page.getByText("Chờ thanh toán", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status").getByText("Thanh toán đã được máy chủ xác nhận")).toHaveCount(0);
-});
-
 test("a discount voucher reserved by a pending order is not selectable at checkout", async ({ page }) => {
   await signInAsMember(page);
   await page.route("**/api/merchants/7/products", (route) =>
@@ -412,38 +396,6 @@ test("redeemed reward remains pending until merchant fulfillment", async ({ page
   await page.getByRole("link", { name: "Quà tặng" }).click();
   await expect(page.getByText("Chờ cửa hàng trao")).toBeVisible();
   await expect(page.getByText("Đã trao")).toHaveCount(0);
-});
-
-test("admin monitoring and merchant directory render server data", async ({ page }) => {
-  await page.addInitScript(() =>
-    sessionStorage.setItem(
-      "loyalty.m2.session",
-      JSON.stringify({
-        accessToken: "admin-token",
-        user: { id: 1, email: "admin@test.local", role: "ADMIN", isActive: true },
-      }),
-    ),
-  );
-  await page.route("**/api/admin/dashboard", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        stats: { merchants: 2, pendingApplications: 1, paidOrders: 9, totalVolume: "1234000" },
-      }),
-    }),
-  );
-  await page.route("**/api/admin/merchants", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        merchants: [{ id: 7, name: "Mộc Studio", slug: "moc-studio", isActive: true }],
-      }),
-    }),
-  );
-  await page.goto("/admin");
-  await expect(page.getByText("1.234.000 ₫")).toBeVisible();
-  await page.getByRole("link", { name: "Cửa hàng", exact: true }).click();
-  await expect(page.getByText("moc-studio · #7")).toBeVisible();
 });
 
 test("Merchant chart groups net paid totals by Vietnam calendar day", async ({ page }) => {

@@ -8,5 +8,3 @@ export const listMerchantRefundRequests: RequestHandler = async (req, res) => re
 export const merchantRefundRequestDetail: RequestHandler = async (req, res) => { const merchant = await merchantService.getOwnStore(res.locals.user.id); res.json(await refundsService.detail(readRouteId(req.params.requestId), merchant.id)); };
 export const merchantApproveRefundRequest: RequestHandler = async (req, res) => res.json(await refundsService.merchantApprove(res.locals.user.id, readRouteId(req.params.requestId), req.body?.note));
 export const merchantRejectRefundRequest: RequestHandler = async (req, res) => res.json({ refundRequest: await refundsService.merchantReject(res.locals.user.id, readRouteId(req.params.requestId), req.body?.reason) });
-export const listAdminRefundRequests: RequestHandler = async (req, res) => res.json(await refundsService.listAdmin(req.query));
-export const adminRefundRequestDetail: RequestHandler = async (req, res) => res.json(await refundsService.detail(readRouteId(req.params.requestId)));

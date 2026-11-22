@@ -13,7 +13,7 @@ function isBackendUser(value: unknown): value is BackendUserDto {
   return (
     typeof user.id === "number" &&
     typeof user.email === "string" &&
-    ["ADMIN", "MERCHANT", "MEMBER"].includes(user.role ?? "") &&
+    ["MERCHANT", "MEMBER"].includes(user.role ?? "") &&
     typeof user.isActive === "boolean"
   );
 }

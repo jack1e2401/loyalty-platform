@@ -29,7 +29,6 @@ export const ordersRepository = {
     let order: Prisma.OrderGetPayload<{
       include: {
         items: true;
-        paymentAttempt: true;
         refund: true;
         pointTransactions: true;
       };
@@ -79,7 +78,6 @@ export const ordersRepository = {
               },
               include: {
                 items: { orderBy: { id: "asc" } },
-                paymentAttempt: true,
                 refund: true,
                 pointTransactions: true,
               },
@@ -125,7 +123,6 @@ export const ordersRepository = {
     | OrderDto
     | "missing"
     | "already_paid"
-    | "vnpay_attempt_exists"
     | "reservation_expired"
   > {
     return withTransactionRetry(() =>
@@ -133,11 +130,10 @@ export const ordersRepository = {
         async (tx) => {
           const order = await tx.order.findFirst({
             where: { id: orderId, memberId },
-            include: { items: true, paymentAttempt: true },
+            include: { items: true },
           });
           if (!order) return "missing";
           if (order.status !== "PENDING") return "already_paid";
-          if (order.paymentAttempt) return "vnpay_attempt_exists";
           if (
             order.stockReservedUntil &&
             order.stockReservedUntil.getTime() <= Date.now()
@@ -173,28 +169,13 @@ export const ordersRepository = {
           const order = await tx.order.findFirst({
             where: { id: orderId, memberId },
             include: {
-              paymentAttempt: true,
               voucherReservation: true,
               items: true,
             },
           });
           if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
           if (order.status !== "PENDING") {
-            throw new OrderNotCancellableError(
-              order.status,
-              order.paymentAttempt?.status ?? null,
-            );
-          }
-          if (order.paymentAttempt) {
-            if (
-              order.paymentAttempt.status === "CREATED" ||
-              order.paymentAttempt.status === "SUCCEEDED"
-            ) {
-              throw new OrderNotCancellableError(
-                order.status,
-                order.paymentAttempt.status,
-              );
-            }
+            throw new OrderNotCancellableError(order.status);
           }
 
           await releaseOrderInventory(
@@ -215,7 +196,6 @@ export const ordersRepository = {
             data: { status: "CANCELLED" },
             include: {
               items: true,
-              paymentAttempt: true,
               refund: true,
               pointTransactions: true,
             },
@@ -239,7 +219,7 @@ export const ordersRepository = {
     return prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
-        include: { voucher: true, paymentAttempt: true, refund: true },
+        include: { voucher: true, refund: true },
       });
       if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
       if (order.merchantId !== merchantId)
@@ -270,9 +250,6 @@ export const ordersRepository = {
 
       const tierBefore =
         selectTier(wallet?.netLifetimeEarned ?? "0", tiers) ?? "UNRANKED";
-      const isVnpay = Boolean(
-        order.paymentAttempt && order.paymentAttempt.status === "SUCCEEDED",
-      );
       const challengeEntries = await tx.challengeProgressEntry.findMany({
         where: { activity: { orderId: order.id, type: "ORDER_PAID" }, deltaValue: { gt: 0 } },
         include: { progress: { include: { challenge: true, grants: { where: { status: "GRANTED" }, orderBy: { cycle: "desc" }, take: 1 } } } },
@@ -304,7 +281,6 @@ export const ordersRepository = {
         discountVoucherRestorable: Boolean(
           order.voucherId && order.voucher?.status === "USED",
         ),
-        providerConfirmationRequired: isVnpay,
         challenges,
       };
     });

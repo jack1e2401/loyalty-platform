@@ -2,7 +2,7 @@ import type { Request, RequestHandler, Response } from "express";
 import { HttpError } from "../../../lib/http-error.js";
 import { env } from "../../../config/env.js";
 import { authService } from "./auth.service.js";
-import { readLogin, readMerchantRegistration, readRegistration } from "./auth.validation.js";
+import { readLogin, readRegistration } from "./auth.validation.js";
 import {
   getRefreshCookieOptions,
   parseRefreshTokenCookie,
@@ -23,12 +23,6 @@ export const registerMember: RequestHandler = async (request, response) => {
   const user = await authService.registerMember(readRegistration(request.body));
   response.status(201).json({ user });
 };
-
-export const registerMerchant: RequestHandler = async (request, response) => {
-  const result = await authService.registerMerchant(readMerchantRegistration(request.body));
-  response.status(201).json(result);
-};
-
 export const login: RequestHandler = async (request, response) => {
   assertTrustedOrigin(request);
   const { refreshToken, ...session } = await authService.login(readLogin(request.body));
@@ -58,9 +52,4 @@ export const logout: RequestHandler = async (request, response) => {
   await authService.logout(parseRefreshTokenCookie(request.header("cookie")));
   clearRefreshCookie(response);
   response.status(204).end();
-};
-
-export const applicationStatus: RequestHandler = async (request, response) => {
-  const application = await authService.getMerchantApplicationStatus(readLogin(request.body));
-  response.json({ application });
 };

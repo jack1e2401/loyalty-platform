@@ -67,12 +67,6 @@ describe("V4 navigation UX", () => {
     expect(breadcrumb).toHaveTextContent("Nhiệm vụ");
   });
 
-  it("does not add Merchant breadcrumb UI to the Admin console", () => {
-    render(<AuthSessionProvider><MemoryRouter initialEntries={["/admin"]}><Routes><Route path="/admin" element={<BackendConsoleLayout role="admin" />}><Route index element={<p>Admin home</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
-    expect(screen.getByText("Admin home")).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
-  });
-
   it.each([
     ["/merchant/challenges/new", "Tạo nhiệm vụ"],
     ["/merchant/challenges/12/edit", "Chỉnh sửa nhiệm vụ"],

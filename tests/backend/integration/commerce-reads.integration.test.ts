@@ -102,16 +102,13 @@ after(async () => {
     await prisma.rewardFulfillment.deleteMany({ where: { voucherId: { in: voucherIds } } });
     await prisma.order.updateMany({ where: { id: { in: orderIds }, voucherId: { in: voucherIds } }, data: { voucherId: null } });
     await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
-    await prisma.paymentAttempt.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.pointTransaction.deleteMany({ where: { OR: [{ walletId: { in: walletIds } }, { memberVoucherId: { in: voucherIds } }] } });
-    await prisma.merchantFeeTransaction.deleteMany({ where: { order: { id: { in: orderIds } } } });
     await prisma.memberActivity.deleteMany({ where: { membershipId: { in: membershipIds } } });
     await prisma.refundRequest.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.memberVoucher.deleteMany({ where: { id: { in: voucherIds } } });
     await prisma.loyaltyWallet.deleteMany({ where: { id: { in: walletIds } } });
     await prisma.merchantMembership.deleteMany({ where: { id: { in: membershipIds } } });
-    await prisma.merchantApplication.deleteMany({ where: { applicantId: { in: userIds } } });
     await prisma.voucherDefinition.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.loyaltyTier.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.loyaltyRule.deleteMany({ where: { merchantId: { in: merchantIds } } });

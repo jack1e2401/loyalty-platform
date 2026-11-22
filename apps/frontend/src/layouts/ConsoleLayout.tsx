@@ -9,7 +9,6 @@ import {
   SquaresFour,
   Storefront,
   Ticket,
-  UsersThree,
   X,
 } from "@phosphor-icons/react";
 import { useApi } from "../api/client";
@@ -20,11 +19,6 @@ import { Breadcrumb } from "antd";
 import { MerchantCmsProvider } from "../features/merchant/cms";
 
 type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean };
-const adminItems: NavItem[] = [
-  { to: "/admin", label: "Tổng quan", icon: <SquaresFour size={19} weight="light" />, end: true },
-  { to: "/admin/applications", label: "Duyệt cửa hàng", icon: <UsersThree size={19} weight="light" /> },
-  { to: "/admin/merchants", label: "Cửa hàng", icon: <Storefront size={19} weight="light" /> },
-];
 const merchantItems = (id: string): NavItem[] => [
   { to: `/merchant/${id}`, label: "Tổng quan", icon: <SquaresFour size={19} weight="light" />, end: true },
   { to: `/merchant/${id}/store`, label: "Cửa hàng", icon: <Storefront size={19} weight="light" /> },
@@ -35,21 +29,20 @@ const merchantItems = (id: string): NavItem[] => [
   { to: `/merchant/${id}/rewards`, label: "Trao thưởng", icon: <Gift size={19} weight="light" /> },
 ];
 
-export function ConsoleLayout({ role }: { role: "admin" | "merchant" }) {
+export function ConsoleLayout() {
   const { merchantId = "moc" } = useParams();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const api = useApi();
   const merchant = useResource(() => api.getMerchant(merchantId), [merchantId]);
   const allowed = useResource(() => api.canManageMerchant(merchantId), [merchantId]);
-  const items = role === "admin" ? adminItems : merchantItems(merchantId);
-  const isMerchant = role === "merchant";
+  const items = merchantItems(merchantId);
   const currentSection = items.find((item) =>
     item.end ? pathname === item.to : pathname.startsWith(item.to),
   );
 
   return (
-    <MerchantCmsProvider enabled={isMerchant}>
+    <MerchantCmsProvider enabled>
     <div className="min-h-[100dvh] bg-[#f7f8f4]">
       {menuOpen && (
         <button
@@ -79,7 +72,7 @@ export function ConsoleLayout({ role }: { role: "admin" | "merchant" }) {
         </div>
         <div className="mx-6 border-y border-white/10 py-4">
           <p className="truncate text-sm font-semibold">
-            {isMerchant ? (merchant.data?.name ?? "Cửa hàng") : "Quản trị hệ thống"}
+            {merchant.data?.name ?? "Cửa hàng"}
           </p>
         </div>
         <nav className="mt-5 space-y-1 px-3" aria-label="Điều hướng chính">
@@ -112,24 +105,22 @@ export function ConsoleLayout({ role }: { role: "admin" | "merchant" }) {
             <List size={22} />
           </button>
           <div>
-            {isMerchant && (
-              <Breadcrumb
-                aria-label="Breadcrumb"
-                className="mb-0.5 text-xs"
-                items={currentSection?.end
-                  ? [{ title: currentSection.label }]
-                  : [{ title: <Link to={`/merchant/${merchantId}`}>Tổng quan</Link> }, { title: currentSection?.label ?? "Cửa hàng" }]}
-              />
-            )}
+            <Breadcrumb
+              aria-label="Breadcrumb"
+              className="mb-0.5 text-xs"
+              items={currentSection?.end
+                ? [{ title: currentSection.label }]
+                : [{ title: <Link to={`/merchant/${merchantId}`}>Tổng quan</Link> }, { title: currentSection?.label ?? "Cửa hàng" }]}
+            />
             <p className="text-sm font-semibold text-[#294833]">
-              {currentSection?.label ?? (isMerchant ? "Cửa hàng" : "Quản trị")}
+              {currentSection?.label ?? "Cửa hàng"}
             </p>
           </div>
         </header>
         <main className="mx-auto max-w-[1440px] px-5 pb-16 pt-8 sm:px-8 lg:px-10 lg:pt-10 fade-in">
-          {isMerchant && (merchant.loading || allowed.loading) ? (
+          {merchant.loading || allowed.loading ? (
             <LoadingState />
-          ) : isMerchant && (merchant.error || allowed.error) ? (
+          ) : merchant.error || allowed.error ? (
             <ErrorState
               message={merchant.error ?? allowed.error ?? "Lỗi tải cửa hàng"}
               retry={() => {
@@ -137,11 +128,11 @@ export function ConsoleLayout({ role }: { role: "admin" | "merchant" }) {
                 allowed.reload();
               }}
             />
-          ) : isMerchant && !allowed.data ? (
+          ) : !allowed.data ? (
             <div className="mx-auto max-w-xl pt-16 text-center">
-              <h1 className="text-3xl font-extrabold">Cửa hàng đang chờ duyệt</h1>
+              <h1 className="text-3xl font-extrabold">Không thể truy cập cửa hàng</h1>
               <p className="mt-3 text-sm leading-6 muted">
-                Bạn có thể quản lý cửa hàng sau khi hồ sơ được duyệt.
+                Tài khoản này chưa được cấp quyền quản lý cửa hàng.
               </p>
             </div>
           ) : (

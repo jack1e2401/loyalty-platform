@@ -1,14 +1,9 @@
 import {
   authPaths,
-  type ApproveApplicationResponse,
-  type ApplicationsResponse,
-  type ApplicationStatusResponse,
   type BackendErrorResponse,
   type LoginResponse,
-  type MerchantRegistrationResponse,
   type MemberRegistrationResponse,
   type OwnMerchantResponse,
-  type RejectApplicationResponse,
 } from "./contracts/auth";
 import { fetchWithSessionRefresh } from "./session-http";
 
@@ -43,25 +38,11 @@ function isBackendError(value: unknown): value is BackendErrorResponse {
   return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string";
 }
 
-/** HTTP client for authentication and merchant application endpoints. */
+/** HTTP client for member authentication and the installation merchant profile. */
 export function createAuthClient(baseUrl = "", fetcher: FetchLike = fetch) {
   return {
     registerMember(input: Credentials) {
       return requestJson<MemberRegistrationResponse>(fetcher, baseUrl, authPaths.registerMember, {
-        method: "POST",
-        body: input,
-      });
-    },
-
-    registerMerchant(input: Credentials & { storeName: string; slug?: string }) {
-      return requestJson<MerchantRegistrationResponse>(fetcher, baseUrl, authPaths.registerMerchant, {
-        method: "POST",
-        body: input,
-      });
-    },
-
-    checkApplicationStatus(input: Credentials) {
-      return requestJson<ApplicationStatusResponse>(fetcher, baseUrl, authPaths.applicationStatus, {
         method: "POST",
         body: input,
       });
@@ -80,37 +61,6 @@ export function createAuthClient(baseUrl = "", fetcher: FetchLike = fetch) {
 
     logout() {
       return requestJson<void>(fetcher, baseUrl, authPaths.logout, { method: "POST" });
-    },
-
-    listPendingApplications(token: string) {
-      return requestJson<ApplicationsResponse>(fetcher, baseUrl, authPaths.pendingApplications, {
-        token,
-      });
-    },
-
-    listApplicationHistory(token: string) {
-      return requestJson<ApplicationsResponse>(fetcher, baseUrl, authPaths.applicationHistory, {
-        token,
-      });
-    },
-
-    approveApplication(id: number, token: string) {
-      return requestJson<ApproveApplicationResponse>(
-        fetcher,
-        baseUrl,
-        authPaths.approveApplication(id),
-        {
-          method: "PATCH",
-          token,
-        },
-      );
-    },
-
-    rejectApplication(id: number, token: string) {
-      return requestJson<RejectApplicationResponse>(fetcher, baseUrl, authPaths.rejectApplication(id), {
-        method: "PATCH",
-        token,
-      });
     },
 
     getOwnMerchant(token: string) {

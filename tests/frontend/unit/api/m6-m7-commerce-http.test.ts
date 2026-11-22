@@ -15,7 +15,7 @@ describe("M6 & M7 commerce HTTP client", () => {
         paidAt: null,
         items: [],
         earnedPointsExact: null,
-        actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+        actions: { canCancel: false, canRefund: false },
       },
       voucherReleased: true,
       capacityReleasedExact: "0",
@@ -135,7 +135,6 @@ describe("M6 & M7 commerce HTTP client", () => {
       tierBefore: "BRONZE",
       tierAfter: "BRONZE",
       discountVoucherRestorable: true,
-      providerConfirmationRequired: false,
     };
     const refundResult = {
       refund: {

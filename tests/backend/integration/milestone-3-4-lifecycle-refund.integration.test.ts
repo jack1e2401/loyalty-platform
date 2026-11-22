@@ -4,18 +4,11 @@ import { after, before, test } from "node:test";
 import type { Server } from "node:http";
 
 process.env.JWT_SECRET ??= randomBytes(32).toString("hex");
-process.env.PAYMENT_MODE = "vnpay";
-process.env.VNPAY_TMN_CODE ??= "TESTTMN1";
-process.env.VNPAY_HASH_SECRET ??= "TESTSECRET1234567890123456789012";
-process.env.VNPAY_PAYMENT_URL ??= "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-process.env.VNPAY_RETURN_URL = "https://127.0.0.1:3000/api/payments/vnpay/return";
 
-const [{ app }, { prisma }, { signAccessToken }, { signVnpay }, { env }] = await Promise.all([
+const [{ app }, { prisma }, { signAccessToken }] = await Promise.all([
   import("../../../apps/backend/src/app.js"),
   import("../../../apps/backend/src/lib/prisma.js"),
   import("../../../apps/backend/src/lib/access-token.js"),
-  import("../../../apps/backend/src/modules/commerce/payments/vnpay-signature.js"),
-  import("../../../apps/backend/src/config/env.js"),
 ]);
 
 const suffix = randomUUID();
@@ -38,32 +31,6 @@ let merchantBToken: string;
 let memberAToken: string;
 let memberBToken: string;
 let productAId: number;
-
-function signedIpn(txnRef: string, amount: string, overrides: Record<string, string> = {}) {
-  const params: Record<string, string> = {
-    vnp_Amount: amount,
-    vnp_Command: "pay",
-    vnp_CreateDate: "20261109160000",
-    vnp_CurrCode: "VND",
-    vnp_IpAddr: "127.0.0.1",
-    vnp_Locale: "vn",
-    vnp_OrderInfo: "Thanh toan",
-    vnp_OrderType: "other",
-    vnp_ResponseCode: "00",
-    vnp_TmnCode: process.env.VNPAY_TMN_CODE!,
-    vnp_TransactionNo: "123456",
-    vnp_TransactionStatus: "00",
-    vnp_TxnRef: txnRef,
-    vnp_Version: "2.1.0",
-    ...overrides,
-  };
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params).sort(([a], [b]) => a.localeCompare(b, "en"))) {
-    search.set(key, value);
-  }
-  search.set("vnp_SecureHash", signVnpay(params, process.env.VNPAY_HASH_SECRET!));
-  return search;
-}
 
 before(async () => {
   const [ownerA, ownerB, memberA, memberB] = await Promise.all([
@@ -169,8 +136,6 @@ after(async () => {
   await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.memberVoucher.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.orderItem.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
-  await prisma.paymentAttempt.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
-  await prisma.merchantFeeTransaction.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
   await prisma.order.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.merchantMembership.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.inventoryBalance.deleteMany({ where: { merchantId: { in: merchantIds } } });
@@ -218,7 +183,6 @@ test("1. cancel paid rejection: cannot cancel a paid order", async () => {
   const orderId = created.json.order.id;
 
   // Pay order in mock mode
-  env.paymentMode = "mock";
   const paid = await request(`/api/orders/${orderId}/pay`, "POST", memberAToken);
   assert.equal(paid.response.status, 200);
 
@@ -335,127 +299,7 @@ test("3. two orders cannot reserve one voucher", async () => {
   assert.equal(order2.json.error, "VOUCHER_ALREADY_RESERVED");
 });
 
-test("4. payment failure no EARN and releases reservations", async () => {
-  env.paymentMode = "vnpay";
-  const def = await request("/api/merchant/vouchers", "POST", merchantAToken, {
-    type: "DISCOUNT",
-    title: "5k off",
-    pointsCost: 10,
-    discountAmount: "5000",
-  });
-  const membership = await prisma.merchantMembership.upsert({
-    where: { memberId_merchantId: { memberId: memberAId, merchantId: merchantAId } },
-    create: { memberId: memberAId, merchantId: merchantAId },
-    update: {},
-  });
-  const voucher = await prisma.memberVoucher.create({
-    data: {
-      membershipId: membership.id,
-      definitionId: def.json.definition.id,
-      snapshotType: "DISCOUNT",
-      snapshotTitle: "5k off",
-      snapshotPointsCost: 10,
-      snapshotDiscountAmount: "5000",
-      status: "AVAILABLE",
-    },
-  });
-
-  const order = await request("/api/orders", "POST", memberAToken, {
-    items: [{ productId: productAId, quantity: 1 }],
-    voucherId: voucher.id,
-  });
-  assert.equal(order.response.status, 201);
-  const orderId = order.json.order.id;
-
-  const payment = await request(`/api/orders/${orderId}/payments/vnpay`, "POST", memberAToken);
-  assert.equal(payment.response.status, 201);
-
-  // Send terminal FAILED IPN
-  const failedIpn = signedIpn(payment.json.txnRef, "9500000", {
-    vnp_ResponseCode: "24",
-    vnp_TransactionStatus: "02",
-  });
-  const ipnRes = await request(`/api/payments/vnpay/ipn?${failedIpn}`);
-  assert.equal(ipnRes.json.RspCode, "00");
-
-  // Verify attempt is FAILED, voucher reservation is released, no EARN ledger entry
-  const attempt = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId } });
-  assert.equal(attempt.status, "FAILED");
-
-  const vouchers = await request(`/api/member/merchants/${merchantAId}/vouchers`, "GET", memberAToken);
-  const v = vouchers.json.vouchers.find((item: any) => item.id === voucher.id);
-  assert.equal(v.status, "AVAILABLE");
-  assert.equal(v.reserved, false);
-
-  const earnCount = await prisma.pointTransaction.count({ where: { orderId, type: "EARN" } });
-  assert.equal(earnCount, 0);
-
-  // Order with failed attempt can now be cancelled safely
-  const cancelRes = await request(`/api/orders/${orderId}/cancel`, "POST", memberAToken);
-  assert.equal(cancelRes.response.status, 200);
-  assert.equal(cancelRes.json.order.status, "CANCELLED");
-});
-
-test("5. VNPay CREATED cancel rejection: cannot cancel when attempt is CREATED", async () => {
-  env.paymentMode = "vnpay";
-  const order = await request("/api/orders", "POST", memberAToken, {
-    items: [{ productId: productAId, quantity: 1 }],
-  });
-  const orderId = order.json.order.id;
-
-  const payment = await request(`/api/orders/${orderId}/payments/vnpay`, "POST", memberAToken);
-  assert.equal(payment.response.status, 201);
-
-  // Try to cancel while payment is in CREATED state
-  const cancelled = await request(`/api/orders/${orderId}/cancel`, "POST", memberAToken);
-  assert.equal(cancelled.response.status, 409);
-  assert.equal(cancelled.json.error, "ORDER_NOT_CANCELLABLE");
-  assert.equal(cancelled.json.paymentStatus, "CREATED");
-
-  // Simulate stale CREATED attempt (> 15 minutes old)
-  await prisma.paymentAttempt.update({
-    where: { orderId },
-    data: { createdAt: new Date(Date.now() - 20 * 60 * 1000) },
-  });
-
-  // Stale CREATED attempt must still reject cancellation and NOT auto-fail
-  const cancelStale = await request(`/api/orders/${orderId}/cancel`, "POST", memberAToken);
-  assert.equal(cancelStale.response.status, 409);
-  assert.equal(cancelStale.json.error, "ORDER_NOT_CANCELLABLE");
-
-  const dbAttempt = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId } });
-  assert.equal(dbAttempt.status, "CREATED");
-});
-
-test("6. duplicate/late IPN: duplicate callbacks do not double-credit", async () => {
-  process.env.PAYMENT_MODE = "vnpay";
-  const order = await request("/api/orders", "POST", memberAToken, {
-    items: [{ productId: productAId, quantity: 1 }],
-  });
-  const orderId = order.json.order.id;
-
-  const payment = await request(`/api/orders/${orderId}/payments/vnpay`, "POST", memberAToken);
-  const successIpn = signedIpn(payment.json.txnRef, "10000000");
-
-  const ipn1 = await request(`/api/payments/vnpay/ipn?${successIpn}`);
-  assert.equal(ipn1.json.RspCode, "00");
-
-  const dbOrder = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-  assert.equal(dbOrder.status, "PAID");
-
-  const earnTxs1 = await prisma.pointTransaction.findMany({ where: { orderId, type: "EARN" } });
-  assert.equal(earnTxs1.length, 1);
-
-  // Send duplicate IPN
-  const ipn2 = await request(`/api/payments/vnpay/ipn?${successIpn}`);
-  assert.equal(ipn2.json.RspCode, "02"); // Already confirmed
-
-  const earnTxs2 = await prisma.pointTransaction.findMany({ where: { orderId, type: "EARN" } });
-  assert.equal(earnTxs2.length, 1); // No double credit!
-});
-
 test("7. mock refund exact fractional reversal, debt, tier demotion, and voucher restore", async () => {
-  env.paymentMode = "mock";
 
   // Create discount voucher
   const def = await request("/api/merchant/vouchers", "POST", merchantAToken, {
@@ -515,7 +359,6 @@ test("7. mock refund exact fractional reversal, debt, tier demotion, and voucher
   assert.equal(preview.response.status, 200);
   assert.equal(preview.json.earningReversalExact, "1.5");
   assert.equal(preview.json.discountVoucherRestorable, true);
-  assert.equal(preview.json.providerConfirmationRequired, false);
 
   // Merchant executes refund
   const refundRes = await approveRefund(orderId, "Defective item returned");
@@ -552,7 +395,6 @@ test("7. mock refund exact fractional reversal, debt, tier demotion, and voucher
 });
 
 test("8. duplicate refund request is rejected and approved refund reverses once", async () => {
-  env.paymentMode = "mock";
   const orderRes = await request("/api/orders", "POST", memberAToken, {
     items: [{ productId: productAId, quantity: 1 }],
   });
@@ -616,45 +458,7 @@ test("9. wrong merchant 403: Merchant B cannot preview or refund Merchant A's or
   }
 });
 
-test("10. VNPay refund request is rejected without changing paid state", async () => {
-  env.paymentMode = "vnpay";
-  const orderRes = await request("/api/orders", "POST", memberAToken, {
-    items: [{ productId: productAId, quantity: 1 }],
-  });
-  const orderId = orderRes.json.order.id;
-  const payment = await request(`/api/orders/${orderId}/payments/vnpay`, "POST", memberAToken);
-  const ipn = signedIpn(payment.json.txnRef, "10000000");
-  await request(`/api/payments/vnpay/ipn?${ipn}`);
-
-  // Order is PAID via VNPay
-  const paidOrder = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-  assert.equal(paidOrder.status, "PAID");
-
-  // Members cannot request a refund for a real payment.
-  const refundRes = await request(`/api/orders/${orderId}/refund-request`, "POST", memberAToken, { reason: "VNPay cancellation" });
-  assert.equal(refundRes.response.status, 409);
-  assert.equal(refundRes.json.error, "VNPAY_REFUND_NOT_SUPPORTED");
-  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: orderId } })).status, "PAID");
-
-  // A historical request must also fail at approval and keep its pending status.
-  const legacy = await prisma.refundRequest.create({
-    data: { orderId, merchantId: merchantAId, memberId: memberAId, status: "PENDING_ADMIN", reason: "Legacy request" },
-  });
-  const approval = await request(`/api/merchant/refund-requests/${legacy.id}/approve`, "POST", merchantAToken);
-  assert.equal(approval.response.status, 409);
-  assert.equal(approval.json.error, "VNPAY_REFUND_NOT_SUPPORTED");
-  assert.equal(await prisma.orderRefund.count({ where: { orderId } }), 0);
-  assert.equal((await prisma.refundRequest.findUniqueOrThrow({ where: { id: legacy.id } })).status, "PENDING_ADMIN");
-
-  // Verify NO EARN_REVERSAL transaction is created
-  const reversals = await prisma.pointTransaction.findMany({
-    where: { orderId, type: "EARN_REVERSAL" },
-  });
-  assert.equal(reversals.length, 0);
-});
-
 test("merchant rejection exposes the recorded reason to the member without refunding the order", async () => {
-  env.paymentMode = "mock";
   const created = await request("/api/orders", "POST", memberAToken, { items: [{ productId: productAId, quantity: 1 }] });
   assert.equal(created.response.status, 201);
   const orderId = created.json.order.id;
@@ -712,32 +516,24 @@ test("11. preview auth: enforces authentication and role boundaries", async () =
   assert.equal(validMerch.json.fractionalProjection, "0");
 });
 
-test("pending orders cannot be refunded, including an unresolved CREATED provider attempt", async () => {
+test("pending orders cannot be refunded before Mock payment", async () => {
   const created = await request("/api/orders", "POST", memberAToken, {
     items: [{ productId: productAId, quantity: 1 }],
   });
   assert.equal(created.response.status, 201);
   const orderId = created.json.order.id;
-  for (const withAttempt of [false, true]) {
-    if (withAttempt) {
-      env.paymentMode = "vnpay";
-      const attempt = await request(`/api/orders/${orderId}/payments/vnpay`, "POST", memberAToken);
-      assert.equal(attempt.response.status, 201);
-    }
-    const preview = await request(`/api/merchant/orders/${orderId}/refund-preview`, "GET", merchantAToken);
-    const refund = await request(`/api/orders/${orderId}/refund-request`, "POST", memberAToken, { reason: "Cannot refund unpaid money" });
-    assert.equal(preview.response.status, 409);
-    assert.equal(refund.response.status, 409);
-    assert.equal(refund.json.error, "ORDER_NOT_REFUNDABLE");
-    assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: orderId } })).status, "PENDING");
-    assert.equal(await prisma.orderRefund.count({ where: { orderId } }), 0);
-    assert.equal(await prisma.pointTransaction.count({ where: { orderId } }), 0);
-  }
-  assert.equal((await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId } })).status, "CREATED");
+
+  const preview = await request(`/api/merchant/orders/${orderId}/refund-preview`, "GET", merchantAToken);
+  const refund = await request(`/api/orders/${orderId}/refund-request`, "POST", memberAToken, { reason: "Cannot refund unpaid money" });
+  assert.equal(preview.response.status, 409);
+  assert.equal(refund.response.status, 409);
+  assert.equal(refund.json.error, "ORDER_NOT_REFUNDABLE");
+  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: orderId } })).status, "PENDING");
+  assert.equal(await prisma.orderRefund.count({ where: { orderId } }), 0);
+  assert.equal(await prisma.pointTransaction.count({ where: { orderId } }), 0);
 });
 
-test("12. ledger reconciliation: merchant loyalty transactions list and reconciliation flag", async () => {
-  // Query merchant loyalty transactions
+test("ledger reads stay merchant-scoped and pending orders remain cancellable", async () => {
   const txList = await request("/api/merchant/loyalty/transactions", "GET", merchantAToken);
   assert.equal(txList.response.status, 200);
   assert.ok(Array.isArray(txList.json.items));
@@ -749,28 +545,16 @@ test("12. ledger reconciliation: merchant loyalty transactions list and reconcil
   assert.ok("memberId" in first);
   assert.ok("email" in first);
 
-  // Filter by type=EARN
   const earnOnly = await request("/api/merchant/loyalty/transactions?type=EARN", "GET", merchantAToken);
   assert.equal(earnOnly.response.status, 200);
   assert.ok(earnOnly.json.items.every((item: any) => item.type === "EARN"));
 
-  // Check reconciliation state on stale CREATED order
-  const orderRes = await request("/api/orders", "POST", memberAToken, {
+  const created = await request("/api/orders", "POST", memberAToken, {
     items: [{ productId: productAId, quantity: 1 }],
   });
-  const orderId = orderRes.json.order.id;
-  env.paymentMode = "vnpay";
-  await request(`/api/orders/${orderId}/payments/vnpay`, "POST", memberAToken);
-
-  // Set attempt to stale (> 15 min old)
-  await prisma.paymentAttempt.update({
-    where: { orderId },
-    data: { createdAt: new Date(Date.now() - 30 * 60 * 1000) },
-  });
-
+  const orderId = created.json.order.id;
   const memberOrder = await request(`/api/member/orders/${orderId}`, "GET", memberAToken);
   assert.equal(memberOrder.response.status, 200);
   assert.equal(memberOrder.json.order.status, "PENDING");
-  assert.equal(memberOrder.json.order.actions.requiresReconciliation, true);
-  assert.equal(memberOrder.json.order.actions.canCancel, false);
+  assert.equal(memberOrder.json.order.actions.canCancel, true);
 });

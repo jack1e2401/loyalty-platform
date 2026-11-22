@@ -14,7 +14,7 @@ afterEach(cleanup);
 describe("Merchant CMS components", () => {
   it("applies theme tokens only when the Merchant provider is enabled", () => {
     const { rerender, container } = render(
-      <MerchantCmsProvider enabled={false}><span>Admin content</span></MerchantCmsProvider>,
+      <MerchantCmsProvider enabled={false}><span>Member content</span></MerchantCmsProvider>,
     );
     expect(container.querySelector(".merchant-cms")).not.toBeInTheDocument();
 

@@ -1,7 +1,6 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import type {
   OrderStatus,
-  PaymentAttemptStatus,
   PointTransactionSource,
   PointTransactionType,
   RefundStatus,
@@ -29,7 +28,6 @@ type OrderRecord = {
     lineTotal: Prisma.Decimal;
   }[];
   earnedPointsExact?: Prisma.Decimal | null;
-  paymentAttempt?: { status: PaymentAttemptStatus; createdAt: Date } | null;
   refund?: { status: RefundStatus } | null;
   refundRequest?: {
     id: number;
@@ -86,33 +84,23 @@ function appliedPolicy(value: Prisma.JsonValue | null | undefined): AppliedLoyal
   };
 }
 
-export function isStalePaymentAttempt(attempt: { status: PaymentAttemptStatus; createdAt: Date } | null | undefined): boolean {
-  if (!attempt || attempt.status !== "CREATED") return false;
-  return Date.now() - new Date(attempt.createdAt).getTime() > 15 * 60 * 1000;
-}
-
 export function computeOrderActions(
   status: OrderStatus,
-  attempt: { status: PaymentAttemptStatus; createdAt: Date } | null | undefined,
   refund: { status: RefundStatus } | null | undefined,
   refundRequest?: { status: string } | null,
-  paymentAttempt?: { status: PaymentAttemptStatus } | null,
 ): OrderActionsDto {
-  const requiresReconciliation = isStalePaymentAttempt(attempt);
-  const canCancel = status === "PENDING" && (!attempt || attempt.status === "FAILED");
+  const canCancel = status === "PENDING";
   const canRefund = status === "PAID" && !refund;
   return {
     canCancel,
     canRefund,
-    requiresReconciliation,
-    canRequestRefund: status === "PAID" && !refund && !refundRequest && paymentAttempt?.status !== "SUCCEEDED",
+    canRequestRefund: status === "PAID" && !refund && !refundRequest,
   };
 }
 
 export function toOrderDto(order: OrderRecord): OrderDto {
   const isPaidOrRefunded = ["PAID", "REFUND_PENDING", "REFUNDED"].includes(order.status);
   const earned = isPaidOrRefunded ? order.earnedPointsExact : null;
-  const paymentAttempt = order.paymentAttempt ?? null;
   const refund = order.refund ?? null;
   const refundRequest = order.refundRequest ?? null;
   const pointTransactions = order.pointTransactions;
@@ -149,7 +137,6 @@ export function toOrderDto(order: OrderRecord): OrderDto {
       quantity: item.quantity,
       lineTotal: item.lineTotal.toFixed(0),
     })),
-    paymentStatus: paymentAttempt?.status ?? null,
     refundStatus: refund?.status ?? null,
     refundRequest: refundRequest ? {
       id: refundRequest.id,
@@ -162,6 +149,6 @@ export function toOrderDto(order: OrderRecord): OrderDto {
       adminDecisionReason: refundRequest.status === "REJECTED" ? refundRequest.adminDecisionReason : null,
     } : null,
     loyaltyEvents,
-    actions: computeOrderActions(order.status, paymentAttempt, refund, refundRequest, paymentAttempt),
+    actions: computeOrderActions(order.status, refund, refundRequest),
   };
 }

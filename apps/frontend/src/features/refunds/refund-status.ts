@@ -1,7 +1,7 @@
 import type { RefundRequestStatus } from "../../api/refunds-types";
 
 export function isRefundAwaitingMerchant(status: RefundRequestStatus) {
-  return status === "PENDING_MERCHANT" || status === "PENDING_ADMIN";
+  return status === "PENDING_MERCHANT";
 }
 
 export function refundRequestStatusLabel(status: RefundRequestStatus) {

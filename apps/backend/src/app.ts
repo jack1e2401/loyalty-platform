@@ -4,16 +4,12 @@ import { env } from "./config/env.js";
 import { healthRoutes } from "./modules/platform/health/health.routes.js";
 import { authRoutes } from "./modules/platform/auth/auth.routes.js";
 import { errorHandler } from "./middleware/error-handler.js";
-import { applicationRoutes } from "./modules/merchants/applications/application.routes.js";
 import { merchantRoutes } from "./modules/merchants/profile/merchant.routes.js";
 import { merchantCategoryRoutes } from "./modules/commerce/products/categories.routes.js";
 import { merchantProductRoutes, publicProductRoutes, publicStoreProductRoutes } from "./modules/commerce/products/products.routes.js";
 import { orderRoutes, memberOrderReadRoutes, merchantOrderReadRoutes } from "./modules/commerce/orders/orders.routes.js";
 import { merchantVoucherRoutes, publicVoucherRoutes, memberVoucherRoutes, memberRedemptionRoutes, merchantRewardRoutes } from "./modules/loyalty/vouchers/vouchers.routes.js";
 import { merchantLoyaltyRoutes, memberLoyaltyRoutes } from "./modules/loyalty/program/loyalty.routes.js";
-import { orderPaymentRoutes, vnpayRoutes } from "./modules/commerce/payments/payments.routes.js";
-import { adminRoutes } from "./modules/governance/admin/admin.routes.js";
-import { merchantAbuseReportRoutes } from "./modules/governance/abuse-reports/abuse-reports.routes.js";
 import { merchantInventoryRoutes } from "./modules/commerce/inventory/inventory.routes.js";
 import { merchantMediaRoutes } from "./modules/platform/media/media.routes.js";
 import { resolveUploadRoot } from "./modules/platform/media/media.service.js";
@@ -22,7 +18,7 @@ import { merchantEventRoutes, publicStoreEventRoutes } from "./modules/merchants
 import { merchantCustomerRoutes } from "./modules/reporting/customers/customers.routes.js";
 import { merchantAnalyticsRoutes } from "./modules/reporting/analytics/analytics.routes.js";
 import { merchantChallengeRoutes, publicChallengeRoutes, memberChallengeRoutes } from "./modules/loyalty/challenges/challenges.routes.js";
-import { memberRefundRequestRoutes, orderRefundRequestRoutes, merchantRefundRequestRoutes, adminRefundRequestRoutes } from "./modules/commerce/refunds/refunds.routes.js";
+import { memberRefundRequestRoutes, orderRefundRequestRoutes, merchantRefundRequestRoutes } from "./modules/commerce/refunds/refunds.routes.js";
 
 export const app = express();
 app.use(cors({ origin: env.frontendOrigin, credentials: true }));
@@ -33,11 +29,7 @@ app.use("/uploads", (request, response, next) => {
 });
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/admin/refund-requests", adminRefundRequestRoutes);
-app.use("/api/admin/merchants", applicationRoutes);
 app.use("/api/merchant", merchantRoutes);
-app.use("/api/merchant", merchantAbuseReportRoutes);
 app.use("/api/merchant", merchantInventoryRoutes);
 app.use("/api/merchant/media", merchantMediaRoutes);
 app.use("/api/merchant/storefront", merchantStorefrontRoutes);
@@ -66,8 +58,6 @@ app.use("/api/member/merchants", memberVoucherRoutes);
 app.use("/api/member/vouchers", memberRedemptionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/orders", orderRefundRequestRoutes);
-app.use("/api/orders", orderPaymentRoutes);
-app.use("/api/payments/vnpay", vnpayRoutes);
 app.use((_request, response) => {
   response.status(404).json({ error: "Not found" });
 });

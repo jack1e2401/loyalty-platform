@@ -4,7 +4,6 @@ import { reverseOrderChallenges } from "../../loyalty/challenges/challenges.engi
 import { describeWallet } from "../../loyalty/program/loyalty.balance.js";
 import { reverseOrderPoints } from "../../loyalty/program/loyalty.reversal.js";
 import { restoreOrderVoucher } from "../../loyalty/vouchers/vouchers.order.js";
-import { reverseMerchantFee } from "../../merchants/profile/merchant.finance.js";
 import { toOrderDto } from "../orders/orders.serialization.js";
 import type { RefundResponseDto } from "../orders/orders.types.js";
 
@@ -15,10 +14,9 @@ export async function completeMockRefund(
   const { merchantId, ownerId, orderId, reason, replay } = input;
   const order = await tx.order.findFirst({
     where: { id: orderId, merchantId },
-    include: { items: true, paymentAttempt: true, refund: true, refundRequest: true, pointTransactions: true },
+    include: { items: true, refund: true, refundRequest: true, pointTransactions: true },
   });
   if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
-  if (order.paymentAttempt?.status === "SUCCEEDED") throw new HttpError(409, "VNPAY_REFUND_NOT_SUPPORTED");
 
   const memberId = order.memberId;
   const getWallet = () => tx.loyaltyWallet.findFirst({ where: { membership: { memberId, merchantId } } });
@@ -39,7 +37,6 @@ export async function completeMockRefund(
       reason,
       requestedById: ownerId,
       completedAt,
-      providerReference: `mock-refund-${order.id}`,
     },
   });
 
@@ -50,9 +47,8 @@ export async function completeMockRefund(
   const updatedOrder = await tx.order.update({
     where: { id: order.id },
     data: { status: "REFUNDED" },
-    include: { items: true, paymentAttempt: true, pointTransactions: true, refundRequest: true, refund: true },
+    include: { items: true, pointTransactions: true, refundRequest: true, refund: true },
   });
-  await reverseMerchantFee(tx, merchantId, order.id, completedAt);
   return refundResult(updatedOrder, refund, describeWallet(await getWallet()), challengeReversals);
 }
 

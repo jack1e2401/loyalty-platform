@@ -235,7 +235,7 @@ export function MemberOrderResult() {
 
   const activeRefundRequest = order.refundRequest;
   const canRequestRefund = order.actions?.canRequestRefund
-    ?? (order.status === "PAID" && order.paymentStatus !== "SUCCEEDED" && !order.refundStatus && !activeRefundRequest);
+    ?? (order.status === "PAID" && !order.refundStatus && !activeRefundRequest);
 
   return (
     <>
@@ -250,7 +250,7 @@ export function MemberOrderResult() {
         <div className="flex flex-wrap items-center gap-2">
           <StatusText tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StatusText>
           {order.refundStatus === "PENDING_PROVIDER" && (
-            <StatusText tone="amber">Chờ cổng thanh toán xác nhận hoàn tiền</StatusText>
+            <StatusText tone="amber">Chờ xác nhận hoàn tiền</StatusText>
           )}
         </div>
         <div className="mt-5 space-y-3">
@@ -359,8 +359,7 @@ export function MemberOrderResult() {
             <div role="status">
               <p className="text-sm font-semibold text-[#97682a]">Đang xử lý hoàn tiền</p>
               <p className="mt-1 text-xs leading-5 text-[#97682a] break-words">
-                Yêu cầu hoàn tiền đang được xử lý
-                {order.refundStatus === "PENDING_PROVIDER" ? " bởi đối tác thanh toán" : ""}.
+                Yêu cầu hoàn tiền đang được xử lý.
               </p>
             </div>
             <Button asChild variant="outline" size="sm" className="mt-4 w-full sm:w-auto">

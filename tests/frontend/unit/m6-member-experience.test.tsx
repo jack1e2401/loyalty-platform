@@ -97,15 +97,14 @@ describe("M6 Member Experience", () => {
         { productId: 1, productName: "Cà phê sữa", unitPrice: "30000", quantity: 1, lineTotal: "30000" },
       ],
       earnedPointsExact: null,
-      paymentStatus: null,
       refundStatus: null,
-      actions: { canCancel: true, canRefund: false, requiresReconciliation: false },
+      actions: { canCancel: true, canRefund: false },
     };
 
     const cancelledOrder: OrderDto = {
       ...pendingOrder,
       status: "CANCELLED",
-      actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+      actions: { canCancel: false, canRefund: false },
     };
 
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -154,7 +153,6 @@ describe("M6 Member Experience", () => {
         { productId: 1, productName: "Cà phê sữa", unitPrice: "30000", quantity: 1, lineTotal: "30000" },
       ],
       earnedPointsExact: null,
-      paymentStatus: null,
       refundStatus: null,
       // actions omitted
     };
@@ -224,7 +222,7 @@ describe("M6 Member Experience", () => {
           createdAt: "2026-11-11T09:00:00.000Z",
         },
       ],
-      actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+      actions: { canCancel: false, canRefund: false },
     };
 
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
@@ -505,8 +503,7 @@ describe("M6 Member Experience", () => {
     });
   });
 
-  it("uses mock payment despite VNPay configuration and confirms from the backend order response", async () => {
-    vi.stubEnv("VITE_PAYMENT_MODE", "vnpay");
+  it("uses mock payment and confirms from the backend order response", async () => {
     const pendingOrder: OrderDto = {
       id: 88,
       merchantId: 7,
@@ -518,9 +515,8 @@ describe("M6 Member Experience", () => {
       paidAt: null,
       items: [{ productId: 2, productName: "Trà đào", unitPrice: "40000", quantity: 1, lineTotal: "40000" }],
       earnedPointsExact: null,
-      paymentStatus: null,
       refundStatus: null,
-      actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+      actions: { canCancel: false, canRefund: false },
     };
 
     const paidOrder: OrderDto = {
@@ -551,7 +547,6 @@ describe("M6 Member Experience", () => {
 
     const mockPayButton = screen.getByRole("button", { name: /thanh toán \(mô phỏng\)/i });
     expect(mockPayButton).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /vnpay/i })).not.toBeInTheDocument();
 
     fireEvent.click(mockPayButton);
 
@@ -559,7 +554,6 @@ describe("M6 Member Experience", () => {
       expect(screen.getByText("Thanh toán đã được máy chủ xác nhận.")).toBeInTheDocument();
       expect(screen.getByText("Bạn vừa nhận +3.5 điểm")).toBeInTheDocument();
     });
-    expect(requests.some(({ url }) => url.includes("/payment-status") || url.includes("/payments/vnpay"))).toBe(false);
     expect(requests).toContainEqual(expect.objectContaining({ url: expect.stringContaining("/api/orders/88/pay"), method: "POST" }));
   });
 
@@ -661,7 +655,7 @@ describe("M6 Member Experience", () => {
       ],
       earnedPointsExact: "3.5",
       refundStatus: "PENDING_PROVIDER",
-      actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+      actions: { canCancel: false, canRefund: false },
     };
 
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
@@ -698,7 +692,7 @@ describe("M6 Member Experience", () => {
         ],
         earnedPointsExact: "5",
         refundStatus: null,
-        actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+        actions: { canCancel: false, canRefund: false },
       },
       {
         id: 102,
@@ -712,7 +706,7 @@ describe("M6 Member Experience", () => {
         items: [{ productId: 2, productName: "Cà phê", unitPrice: "30000", quantity: 1, lineTotal: "30000" }],
         earnedPointsExact: null,
         refundStatus: null,
-        actions: { canCancel: false, canRefund: false, requiresReconciliation: false },
+        actions: { canCancel: false, canRefund: false },
       },
     ];
 

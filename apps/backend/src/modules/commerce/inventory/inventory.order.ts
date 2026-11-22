@@ -83,7 +83,7 @@ export async function releaseOrderInventory(tx: Prisma.TransactionClient, order:
 export async function releaseExpiredMockOrders(batchSize = 100) {
   const now = new Date();
   const candidates = await prisma.order.findMany({
-    where: { status: "PENDING", paymentAttempt: null, stockReleasedAt: null, stockReservedUntil: { lte: now } },
+    where: { status: "PENDING", stockReleasedAt: null, stockReservedAt: { not: null }, stockReservedUntil: { lte: now } },
     select: { id: true },
     orderBy: [{ stockReservedUntil: "asc" }, { id: "asc" }],
     take: batchSize,
@@ -92,7 +92,7 @@ export async function releaseExpiredMockOrders(batchSize = 100) {
   for (const { id } of candidates) {
     const didRelease = await withTransactionRetry(() => prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
-        where: { id, status: "PENDING", paymentAttempt: null, stockReleasedAt: null, stockReservedUntil: { lte: now } },
+        where: { id, status: "PENDING", stockReleasedAt: null, stockReservedAt: { not: null }, stockReservedUntil: { lte: now } },
         include: { items: true },
       });
       if (!order) return false;

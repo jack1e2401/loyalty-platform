@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import {
-  assertLedger, beginVnpay, cleanup, confirmVnpay, createMember, createOrder, createShop, env,
+  assertLedger, cleanup, createMember, createOrder, createShop,
   pay, prisma, Prisma, request, savePolicy, start, wallet, type Wallet,
 } from "./exact-points.fixtures.js";
 
@@ -274,33 +274,6 @@ test("same-key retry issues one voucher and one ledger debit, while different-de
   await assertLedger(shop, member, "1");
 });
 
-test("VNPay freezes tier, multiplier and policy at initiation; duplicate IPN preserves exact ledger", async () => {
-  env.paymentMode = "vnpay";
-  try {
-    const shop = await createShop();
-    const member = await createMember();
-    const first = await beginVnpay(shop, member);
-    const second = await beginVnpay(shop, member);
-    const snapshot = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId: second.order.id } });
-    assert.equal(snapshot.snapshotTierLevel, "BRONZE");
-    assert.equal(snapshot.snapshotMultiplier?.toString(), "1");
-    await savePolicy(shop, { rate: 20000, bronzeMultiplier: "1.50", silverThreshold: 1 });
-    assert.equal(await confirmVnpay(first), "00");
-    assert.equal(await confirmVnpay(second), "00");
-    assert.equal(await confirmVnpay(second), "02");
-    assert.equal((await wallet(shop, member)).tier, "SILVER");
-    assert.equal((await wallet(shop, member)).exactBalance, "1.2");
-    const future = await beginVnpay(shop, member);
-    assert.equal(await confirmVnpay(future), "00");
-    assert.equal((await wallet(shop, member)).exactBalance, "1.65");
-    const stored = await assertLedger(shop, member, "1.65");
-    assert.equal(stored.reservedPoints.toString(), "0");
-    assert.equal(stored.transactions.length, 3);
-  } finally {
-    env.paymentMode = "mock";
-  }
-});
-
 test("policy threshold changes select earning tier from exact lifetime instead of a stale membership tier", async () => {
   const shop = await createShop();
   const member = await createMember();
@@ -311,59 +284,4 @@ test("policy threshold changes select earning tier from exact lifetime instead o
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.9");
   assert.equal((await wallet(shop, member)).tier, "SILVER");
   await assertLedger(shop, member, "2.1");
-});
-
-test("legacy zero-reservation VNPay attempts retain their original integer award while new attempts earn fractions", async () => {
-  env.paymentMode = "vnpay";
-  try {
-    const shop = await createShop();
-    const member = await createMember();
-    const legacy = await beginVnpay(shop, member);
-    const attempt = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId: legacy.order.id } });
-    const stored = await prisma.loyaltyWallet.findFirstOrThrow({ where: { membership: { memberId: member.id, merchantId: shop.id } } });
-    // Emulate the pre-M1 integer calculator: 6000/10000 earned/reserved zero.
-    // Nullable new fields identify attempts that were initiated before M1.
-    await prisma.$transaction([
-      prisma.paymentAttempt.update({ where: { id: attempt.id }, data: {
-        reservedPoints: 0, snapshotTierLevel: null, snapshotMultiplier: null,
-        snapshotPolicy: Prisma.DbNull,
-      } }),
-      prisma.loyaltyWallet.update({ where: { id: stored.id }, data: { reservedPoints: 0 } }),
-    ]);
-    assert.equal(await confirmVnpay(legacy), "00");
-    const legacyCredit = await prisma.pointTransaction.findFirstOrThrow({ where: { orderId: legacy.order.id } });
-    assert.equal(legacyCredit.delta.toString(), "0");
-    assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: legacy.order.id } })).earnedPointsExact?.toString(), "0");
-    await assertLedger(shop, member, "0");
-    const current = await beginVnpay(shop, member);
-    assert.equal(await confirmVnpay(current), "00");
-    await assertLedger(shop, member, "0.6");
-  } finally {
-    env.paymentMode = "mock";
-  }
-});
-
-test("failed VNPay IPN releases the exact fractional reservation without creating an earning", async () => {
-  env.paymentMode = "vnpay";
-  try {
-    const shop = await createShop();
-    const member = await createMember();
-    const payment = await beginVnpay(shop, member);
-    const attempt = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId: payment.order.id } });
-    assert.equal(attempt.reservedPoints.toString(), "1.2");
-    const before = await prisma.loyaltyWallet.findFirstOrThrow({ where: { membership: { memberId: member.id, merchantId: shop.id } } });
-    assert.equal(before.reservedPoints.toString(), "1.2");
-    const failure = { vnp_ResponseCode: "24", vnp_TransactionStatus: "02" };
-    assert.equal(await confirmVnpay(payment, failure), "00");
-    assert.equal(await confirmVnpay(payment, failure), "02");
-    assert.equal((await prisma.paymentAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).status, "FAILED");
-    assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: payment.order.id } })).status, "PENDING");
-    const after = await assertLedger(shop, member, "0");
-    assert.equal(after.reservedPoints.toString(), "0");
-    assert.equal(after.netLifetimeEarned.toString(), "0");
-    assert.equal(after.transactions.length, 0);
-    assert.equal((await wallet(shop, member)).exactBalance, "0");
-  } finally {
-    env.paymentMode = "mock";
-  }
 });

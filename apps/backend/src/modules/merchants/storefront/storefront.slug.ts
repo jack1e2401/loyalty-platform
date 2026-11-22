@@ -1,7 +1,6 @@
 import { HttpError } from "../../../lib/http-error.js";
 
 export const RESERVED_STORE_SLUGS = new Set([
-  "admin",
   "merchant",
   "member",
   "login",

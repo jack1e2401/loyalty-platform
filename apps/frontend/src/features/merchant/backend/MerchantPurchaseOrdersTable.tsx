@@ -1,4 +1,4 @@
-import { Button, Flex, Space, Typography, type TableColumnsType } from "antd";
+import { Space, Typography, type TableColumnsType } from "antd";
 import { Link } from "react-router-dom";
 import type { OrderDto } from "../../../api/commerce-types";
 import { formatPrice, orderStatusLabel } from "../merchant-page-support";
@@ -20,7 +20,7 @@ const tone = (status: OrderDto["status"]) => {
 
 function refundLabel(order: OrderDto): string[] {
   const labels: string[] = [];
-  if (order.refundStatus === "PENDING_PROVIDER") labels.push("Chờ cổng xác nhận");
+  if (order.refundStatus === "PENDING_PROVIDER") labels.push("Chờ xác nhận hoàn tiền");
   if (order.refundStatus === "COMPLETED" && order.status !== "REFUNDED") labels.push("Đã hoàn tiền");
   if (order.refundRequest) labels.push(`Hoàn tiền: ${refundRequestStatusLabel(order.refundRequest.status)}`);
   return labels;
@@ -28,10 +28,8 @@ function refundLabel(order: OrderDto): string[] {
 
 export function MerchantPurchaseOrdersTable({
   orders,
-  onReport,
 }: {
   orders: MerchantOrderRow[];
-  onReport(order: MerchantOrderRow): void;
 }) {
   const columns: TableColumnsType<MerchantOrderRow> = [
     {
@@ -104,14 +102,9 @@ export function MerchantPurchaseOrdersTable({
       title: "Thao tác",
       key: "actions",
       width: 160,
-      render: (_: unknown, order) => (
-        <Flex vertical align="start" gap={8}>
-          {order.refundRequest && ["PENDING_MERCHANT", "PENDING_ADMIN"].includes(order.refundRequest.status) ? (
-            <Link to={`/merchant/refund-requests?requestId=${order.refundRequest.id}`}>Xử lý yêu cầu hoàn tiền</Link>
-          ) : null}
-          <Button size="small" onClick={() => onReport(order)}>Báo cáo vi phạm</Button>
-        </Flex>
-      ),
+      render: (_: unknown, order) => order.refundRequest?.status === "PENDING_MERCHANT"
+        ? <Link to={`/merchant/refund-requests?requestId=${order.refundRequest.id}`}>Xử lý yêu cầu hoàn tiền</Link>
+        : null,
     },
   ];
 

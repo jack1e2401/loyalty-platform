@@ -63,7 +63,7 @@ test("readStorefrontConfig validates branding, safe links, sections, and feature
   assert.throws(() => readStorefrontConfig(withTagInSection), (e: unknown) => e instanceof HttpError && e.statusCode === 400);
 
   // Reject unsafe CTA & footer links
-  for (const badLink of ["javascript:alert(1)", "data:text/html,hi", "//evil.com", "http://insecure.example.com", "/admin"]) {
+  for (const badLink of ["javascript:alert(1)", "data:text/html,hi", "//evil.com", "http://insecure.example.com"]) {
     const bad = structuredClone(valid);
     bad.branding.heroCtaLink = badLink;
     assert.throws(() => readStorefrontConfig(bad), (e: unknown) => e instanceof HttpError && e.statusCode === 400);

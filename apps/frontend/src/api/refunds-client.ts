@@ -11,7 +11,6 @@ export function translateRefundRequestError(code: string): string {
   const translations: Record<string, string> = {
     REFUND_REQUEST_ALREADY_EXISTS: "Đơn hàng này đã có yêu cầu hoàn tiền.",
     REFUND_REQUEST_NOT_FOUND: "Không tìm thấy yêu cầu hoàn tiền.",
-    VNPAY_REFUND_NOT_SUPPORTED: "Hoàn tiền qua cổng VNPay chưa được hỗ trợ trong phiên bản này.",
     ORDER_NOT_REFUNDABLE: "Đơn hàng không ở trạng thái có thể hoàn tiền.",
     REFUND_REQUEST_NOT_PENDING: "Yêu cầu này đã được xử lý. Hãy tải lại để xem kết quả.",
     USE_REFUND_APPROVAL_WORKFLOW: "Vui lòng xử lý hoàn tiền thông qua quy trình phê duyệt yêu cầu hoàn tiền.",
@@ -81,29 +80,6 @@ export function createRefundsClient(
         baseUrl,
         `/api/merchant/refund-requests/${requestId}/reject`,
         { method: "POST", body: { reason }, token },
-      );
-    },
-
-    listAdminRefundRequests(params: ListRefundRequestsParams = {}, token: string) {
-      const search = new URLSearchParams();
-      if (params.status) search.set("status", params.status);
-      if (params.page) search.set("page", String(params.page));
-      if (params.limit) search.set("limit", String(params.limit));
-      const qs = search.toString();
-      return requestJson<RefundRequestListResponse>(
-        fetcher,
-        baseUrl,
-        `/api/admin/refund-requests${qs ? `?${qs}` : ""}`,
-        { token },
-      );
-    },
-
-    getAdminRefundRequest(requestId: number, token: string) {
-      return requestJson<RefundRequestDetailResponse>(
-        fetcher,
-        baseUrl,
-        `/api/admin/refund-requests/${requestId}`,
-        { token },
       );
     },
 
