@@ -1,40 +1,137 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
-import type { LoyaltyConfigDto, LoyaltyConfigInput } from "./loyalty.types.js";
 import { withTransactionRetry } from "../../../lib/prisma-transaction.js";
-import type { TierLevel } from "./loyalty.calculation.js";
+import type { TierQualificationMode, TierThreshold } from "./loyalty.calculation.js";
+import type { LoyaltyConfigDto, LoyaltyConfigInput, LoyaltyTierDto } from "./loyalty.types.js";
 
-type PolicyTier = { level: TierLevel; minLifetimePoints: number; multiplier: Prisma.Decimal | string };
+type StoredTier = {
+  id: number;
+  level: string;
+  name: string;
+  minLifetimePoints: number | null;
+  minSpendVnd: Prisma.Decimal | null;
+  sortOrder: number;
+  multiplier: Prisma.Decimal;
+  benefits: Prisma.JsonValue;
+  iconUrl: string | null;
+  color: string;
+  maintenanceSpendVnd: Prisma.Decimal | null;
+  isActive: boolean;
+};
+
+type PolicyTier = TierThreshold & {
+  name: string;
+  multiplier: Prisma.Decimal | string;
+  benefits: string[];
+  iconUrl: string | null;
+  color: string;
+  maintenanceSpendVnd: string | null;
+};
+
 type EarningPolicy = {
   vndPerPoint: number;
   isActive: boolean;
-  tiers: { id: number; level: TierLevel; minLifetimePoints: number; multiplier: Prisma.Decimal }[];
+  qualificationMode: TierQualificationMode;
+  tiers: StoredTier[];
   policyVersion: Prisma.LoyaltyPolicyVersionGetPayload<{}>;
 };
 
-export const defaultTiers = [
-  { level: "BRONZE" as const, minLifetimePoints: 0, multiplier: "1.00" },
-  { level: "SILVER" as const, minLifetimePoints: 1000, multiplier: "1.20" },
-  { level: "GOLD" as const, minLifetimePoints: 5000, multiplier: "1.50" },
-  { level: "PLATINUM" as const, minLifetimePoints: 10000, multiplier: "2.00" },
+export const defaultTiers: LoyaltyTierDto[] = [
+  { level: "default", name: "Default", minLifetimePoints: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#6B7280", maintenanceSpendVnd: null, sortOrder: 0, isActive: true },
+  { level: "silver", name: "Silver", minLifetimePoints: 1000, multiplier: "1.20", benefits: [], iconUrl: null, color: "#8A949D", maintenanceSpendVnd: null, sortOrder: 1, isActive: true },
+  { level: "gold", name: "Gold", minLifetimePoints: 5000, multiplier: "1.50", benefits: [], iconUrl: null, color: "#C6912D", maintenanceSpendVnd: null, sortOrder: 2, isActive: true },
+  { level: "platinum", name: "Platinum", minLifetimePoints: 10000, multiplier: "2.00", benefits: [], iconUrl: null, color: "#5B6F8D", maintenanceSpendVnd: null, sortOrder: 3, isActive: true },
 ];
+
+function decimal(value: Prisma.Decimal | string | null | undefined): string | null {
+  return value == null ? null : typeof value === "string" ? value : value.toFixed(0);
+}
+
+function benefits(value: Prisma.JsonValue): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function tierDto(tier: StoredTier | LoyaltyTierDto, mode: TierQualificationMode): LoyaltyTierDto {
+  return {
+    level: tier.level,
+    name: tier.name,
+    ...(mode === "POINTS" ? { minLifetimePoints: tier.minLifetimePoints ?? 0 } : { minSpendVnd: decimal(tier.minSpendVnd) ?? "0" }),
+    multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2),
+    benefits: "benefits" in tier && Array.isArray(tier.benefits) ? benefits(tier.benefits as Prisma.JsonValue) : [],
+    iconUrl: tier.iconUrl,
+    color: tier.color,
+    maintenanceSpendVnd: decimal(tier.maintenanceSpendVnd),
+    sortOrder: tier.sortOrder,
+    isActive: tier.isActive,
+  };
+}
+
+function jsonTiers(tiers: readonly PolicyTier[]): Prisma.InputJsonObject[] {
+  return tiers.map((tier) => ({
+    level: tier.level,
+    name: tier.name,
+    ...(tier.minLifetimePoints !== undefined && tier.minLifetimePoints !== null ? { minLifetimePoints: tier.minLifetimePoints } : {}),
+    ...(tier.minSpendVnd !== undefined && tier.minSpendVnd !== null ? { minSpendVnd: String(tier.minSpendVnd) } : {}),
+    sortOrder: tier.sortOrder ?? 0,
+    multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2),
+    benefits: tier.benefits,
+    iconUrl: tier.iconUrl,
+    color: tier.color,
+    maintenanceSpendVnd: tier.maintenanceSpendVnd,
+  }));
+}
+
+function fromStored(tier: StoredTier): PolicyTier {
+  return {
+    level: tier.level,
+    name: tier.name,
+    ...(tier.minLifetimePoints !== null ? { minLifetimePoints: tier.minLifetimePoints } : {}),
+    ...(tier.minSpendVnd !== null ? { minSpendVnd: tier.minSpendVnd.toFixed(0) } : {}),
+    sortOrder: tier.sortOrder,
+    multiplier: tier.multiplier,
+    benefits: benefits(tier.benefits),
+    iconUrl: tier.iconUrl,
+    color: tier.color,
+    maintenanceSpendVnd: decimal(tier.maintenanceSpendVnd),
+    isActive: tier.isActive,
+  };
+}
 
 export async function loadEarningPolicy(tx: Prisma.TransactionClient, merchantId: number): Promise<EarningPolicy> {
   const [rule, configured] = await Promise.all([
     tx.loyaltyRule.findUnique({ where: { merchantId } }),
-    tx.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+    tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
   ]);
-  let tiers = configured;
-  if (tiers.length !== 4) {
-    for (const tier of defaultTiers) {
+  const mode = (rule?.qualificationMode ?? "POINTS") as TierQualificationMode;
+  let tiers: StoredTier[] = configured;
+  if (tiers.length === 0) {
+    for (const [index, tier] of defaultTiers.entries()) {
       await tx.loyaltyTier.upsert({
         where: { merchantId_level: { merchantId, level: tier.level } },
-        create: { merchantId, ...tier, multiplier: new Prisma.Decimal(tier.multiplier) }, update: {},
+        create: {
+          merchantId,
+          level: tier.level,
+          name: tier.name,
+          minLifetimePoints: tier.minLifetimePoints,
+          minSpendVnd: tier.minSpendVnd ? new Prisma.Decimal(tier.minSpendVnd) : null,
+          sortOrder: index,
+          multiplier: new Prisma.Decimal(tier.multiplier),
+          benefits: tier.benefits as Prisma.InputJsonValue,
+          iconUrl: tier.iconUrl,
+          color: tier.color,
+          maintenanceSpendVnd: null,
+        },
+        update: {},
       });
     }
-    tiers = await tx.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } });
+    tiers = await tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } });
   }
-  const policy = { vndPerPoint: rule?.vndPerPoint ?? 10000, isActive: rule?.isActive ?? true, tiers };
+  const policy = {
+    vndPerPoint: rule?.vndPerPoint ?? 10000,
+    isActive: rule?.isActive ?? true,
+    qualificationMode: mode,
+    tiers,
+  };
   let version = await tx.loyaltyPolicyVersion.findFirst({ where: { merchantId }, orderBy: { version: "desc" } });
   if (!version) {
     version = await tx.loyaltyPolicyVersion.create({
@@ -43,7 +140,7 @@ export async function loadEarningPolicy(tx: Prisma.TransactionClient, merchantId
         version: 1,
         vndPerPoint: policy.vndPerPoint,
         isActive: policy.isActive,
-        tiers: policyJson(policy.tiers),
+        tiers: jsonTiers(tiers.map(fromStored)),
         source: "LEGACY_BACKFILL",
       },
     });
@@ -51,37 +148,41 @@ export async function loadEarningPolicy(tx: Prisma.TransactionClient, merchantId
   return { ...policy, policyVersion: version };
 }
 
-function policyJson(tiers: PolicyTier[]): Prisma.InputJsonObject[] {
-  return tiers.map((tier) => ({
-    level: tier.level,
-    minLifetimePoints: tier.minLifetimePoints,
-    multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2),
-  }));
-}
-
-function configMatches(
-  current: { vndPerPoint: number; isActive: boolean; tiers: { level: string; minLifetimePoints: number; multiplier: Prisma.Decimal }[] },
-  input: LoyaltyConfigInput,
-) {
-  if (current.vndPerPoint !== input.vndPerPoint || current.isActive !== input.isActive || current.tiers.length !== input.tiers.length) return false;
-  const currentTiers = [...current.tiers].sort((a, b) => a.level.localeCompare(b.level));
-  const nextTiers = [...input.tiers].sort((a, b) => a.level.localeCompare(b.level));
-  return currentTiers.every((tier, index) => tier.level === nextTiers[index]!.level &&
-    tier.minLifetimePoints === nextTiers[index]!.minLifetimePoints && tier.multiplier.equals(nextTiers[index]!.multiplier));
+function configMatches(current: { vndPerPoint: number; isActive: boolean; qualificationMode: TierQualificationMode; resetEnabled: boolean; resetMonth: number | null; resetDay: number | null; resetStrategy: string; resetTargetLevel: string | null; tiers: StoredTier[] }, input: LoyaltyConfigInput) {
+  if (current.vndPerPoint !== input.vndPerPoint || current.isActive !== input.isActive || current.qualificationMode !== input.qualificationMode ||
+    current.resetEnabled !== input.reset.enabled || current.resetMonth !== input.reset.month || current.resetDay !== input.reset.day ||
+    current.resetStrategy !== input.reset.strategy || current.resetTargetLevel !== input.reset.targetLevel || current.tiers.length !== input.tiers.length) return false;
+  const byLevel = new Map(current.tiers.map((tier) => [tier.level, tier]));
+  return input.tiers.every((tier) => {
+    const old = byLevel.get(tier.level);
+    return old !== undefined && old.name === tier.name && old.minLifetimePoints === (tier.minLifetimePoints ?? null) &&
+      (old.minSpendVnd?.toFixed(0) ?? null) === (tier.minSpendVnd ?? null) && old.sortOrder === tier.sortOrder &&
+      old.multiplier.equals(tier.multiplier) && JSON.stringify(benefits(old.benefits)) === JSON.stringify(tier.benefits) &&
+      old.iconUrl === tier.iconUrl && old.color === tier.color &&
+      (old.maintenanceSpendVnd?.toFixed(0) ?? null) === tier.maintenanceSpendVnd && old.isActive === tier.isActive;
+  });
 }
 
 export const loyaltyConfigRepository = {
   async getConfig(merchantId: number): Promise<LoyaltyConfigDto> {
     const [rule, tiers] = await Promise.all([
       prisma.loyaltyRule.findUnique({ where: { merchantId } }),
-      prisma.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+      prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     ]);
+    const mode = (rule?.qualificationMode ?? "POINTS") as TierQualificationMode;
     return {
-      merchantId, vndPerPoint: rule?.vndPerPoint ?? 10000, isActive: rule?.isActive ?? true,
-      tiers: (tiers.length ? tiers : defaultTiers).map((tier) => ({
-        level: tier.level, minLifetimePoints: tier.minLifetimePoints,
-        multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2),
-      })),
+      merchantId,
+      vndPerPoint: rule?.vndPerPoint ?? 10000,
+      isActive: rule?.isActive ?? true,
+      qualificationMode: mode,
+      tiers: tiers.length ? tiers.map((tier) => tierDto(tier, mode)) : defaultTiers,
+      reset: {
+        enabled: rule?.resetEnabled ?? false,
+        month: rule?.resetMonth ?? 1,
+        day: rule?.resetDay ?? 1,
+        strategy: rule?.resetStrategy ?? "ONE_DOWN",
+        targetLevel: rule?.resetTargetLevel ?? null,
+      },
     };
   },
 
@@ -89,28 +190,64 @@ export const loyaltyConfigRepository = {
     await withTransactionRetry(() => prisma.$transaction(async (tx) => {
       const [currentRule, currentTiers, latest] = await Promise.all([
         tx.loyaltyRule.findUnique({ where: { merchantId } }),
-        tx.loyaltyTier.findMany({ where: { merchantId }, orderBy: { level: "asc" } }),
+        tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
         tx.loyaltyPolicyVersion.findFirst({ where: { merchantId }, orderBy: { version: "desc" } }),
       ]);
       const wasUnchanged = currentRule !== null && configMatches({
         vndPerPoint: currentRule.vndPerPoint,
         isActive: currentRule.isActive,
+        qualificationMode: currentRule.qualificationMode,
+        resetEnabled: currentRule.resetEnabled,
+        resetMonth: currentRule.resetMonth,
+        resetDay: currentRule.resetDay,
+        resetStrategy: currentRule.resetStrategy,
+        resetTargetLevel: currentRule.resetTargetLevel,
         tiers: currentTiers,
       }, input);
       await tx.loyaltyRule.upsert({
         where: { merchantId },
-        create: { merchantId, vndPerPoint: input.vndPerPoint, isActive: input.isActive },
-        update: { vndPerPoint: input.vndPerPoint, isActive: input.isActive },
+        create: {
+          merchantId, vndPerPoint: input.vndPerPoint, isActive: input.isActive, qualificationMode: input.qualificationMode,
+          resetEnabled: input.reset.enabled, resetMonth: input.reset.month, resetDay: input.reset.day,
+          resetStrategy: input.reset.strategy, resetTargetLevel: input.reset.targetLevel,
+        },
+        update: {
+          vndPerPoint: input.vndPerPoint, isActive: input.isActive, qualificationMode: input.qualificationMode,
+          resetEnabled: input.reset.enabled, resetMonth: input.reset.month, resetDay: input.reset.day,
+          resetStrategy: input.reset.strategy, resetTargetLevel: input.reset.targetLevel,
+        },
       });
-      const existingTiers = await tx.loyaltyTier.findMany({ where: { merchantId }, select: { id: true } });
-      for (const [index, tier] of existingTiers.entries()) {
-        await tx.loyaltyTier.update({ where: { id: tier.id }, data: { minLifetimePoints: -(index + 1) } });
-      }
+      const activeLevels = input.tiers.map(({ level }) => level);
+      await tx.loyaltyTier.updateMany({ where: { merchantId, level: { notIn: activeLevels } }, data: { isActive: false } });
       for (const tier of input.tiers) {
         await tx.loyaltyTier.upsert({
           where: { merchantId_level: { merchantId, level: tier.level } },
-          create: { merchantId, ...tier, multiplier: new Prisma.Decimal(tier.multiplier) },
-          update: { minLifetimePoints: tier.minLifetimePoints, multiplier: new Prisma.Decimal(tier.multiplier) },
+          create: {
+            merchantId,
+            level: tier.level,
+            name: tier.name,
+            minLifetimePoints: tier.minLifetimePoints ?? null,
+            minSpendVnd: tier.minSpendVnd ? new Prisma.Decimal(tier.minSpendVnd) : null,
+            sortOrder: tier.sortOrder,
+            multiplier: new Prisma.Decimal(tier.multiplier),
+            benefits: tier.benefits as Prisma.InputJsonValue,
+            iconUrl: tier.iconUrl,
+            color: tier.color,
+            maintenanceSpendVnd: tier.maintenanceSpendVnd ? new Prisma.Decimal(tier.maintenanceSpendVnd) : null,
+            isActive: tier.isActive,
+          },
+          update: {
+            name: tier.name,
+            minLifetimePoints: tier.minLifetimePoints ?? null,
+            minSpendVnd: tier.minSpendVnd ? new Prisma.Decimal(tier.minSpendVnd) : null,
+            sortOrder: tier.sortOrder,
+            multiplier: new Prisma.Decimal(tier.multiplier),
+            benefits: tier.benefits as Prisma.InputJsonValue,
+            iconUrl: tier.iconUrl,
+            color: tier.color,
+            maintenanceSpendVnd: tier.maintenanceSpendVnd ? new Prisma.Decimal(tier.maintenanceSpendVnd) : null,
+            isActive: tier.isActive,
+          },
         });
       }
       if (!wasUnchanged || !latest) {
@@ -120,7 +257,7 @@ export const loyaltyConfigRepository = {
             version: (latest?.version ?? 0) + 1,
             vndPerPoint: input.vndPerPoint,
             isActive: input.isActive,
-            tiers: policyJson(input.tiers.map((tier) => ({ ...tier, multiplier: new Prisma.Decimal(tier.multiplier) }))),
+            tiers: jsonTiers(input.tiers),
             source: "MERCHANT_PUBLISH",
             publishedById,
           },

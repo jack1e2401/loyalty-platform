@@ -136,6 +136,7 @@ function BackendRoutes() {
           <Route path="wallet" element={<MemberWallet />} />
           <Route path="orders" element={<MemberOrders />} />
           <Route path="orders/:orderId" element={<MemberOrderResult />} />
+          <Route path="profile" element={<StorefrontProfilePage />} />
         </Route>
       </Route>
       <Route element={<RequireRole role="MEMBER" />}>

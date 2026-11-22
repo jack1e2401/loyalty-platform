@@ -12,6 +12,7 @@ import {
   type MerchantTransactionFilters,
 } from "./loyalty.read.js";
 import type { TierLevel } from "./loyalty.calculation.js";
+import { runAnnualTierReset } from "./loyalty.tier-reset.js";
 
 export const loyaltyService = {
   async getConfig(ownerId: number) {
@@ -58,5 +59,11 @@ export const loyaltyService = {
     const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
     return getMerchantMemberWallet(merchant.id, memberId);
+  },
+
+  async runTierReset(ownerId: number) {
+    const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
+    if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
+    return runAnnualTierReset(merchant.id);
   },
 };

@@ -40,6 +40,8 @@ function wallet(transactions: WalletTransactionDto[], netLifetimeEarned: string)
       merchantId: 7,
       vndPerPoint: 10000,
       isActive: true,
+      qualificationMode: "POINTS",
+      reset: { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
       tiers: [
         { level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" },
         { level: "SILVER", minLifetimePoints: 1, multiplier: "1.10" },

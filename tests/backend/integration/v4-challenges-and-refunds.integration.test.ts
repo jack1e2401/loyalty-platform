@@ -27,7 +27,11 @@ const extraMemberIds: number[] = [];
 async function req(path: string, method = "GET", token?: string, body?: unknown) {
   const response = await fetch(base + path, {
     method,
-    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body ? { "content-type": "application/json" } : {}) },
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(body ? { "content-type": "application/json" } : {}),
+      ...(method === "POST" && path === "/api/orders" ? { "Idempotency-Key": randomUUID() } : {}),
+    },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   return { status: response.status, json: await response.json() as ApiResponse };
@@ -64,6 +68,7 @@ after(async () => {
   await prisma.pointTransaction.deleteMany({ where: { wallet: { membership: { merchantId } } } });
   await prisma.inventoryMovement.deleteMany({ where: { merchantId } });
   await prisma.orderItem.deleteMany({ where: { order: { merchantId } } });
+  await prisma.orderRequest.deleteMany({ where: { order: { merchantId } } });
   await prisma.order.deleteMany({ where: { merchantId } });
   await prisma.challenge.deleteMany({ where: { merchantId } });
   await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId } } });
@@ -305,6 +310,7 @@ test("locked fields, WAITING_BUDGET FIFO replenishment, Option B keep-above-targ
   await prisma.merchantMembership.deleteMany({ where: { id: m2Membership.id } });
   await prisma.inventoryMovement.deleteMany({ where: { orderId: o2Id } });
   await prisma.orderItem.deleteMany({ where: { orderId: o2Id } });
+  await prisma.orderRequest.deleteMany({ where: { orderId: o2Id } });
   await prisma.order.deleteMany({ where: { id: o2Id } });
   await prisma.user.deleteMany({ where: { id: member2.id } });
 });

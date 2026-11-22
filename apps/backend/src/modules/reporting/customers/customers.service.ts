@@ -15,16 +15,16 @@ import type {
 export async function listMerchantCustomers(
   merchantId: number,
   query: CustomerListQuery,
-): Promise<{ items: CustomerSummaryDto[]; pagination: PaginationDto }> {
-  const [memberships, configuredTiers, orderGroups] = await prisma.$transaction([
+): Promise<{ items: CustomerSummaryDto[]; pagination: PaginationDto; tiers: { level: string; name: string }[] }> {
+  const [memberships, configuredTiers, orderGroups, rule] = await prisma.$transaction([
     prisma.merchantMembership.findMany({
       where: {
         merchantId,
-        ...(query.q ? { member: { email: { contains: query.q } } } : {}),
+        ...(query.q ? { member: { OR: [{ email: { contains: query.q } }, { name: { contains: query.q } }, { phone: { contains: query.q } }] } } : {}),
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       include: {
-        member: { select: { id: true, email: true } },
+        member: { select: { id: true, email: true, name: true, phone: true } },
         wallet: {
           include: {
             _count: { select: { transactions: { where: { type: "EARN" } } } },
@@ -33,8 +33,8 @@ export async function listMerchantCustomers(
       },
     }),
     prisma.loyaltyTier.findMany({
-      where: { merchantId },
-      orderBy: { minLifetimePoints: "asc" },
+      where: { merchantId, isActive: true },
+      orderBy: { sortOrder: "asc" },
     }),
     prisma.order.groupBy({
       by: ["memberId", "status"],
@@ -47,6 +47,7 @@ export async function listMerchantCustomers(
       _sum: { total: true },
       _max: { paidAt: true },
     }),
+    prisma.loyaltyRule.findUnique({ where: { merchantId } }),
   ]);
 
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
@@ -91,6 +92,8 @@ export async function listMerchantCustomers(
       tierId: membership.tierId,
       hasEarnTransaction: (membership.wallet?._count.transactions ?? 0) > 0,
       netLifetimeEarned: walletInfo.netLifetimeEarned,
+      qualificationProgress: membership.qualificationProgress,
+      qualificationMode: rule?.qualificationMode ?? "POINTS",
       tiers,
     });
     const orderStats = statsByMember.get(membership.memberId);
@@ -102,6 +105,8 @@ export async function listMerchantCustomers(
     return {
       memberId: membership.member.id,
       email: membership.member.email,
+      name: membership.member.name,
+      phone: membership.member.phone,
       joinedAt: membership.createdAt.toISOString(),
       tier,
       availablePoints: walletInfo.availablePoints,
@@ -132,6 +137,7 @@ export async function listMerchantCustomers(
 
   return {
     items,
+    tiers: tiers.map(({ level, name }) => ({ level, name })),
     pagination: {
       page: query.page,
       limit: query.limit,
@@ -148,7 +154,7 @@ export async function getMerchantCustomerDetail(
   const membership = await prisma.merchantMembership.findUnique({
     where: { memberId_merchantId: { memberId, merchantId } },
     include: {
-      member: { select: { id: true, email: true } },
+      member: { select: { id: true, email: true, name: true, phone: true, address: true, birthDate: true } },
       wallet: {
         include: {
           transactions: {
@@ -167,7 +173,7 @@ export async function getMerchantCustomerDetail(
 
   const [rule, configuredTiers, vouchers, orders] = await prisma.$transaction([
     prisma.loyaltyRule.findUnique({ where: { merchantId } }),
-    prisma.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+    prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.memberVoucher.findMany({
       where: { membershipId: membership.id },
       include: { membership: true, activeReservation: true },
@@ -190,6 +196,8 @@ export async function getMerchantCustomerDetail(
     tierId: membership.tierId,
     hasEarnTransaction: (membership.wallet?._count.transactions ?? 0) > 0,
     netLifetimeEarned: walletInfo.netLifetimeEarned,
+    qualificationProgress: membership.qualificationProgress,
+    qualificationMode: rule?.qualificationMode ?? "POINTS",
     tiers,
   });
 
@@ -198,8 +206,13 @@ export async function getMerchantCustomerDetail(
       member: {
         id: membership.member.id,
         email: membership.member.email,
+        name: membership.member.name,
+        phone: membership.member.phone,
+        address: membership.member.address,
+        birthDate: membership.member.birthDate?.toISOString().slice(0, 10) ?? null,
         joinedAt: membership.createdAt.toISOString(),
       },
+      tags: Array.isArray(membership.tags) ? membership.tags.filter((tag): tag is string => typeof tag === "string") : [],
       stats: computeCustomerStats(orders),
       wallet: {
         merchantId,
@@ -207,11 +220,8 @@ export async function getMerchantCustomerDetail(
           merchantId,
           vndPerPoint: rule?.vndPerPoint ?? 10000,
           isActive: rule?.isActive ?? true,
-          tiers: tiers.map((t) => ({
-            level: t.level,
-            minLifetimePoints: t.minLifetimePoints,
-            multiplier: typeof t.multiplier === "string" ? t.multiplier : t.multiplier.toFixed(2),
-          })),
+          qualificationMode: rule?.qualificationMode ?? "POINTS",
+          tiers: tiers.map((t) => ({ level: t.level, name: t.name, ...(t.minLifetimePoints !== null && t.minLifetimePoints !== undefined ? { minLifetimePoints: t.minLifetimePoints } : {}), ...(t.minSpendVnd !== null && t.minSpendVnd !== undefined ? { minSpendVnd: typeof t.minSpendVnd === "string" ? t.minSpendVnd : t.minSpendVnd.toFixed(0) } : {}), multiplier: typeof t.multiplier === "string" ? t.multiplier : t.multiplier.toFixed(2), benefits: Array.isArray(t.benefits) ? t.benefits.filter((benefit) => typeof benefit === "string") as string[] : [], iconUrl: t.iconUrl, color: t.color })),
         },
         ...walletInfo,
         tier,

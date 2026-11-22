@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
-import { ShoppingCart, Storefront, Wallet, Ticket, Gift, Receipt, SignOut } from "@phosphor-icons/react";
+import { ShoppingCart, Storefront, Wallet, Ticket, Gift, Receipt, SignOut, UserCircle } from "@phosphor-icons/react";
 import { useAuthSession } from "../../api/auth-session";
 import { ErrorState } from "../../components/ui";
 import { useEnsureMembership } from "../customers/useEnsureMembership";
@@ -51,6 +51,7 @@ export function MemberStoreLayout({
     { to: `${base}/vouchers`, label: "Voucher", icon: Ticket },
     { to: `${base}/rewards`, label: "Quà tặng", icon: Gift },
     { to: `${base}/orders`, label: "Đơn hàng", icon: Receipt },
+    { to: `${base}/profile`, label: "Hồ sơ", icon: UserCircle },
     { to: `${base}/cart`, label: "Giỏ hàng", icon: ShoppingCart, isCart: true },
   ];
   return (

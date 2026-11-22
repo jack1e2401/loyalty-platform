@@ -37,6 +37,8 @@ export interface CustomerListQuery {
 export interface CustomerSummaryDto {
   memberId: number;
   email: string;
+  name: string | null;
+  phone: string | null;
   joinedAt: string;
   tier: MemberTier;
   availablePoints: number;
@@ -54,6 +56,7 @@ export interface CustomerSummaryDto {
 export interface CustomerListResponse {
   items: CustomerSummaryDto[];
   pagination: PaginationDto;
+  tiers: { level: string; name: string }[];
 }
 
 export interface CustomerStatsDto {
@@ -71,8 +74,13 @@ export interface CustomerDetailDto {
   member: {
     id: number;
     email: string;
+    name: string | null;
+    phone: string | null;
+    address: string | null;
+    birthDate: string | null;
     joinedAt: string;
   };
+  tags: string[];
   stats: CustomerStatsDto;
   wallet: {
     merchantId: number;
@@ -103,7 +111,7 @@ export interface MerchantAnalyticsQuery {
 }
 
 export interface AnalyticsKpisDto {
-  netRevenueVnd: string;
+  qualifyingOrderRevenueVnd: string;
   paidOnlyRevenueVnd: string;
   refundPendingRevenueVnd: string;
   refundedRevenueVnd: string;

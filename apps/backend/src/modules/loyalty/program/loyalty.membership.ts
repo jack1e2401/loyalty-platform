@@ -2,7 +2,7 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { prisma } from "../../../lib/prisma.js";
 import { defaultTiers } from "./loyalty.config.js";
-import { selectTier, type TierLevel } from "./loyalty.calculation.js";
+import { selectQualifiedTier, type TierLevel } from "./loyalty.calculation.js";
 
 export type MembershipTier = TierLevel | "UNRANKED";
 
@@ -44,14 +44,14 @@ async function ensureMembershipForMerchant(memberId: number, merchantId: number)
             const createdWallet = await tx.loyaltyWallet.create({ data: { membershipId: existing.id } });
             wallet = { ...createdWallet, _count: { transactions: 0 } };
           }
-          const configuredTiers = await tx.loyaltyTier.findMany({
-            where: { merchantId },
-            orderBy: { minLifetimePoints: "asc" },
-          });
+          const [configuredTiers, rule] = await Promise.all([
+            tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
+            tx.loyaltyRule.findUnique({ where: { merchantId } }),
+          ]);
           const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
           const ranked = existing.tierId !== null || wallet._count.transactions > 0;
           const tier: MembershipTier = ranked
-            ? selectTier(wallet.netLifetimeEarned, tiers) ?? "UNRANKED"
+            ? selectQualifiedTier(existing.qualificationProgress, tiers, rule?.qualificationMode ?? "POINTS") ?? "UNRANKED"
             : "UNRANKED";
 
           return {

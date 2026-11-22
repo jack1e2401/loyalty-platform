@@ -9,6 +9,44 @@ import {
 before(start);
 after(cleanup);
 
+test("checkout idempotency replays the same order and rejects a changed payload", async () => {
+  const shop = await createShop("12000", "1.00", 10);
+  const member = await createMember();
+  const key = randomUUID();
+  const body = { productId: shop.productId, quantity: 1 };
+  const first = await request<{ order: { id: number } }>("/api/orders", "POST", member.token, body, { "Idempotency-Key": key });
+  const replay = await request<{ order: { id: number } }>("/api/orders", "POST", member.token, body, { "Idempotency-Key": key });
+  assert.equal(first.status, 201);
+  assert.equal(replay.status, 200);
+  assert.equal(replay.json.order.id, first.json.order.id);
+  const conflict = await request<{ error: string }>("/api/orders", "POST", member.token, { productId: shop.productId, quantity: 2 }, { "Idempotency-Key": key });
+  assert.equal(conflict.status, 409);
+  assert.equal(conflict.json.error, "IDEMPOTENCY_KEY_CONFLICT");
+  assert.equal(await prisma.order.count({ where: { memberId: member.id } }), 1);
+  const inventory = await prisma.inventoryBalance.findFirstOrThrow({ where: { merchantId: shop.id, productId: shop.productId, ownerType: "SALE_PRODUCT" } });
+  assert.equal(inventory.reservedQuantity, 1);
+});
+
+test("member profile persists private contact fields and merchant tags stay membership scoped", async () => {
+  const shop = await createShop();
+  const member = await createMember();
+  const joined = await request(`/api/member/merchants/${shop.id}/membership`, "POST", member.token);
+  assert.equal(joined.status, 200);
+  const updated = await request<{ profile: { id: number; name: string; phone: string; address: string; birthDate: string } }>("/api/member/profile", "PATCH", member.token, {
+    name: "Flow Member", phone: "+84900000000", address: "District 1", birthDate: "1994-06-15",
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.json.profile.id, member.id);
+  assert.deepEqual({ name: updated.json.profile.name, phone: updated.json.profile.phone, address: updated.json.profile.address, birthDate: updated.json.profile.birthDate }, { name: "Flow Member", phone: "+84900000000", address: "District 1", birthDate: "1994-06-15" });
+  const invalid = await request("/api/member/profile", "PATCH", member.token, { birthDate: "2024-02-31" });
+  assert.equal(invalid.status, 400);
+  const tagged = await request<{ tags: string[] }>(`/api/merchant/customers/${member.id}/tags`, "PATCH", shop.token, { tags: ["vip", " local ", "vip"] });
+  assert.equal(tagged.status, 200);
+  assert.deepEqual(tagged.json.tags, ["vip", "local"]);
+  const membership = await prisma.merchantMembership.findUniqueOrThrow({ where: { memberId_merchantId: { memberId: member.id, merchantId: shop.id } } });
+  assert.deepEqual(membership.tags, ["vip", "local"]);
+});
+
 async function createDiscountDefinition(shop: { token: string }, title: string, discountAmount: string) {
   const created = await request<{ definition: { id: number } }>("/api/merchant/vouchers", "POST", shop.token, {
     type: "DISCOUNT",
@@ -76,7 +114,7 @@ test("earning applies the multiplier before rounding and preserves carry across 
   await savePolicy(shop, { rate: 20000, silverThreshold: 1 });
   assert.equal((await wallet(shop, member)).exactBalance, "0.9");
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.3");
-  assert.equal((await wallet(shop, member)).tier, "SILVER");
+  assert.equal((await wallet(shop, member)).tier, "silver");
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.45");
   const result = await wallet(shop, member);
   assert.equal(result.exactBalance, "1.65");
@@ -279,9 +317,9 @@ test("policy threshold changes select earning tier from exact lifetime instead o
   const member = await createMember();
   await pay(shop, member);
   await pay(shop, member);
-  assert.equal((await wallet(shop, member)).tier, "BRONZE");
+  assert.equal((await wallet(shop, member)).tier, "default");
   await savePolicy(shop, { silverThreshold: 1 });
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.9");
-  assert.equal((await wallet(shop, member)).tier, "SILVER");
+  assert.equal((await wallet(shop, member)).tier, "silver");
   await assertLedger(shop, member, "2.1");
 });

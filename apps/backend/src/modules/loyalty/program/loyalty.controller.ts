@@ -20,6 +20,10 @@ export const putLoyaltyConfig: RequestHandler = async (request, response) => {
   response.json({ config: await loyaltyService.saveConfig(response.locals.user.id, input) });
 };
 
+export const runLoyaltyTierReset: RequestHandler = async (_request, response) => {
+  response.json(await loyaltyService.runTierReset(response.locals.user.id));
+};
+
 export const listLoyaltyPolicyHistory: RequestHandler = async (_request, response) => {
   const versions = await loyaltyService.listPolicyHistory(response.locals.user.id);
   response.json({ versions });

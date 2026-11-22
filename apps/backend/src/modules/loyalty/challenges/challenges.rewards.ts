@@ -1,5 +1,6 @@
 import { Prisma, type Challenge } from "../../../generated/prisma/client.js";
 import { HttpError } from "../../../lib/http-error.js";
+import { points, selectQualifiedTier } from "../program/loyalty.calculation.js";
 
 /** Serialize completion, slot allocation and changes to the limit for this challenge. */
 export async function lockChallenge(tx: Prisma.TransactionClient, id: number, merchantId?: number) {
@@ -113,11 +114,12 @@ async function grantChallengeReward(
   } });
   await tx.challengeProgress.update({ where: { id: progress.id }, data: { rewardState: "REWARDED" } });
   const membership = await tx.merchantMembership.findUniqueOrThrow({ where: { id: membershipId } });
-  const tiers = await tx.loyaltyTier.findMany({
-    where: { merchantId: membership.merchantId },
-    orderBy: { minLifetimePoints: "asc" },
-  });
-  const tier = tiers.filter(({ minLifetimePoints }) => lifetimeAfter.greaterThanOrEqualTo(minLifetimePoints)).at(-1);
-  if (tier) await tx.merchantMembership.update({ where: { id: membershipId }, data: { tierId: tier.id } });
+  const rule = await tx.loyaltyRule.findUnique({ where: { merchantId: membership.merchantId } });
+  const mode = rule?.qualificationMode ?? "POINTS";
+  const qualificationProgress = mode === "POINTS" ? points(membership.qualificationProgress).plus(rewardPoints) : membership.qualificationProgress;
+  const tiers = await tx.loyaltyTier.findMany({ where: { merchantId: membership.merchantId, isActive: true }, orderBy: { sortOrder: "asc" } });
+  const level = selectQualifiedTier(qualificationProgress, tiers, mode);
+  const tier = tiers.find((item) => item.level === level);
+  if (tier) await tx.merchantMembership.update({ where: { id: membershipId }, data: { tierId: tier.id, qualificationProgress } });
   return true;
 }

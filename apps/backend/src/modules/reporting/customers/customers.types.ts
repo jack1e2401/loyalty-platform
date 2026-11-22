@@ -16,6 +16,8 @@ export interface CustomerListQuery {
 export interface CustomerSummaryDto {
   memberId: number;
   email: string;
+  name: string | null;
+  phone: string | null;
   joinedAt: string;
   tier: CustomerTier;
   availablePoints: number;
@@ -85,8 +87,13 @@ export interface CustomerDetailDto {
   member: {
     id: number;
     email: string;
+    name: string | null;
+    phone: string | null;
+    address: string | null;
+    birthDate: string | null;
     joinedAt: string;
   };
+  tags: string[];
   stats: CustomerStatsDto;
   wallet: {
     merchantId: number;
@@ -94,7 +101,8 @@ export interface CustomerDetailDto {
       merchantId: number;
       vndPerPoint: number;
       isActive: boolean;
-      tiers: { level: TierLevel; minLifetimePoints: number; multiplier: string }[];
+      qualificationMode: "POINTS" | "SPEND";
+      tiers: { level: TierLevel; name: string; minLifetimePoints?: number; minSpendVnd?: string; multiplier: string; benefits: string[]; iconUrl: string | null; color: string }[];
     };
     exactBalance: string;
     availablePoints: number;

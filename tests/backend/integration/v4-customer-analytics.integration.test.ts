@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import { after, before, test } from "node:test";
@@ -49,6 +49,7 @@ async function cleanup() {
     await prisma.memberActivity.deleteMany({ where: { membershipId: { in: membershipIds } } });
     await prisma.orderItem.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
     await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.orderRequest.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
     await prisma.order.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.redemptionIdempotency.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
     await prisma.memberVoucher.deleteMany({ where: { membershipId: { in: membershipIds } } });
@@ -67,12 +68,13 @@ async function cleanup() {
   }
 }
 
-async function request<T>(path: string, method = "GET", token?: string, body?: unknown) {
+async function request<T>(path: string, method = "GET", token?: string, body?: unknown, headers: Record<string, string> = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(body === undefined ? {} : { "content-type": "application/json" }),
+      ...headers,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
@@ -202,21 +204,21 @@ test("Customer 360 lists 0-order members, handles REFUND_PENDING/REFUNDED, and e
   const order1 = await request<{ order: { id: number } }>("/api/orders", "POST", buyerMember.token, {
     productId,
     quantity: 2, // 100,000
-  });
+  }, { "idempotency-key": randomUUID() });
   assert.equal(order1.status, 201);
   await request(`/api/orders/${order1.json.order.id}/pay`, "POST", buyerMember.token);
 
   const order2 = await request<{ order: { id: number } }>("/api/orders", "POST", buyerMember.token, {
     productId,
     quantity: 1, // 50,000
-  });
+  }, { "idempotency-key": randomUUID() });
   await request(`/api/orders/${order2.json.order.id}/pay`, "POST", buyerMember.token);
   await prisma.order.update({ where: { id: order2.json.order.id }, data: { status: "REFUND_PENDING" } });
 
   const order3 = await request<{ order: { id: number } }>("/api/orders", "POST", buyerMember.token, {
     productId,
     quantity: 1, // 50,000
-  });
+  }, { "idempotency-key": randomUUID() });
   await request(`/api/orders/${order3.json.order.id}/pay`, "POST", buyerMember.token);
   const refundRequest = await prisma.refundRequest.create({ data: { orderId: order3.json.order.id, memberId: buyerMember.id, merchantId: storeA.id, reason: "Test refund" } });
   const refund = await request(`/api/merchant/refund-requests/${refundRequest.id}/approve`, "POST", storeA.ownerToken, {});
@@ -385,7 +387,7 @@ test("Merchant Analytics V1 computes exact revenue, VN timezones, product rankin
 
   const res = await request<{
     kpis: {
-      netRevenueVnd: string;
+      qualifyingOrderRevenueVnd: string;
       paidOnlyRevenueVnd: string;
       refundPendingRevenueVnd: string;
       refundedRevenueVnd: string;
@@ -404,7 +406,7 @@ test("Merchant Analytics V1 computes exact revenue, VN timezones, product rankin
   }>("/api/merchant/analytics?from=2026-11-15&to=2026-11-17&granularity=day", "GET", store.ownerToken);
 
   assert.equal(res.status, 200);
-  assert.equal(res.json.kpis.netRevenueVnd, "120000");
+  assert.equal(res.json.kpis.qualifyingOrderRevenueVnd, "120000");
   assert.equal(res.json.kpis.paidOnlyRevenueVnd, "80000");
   assert.equal(res.json.kpis.refundPendingRevenueVnd, "40000");
   assert.equal(res.json.kpis.refundedRevenueVnd, "30000");

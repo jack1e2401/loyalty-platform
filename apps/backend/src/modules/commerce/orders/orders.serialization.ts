@@ -59,17 +59,23 @@ function appliedPolicy(value: Prisma.JsonValue | null | undefined): AppliedLoyal
       typeof snapshot.vndPerPoint !== "number" || typeof snapshot.ruleActive !== "boolean" ||
       typeof snapshot.tierLevel !== "string" || typeof snapshot.multiplier !== "string" ||
       typeof snapshot.capturedAt !== "string" || typeof snapshot.policyPublishedAt !== "string") return null;
-  const validLevels = ["BRONZE", "SILVER", "GOLD", "PLATINUM"] as const;
-  const tierLevel = validLevels.find((level) => level === snapshot.tierLevel);
-  if (!tierLevel) return null;
+  const tierLevel = snapshot.tierLevel;
+  if (typeof tierLevel !== "string" || tierLevel.length > 64) return null;
   const parsedTiers: AppliedLoyaltyPolicyDto["tiers"] = [];
   for (const tier of tiers) {
     if (!tier || typeof tier !== "object" || Array.isArray(tier)) continue;
     const item = tier as Record<string, Prisma.JsonValue>;
-    const level = validLevels.find((candidate) => candidate === item.level);
-    if (level && typeof item.minLifetimePoints === "number" && typeof item.multiplier === "string") {
-      parsedTiers.push({ level, minLifetimePoints: item.minLifetimePoints, multiplier: item.multiplier });
-    }
+    if (typeof item.level !== "string" || typeof item.multiplier !== "string") continue;
+    parsedTiers.push({
+      level: item.level,
+      name: typeof item.name === "string" ? item.name : item.level,
+      ...(typeof item.minLifetimePoints === "number" ? { minLifetimePoints: item.minLifetimePoints } : {}),
+      ...(typeof item.minSpendVnd === "string" ? { minSpendVnd: item.minSpendVnd } : {}),
+      multiplier: item.multiplier,
+      benefits: Array.isArray(item.benefits) ? item.benefits.filter((benefit): benefit is string => typeof benefit === "string") : [],
+      iconUrl: typeof item.iconUrl === "string" ? item.iconUrl : null,
+      color: typeof item.color === "string" ? item.color : "#6B7280",
+    });
   }
   return {
     policyVersionId: snapshot.policyVersionId,

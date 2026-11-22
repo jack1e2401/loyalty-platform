@@ -10,7 +10,7 @@ export interface AnalyticsRange {
 }
 
 export interface AnalyticsKpisDto {
-  netRevenueVnd: string;
+  qualifyingOrderRevenueVnd: string;
   paidOnlyRevenueVnd: string;
   refundPendingRevenueVnd: string;
   refundedRevenueVnd: string;

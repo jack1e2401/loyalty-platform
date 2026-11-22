@@ -6,10 +6,10 @@ import { initializeDefaultStorefrontTx } from "../src/modules/merchants/storefro
 import { isValidStoreSlug } from "../src/modules/merchants/storefront/storefront.slug.js";
 
 const baselineTiers = [
-  { level: "BRONZE" as const, minLifetimePoints: 0, multiplier: "1.00" },
-  { level: "SILVER" as const, minLifetimePoints: 1_000, multiplier: "1.20" },
-  { level: "GOLD" as const, minLifetimePoints: 5_000, multiplier: "1.50" },
-  { level: "PLATINUM" as const, minLifetimePoints: 10_000, multiplier: "2.00" },
+  { level: "default", name: "Default", minLifetimePoints: 0, minSpendVnd: null, sortOrder: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#6B7280", maintenanceSpendVnd: null, isActive: true },
+  { level: "silver", name: "Silver", minLifetimePoints: 1_000, minSpendVnd: null, sortOrder: 1, multiplier: "1.20", benefits: [], iconUrl: null, color: "#8A949D", maintenanceSpendVnd: null, isActive: true },
+  { level: "gold", name: "Gold", minLifetimePoints: 5_000, minSpendVnd: null, sortOrder: 2, multiplier: "1.50", benefits: [], iconUrl: null, color: "#C6912D", maintenanceSpendVnd: null, isActive: true },
+  { level: "platinum", name: "Platinum", minLifetimePoints: 10_000, minSpendVnd: null, sortOrder: 3, multiplier: "2.00", benefits: [], iconUrl: null, color: "#5B6F8D", maintenanceSpendVnd: null, isActive: true },
 ];
 
 function readBootstrapConfig() {

@@ -12,12 +12,14 @@ import {
   previewMemberEarning,
   previewMerchantPolicy,
   putLoyaltyConfig,
+  runLoyaltyTierReset,
 } from "./loyalty.controller.js";
 
 export const merchantLoyaltyRoutes = Router();
 merchantLoyaltyRoutes.use(authenticate, requireRole("MERCHANT"));
 merchantLoyaltyRoutes.get("/", getLoyaltyConfig);
 merchantLoyaltyRoutes.put("/", putLoyaltyConfig);
+merchantLoyaltyRoutes.post("/tier-reset/run", runLoyaltyTierReset);
 merchantLoyaltyRoutes.get("/history", listLoyaltyPolicyHistory);
 merchantLoyaltyRoutes.post("/preview", previewMerchantPolicy);
 merchantLoyaltyRoutes.get("/transactions", listMerchantTransactions);

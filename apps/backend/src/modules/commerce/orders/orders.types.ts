@@ -3,8 +3,8 @@ import type {
   PointTransactionSource,
   PointTransactionType,
   RefundStatus,
-  TierLevel,
 } from "../../../generated/prisma/enums.js";
+import type { TierLevel } from "../../loyalty/program/loyalty.calculation.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { HttpError } from "../../../lib/http-error.js";
 import type { describeWallet } from "../../loyalty/program/loyalty.balance.js";
@@ -33,6 +33,8 @@ export type CreateOrderInput = {
 export type CreatePendingOrderInput = {
   memberId: number;
   merchantId: number;
+  idempotencyKey: string;
+  payloadHash: string;
   items: (OrderLineInput & {
     productName: string;
     unitPrice: Prisma.Decimal;
@@ -110,7 +112,7 @@ export type AppliedLoyaltyPolicyDto = {
   isActive: boolean;
   tierLevel: TierLevel;
   multiplier: string;
-  tiers: { level: TierLevel; minLifetimePoints: number; multiplier: string }[];
+  tiers: { level: TierLevel; name?: string; minLifetimePoints?: number; minSpendVnd?: string; multiplier: string; benefits?: string[]; iconUrl?: string | null; color?: string }[];
 };
 
 export type CancelOrderResult = {
