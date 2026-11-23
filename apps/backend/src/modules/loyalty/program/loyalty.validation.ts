@@ -39,6 +39,7 @@ export function parseConfig(value: unknown): LoyaltyConfigInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
   const input = value as Record<string, unknown>;
   if (!Number.isInteger(input.vndPerPoint) || (input.vndPerPoint as number) <= 0 || (input.vndPerPoint as number) > maxInt || typeof input.isActive !== "boolean") invalid();
+  if (input.publishAsNewVersion !== undefined && typeof input.publishAsNewVersion !== "boolean") invalid();
   if (input.qualificationMode !== "POINTS" && input.qualificationMode !== "SPEND") invalid();
   const mode = input.qualificationMode as TierQualificationMode;
   if (!Array.isArray(input.tiers) || input.tiers.length < 1 || input.tiers.length > 100) invalid();
@@ -89,5 +90,12 @@ export function parseConfig(value: unknown): LoyaltyConfigInput {
   });
   const reset = parseReset(input.reset);
   if (reset.targetLevel && !codes.has(reset.targetLevel)) invalid();
-  return { vndPerPoint: input.vndPerPoint as number, isActive: input.isActive, qualificationMode: mode, tiers, reset };
+  return {
+    ...(input.publishAsNewVersion === true ? { publishAsNewVersion: true } : {}),
+    vndPerPoint: input.vndPerPoint as number,
+    isActive: input.isActive,
+    qualificationMode: mode,
+    tiers,
+    reset,
+  };
 }

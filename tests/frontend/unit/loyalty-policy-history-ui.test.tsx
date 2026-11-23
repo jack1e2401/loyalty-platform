@@ -1,15 +1,16 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { MerchantLoyaltyHistory } from "../../../apps/frontend/src/features/merchant/MerchantLoyaltyHistory";
 import { OrderLoyaltyPolicySnapshot } from "../../../apps/frontend/src/features/orders/OrderLoyaltyPolicySnapshot";
 import type { MerchantLoyaltyPolicyVersionDto, AppliedLoyaltyPolicySnapshot } from "../../../apps/frontend/src/api/commerce-types";
 
 const tiers: MerchantLoyaltyPolicyVersionDto["tiers"] = [
-  { level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" },
-  { level: "SILVER", minLifetimePoints: 100, multiplier: "1.10" },
-  { level: "GOLD", minLifetimePoints: 500, multiplier: "1.25" },
-  { level: "PLATINUM", minLifetimePoints: 1000, multiplier: "1.50" },
+  { level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00", color: "#647a69" },
+  { level: "SILVER", minLifetimePoints: 100, multiplier: "1.10", color: "#8A949D" },
+  { level: "GOLD", minLifetimePoints: 500, multiplier: "1.25", color: "#C6912D" },
+  { level: "PLATINUM", minLifetimePoints: 1000, multiplier: "1.50", color: "#5B6F8D" },
 ];
 
 describe("loyalty policy history UI", () => {
@@ -17,13 +18,16 @@ describe("loyalty policy history UI", () => {
 
   it("shows published versions with publisher, rate, thresholds, and multipliers", () => {
     render(
-      <MerchantLoyaltyHistory
-        versions={[
+      <MemoryRouter>
+        <MerchantLoyaltyHistory
+          versions={[
           {
             id: 42,
             version: 3,
             vndPerPoint: 10000,
             isActive: true,
+            qualificationMode: "POINTS",
+            reset: { enabled: true, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
             tiers,
             publishedAt: "2026-11-12T09:30:00.000Z",
             publishedById: 7,
@@ -31,16 +35,43 @@ describe("loyalty policy history UI", () => {
             source: "MERCHANT_PUBLISH",
             isCurrent: true,
           },
-        ]}
-      />,
+          ]}
+        />
+      </MemoryRouter>,
     );
 
-    expect(screen.getByText(/Phiên bản 3/)).toBeTruthy();
-    expect(screen.getByText(/10.000 VND/)).toBeTruthy();
+    expect(screen.getByText("v3")).toBeTruthy();
+    expect(screen.getByText(/10.000 ₫ cho mỗi điểm/)).toBeTruthy();
     expect(screen.getByText(/owner@test.local/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Tạo chính sách mới" }).getAttribute("href")).toBe("/merchant/loyalty/config?mode=new");
+    fireEvent.click(screen.getByText("Xem chi tiết chính sách"));
     expect(screen.getByText(/SILVER/)).toBeTruthy();
-    expect(screen.getByText(/100/)).toBeTruthy();
     expect(screen.getByText(/1.10/)).toBeTruthy();
+    expect(screen.getByText(/Điểm tích lũy/)).toBeTruthy();
+    expect(screen.getByText(/Giảm một hạng/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Chỉnh sửa chính sách" }).getAttribute("href")).toBe("/merchant/loyalty/config?mode=edit&version=3");
+  });
+
+  it("keeps previous versions read-only and explains when legacy settings were not saved", () => {
+    render(
+      <MemoryRouter>
+        <MerchantLoyaltyHistory
+          versions={[
+          { id: 2, version: 2, vndPerPoint: 5000, isActive: true, qualificationMode: "POINTS", reset: { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null }, tiers, publishedAt: "2026-11-12T09:30:00.000Z", publishedById: 7, publishedByEmail: "owner@test.local", source: "MERCHANT_PUBLISH", isCurrent: true },
+          { id: 1, version: 1, vndPerPoint: 10000, isActive: true, qualificationMode: null, reset: null, tiers, publishedAt: "2026-10-12T09:30:00.000Z", publishedById: null, publishedByEmail: null, source: "LEGACY_BACKFILL", isCurrent: false },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+
+    const oldVersionButton = screen.getByRole("button", { name: /Phiên bản 1/ });
+    fireEvent.click(oldVersionButton);
+    expect(screen.getAllByText("Không được lưu trong phiên bản này").length).toBeGreaterThan(0);
+    expect(within(oldVersionButton.closest("li")!).queryByRole("link", { name: "Chỉnh sửa chính sách" })).toBeNull();
+    const threshold = within(oldVersionButton.closest("li")!).getByText(/100 điểm · loại xét hạng chưa lưu/);
+    const multiplier = within(oldVersionButton.closest("li")!).getByText(/×1.10/);
+    expect(threshold.className).toContain("text-[#65736a]");
+    expect(multiplier).toBeTruthy();
   });
 
   it("shows the policy snapshot applied to an order", () => {

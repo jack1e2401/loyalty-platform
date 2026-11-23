@@ -51,6 +51,7 @@ export interface LoyaltyConfigInput {
   qualificationMode: "POINTS" | "SPEND";
   tiers: LoyaltyTierDto[];
   reset: TierResetConfigDto;
+  publishAsNewVersion?: boolean;
 }
 
 export type PointTransactionType =
@@ -160,6 +161,14 @@ export interface MerchantLoyaltyPolicyVersionDto {
   version: number;
   vndPerPoint: number;
   isActive: boolean;
+  qualificationMode: "POINTS" | "SPEND" | null;
+  reset: {
+    enabled: boolean;
+    month: number | null;
+    day: number | null;
+    strategy: "ONE_DOWN" | "SELECTED" | null;
+    targetLevel: string | null;
+  } | null;
   tiers: LoyaltyTierDto[];
   source: "MERCHANT_PUBLISH" | "LEGACY_BACKFILL";
   publishedAt: string;

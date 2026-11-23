@@ -43,12 +43,12 @@ export function BackendConsoleLayout() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(merchantGroups.map((group) => [
       group.label,
-      group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))),
+      group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))) || (group.label === "Loyalty" && location.pathname.startsWith("/merchant/loyalty/")),
     ])),
   );
   const [pointsExpanded, setPointsExpanded] = useState(() => location.pathname.startsWith("/merchant/loyalty/"));
   useEffect(() => {
-    const active = merchantGroups.find((group) => group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))));
+    const active = merchantGroups.find((group) => group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))) || (group.label === "Loyalty" && location.pathname.startsWith("/merchant/loyalty/")));
     if (active) setExpandedGroups((current) => ({ ...current, [active.label]: true }));
   }, [location.pathname]);
   useLayoutEffect(() => {
@@ -56,6 +56,9 @@ export function BackendConsoleLayout() {
     document.body.scrollTop = 0;
   }, [location.pathname]);
   const routeLabels = merchantGroups.flatMap((group) => group.links);
+  const loyaltyQuery = new URLSearchParams(location.search);
+  const loyaltyMode = loyaltyQuery.get("mode");
+  const loyaltyVersion = loyaltyQuery.get("version");
   const challengePageTitle = location.pathname === "/merchant/challenges/new"
     ? "Tạo nhiệm vụ"
     : /^\/merchant\/challenges\/\d+\/edit\/?$/.test(location.pathname)
@@ -63,9 +66,16 @@ export function BackendConsoleLayout() {
       : /^\/merchant\/challenges\/\d+\/?$/.test(location.pathname)
         ? "Chi tiết nhiệm vụ"
         : undefined;
-  const pageTitle = location.pathname.split("/").filter(Boolean).length > 1
+  const loyaltyEditorTitle = location.pathname === "/merchant/loyalty/config"
+    ? loyaltyMode === "new"
+      ? "Tạo chính sách mới"
+      : loyaltyMode === "edit"
+        ? `Chỉnh sửa chính sách hiện tại${/^\d+$/.test(loyaltyVersion ?? "") ? ` · v${loyaltyVersion}` : ""}`
+        : undefined
+    : undefined;
+  const pageTitle = loyaltyEditorTitle ?? (location.pathname.split("/").filter(Boolean).length > 1
     ? (location.pathname.startsWith("/merchant/inventory/") ? "Tồn kho" : undefined) ?? challengePageTitle ?? routeLabels.find(([to]) => to !== "/merchant" && (location.pathname === to || location.pathname.startsWith(`${to}/`)))?.[1] ?? "Cửa hàng"
-    : "Cửa hàng";
+    : "Cửa hàng");
   const breadcrumbs = merchantBreadcrumbItems(location.pathname, location.search, pageTitle);
   return (
     <MerchantCmsProvider enabled>
@@ -152,12 +162,17 @@ export function BackendConsoleLayout() {
                     {to === "/merchant/loyalty/config" && pointsExpanded && (
                       <div className="ml-2 space-y-0 border-l border-white/10 py-0 pl-1.5">
                         {[
-                          ["/merchant/loyalty/config", "Cấu hình điểm"],
-                          ["/merchant/loyalty/transactions", "Lịch sử điểm"],
                           ["/merchant/loyalty/history", "Chính sách điểm"],
+                          ["/merchant/loyalty/transactions", "Lịch sử điểm"],
                           ["/merchant/loyalty/members", "Điểm của thành viên"],
                         ].map(([childTo, childLabel]) => (
-                          <NavLink key={childTo} to={childTo} end className={({ isActive }) => cn(
+                          <NavLink key={childTo} to={childTo} end onClickCapture={(event) => {
+                            if (loyaltyConfigDirty && childTo !== location.pathname) {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              window.alert("Vui lòng lưu cấu hình trước khi rời trang.");
+                            }
+                          }} className={({ isActive }) => cn(
                             "block rounded-md px-2 py-1 text-[12px] leading-5 font-normal text-white/60 transition hover:bg-white/[0.07] hover:text-white",
                             isActive && "bg-white/[0.12] text-white shadow-[inset_2px_0_0_#c7ec9f]",
                           )}>{childLabel}</NavLink>
@@ -232,7 +247,13 @@ function merchantBreadcrumbItems(
   const voucherId = Number(query.get("voucherId"));
   const requestId = Number(query.get("requestId"));
 
-  if (Number.isSafeInteger(orderId) && orderId > 0) {
+  if (pathname === "/merchant/loyalty/config" && (query.get("mode") === "new" || query.get("mode") === "edit")) {
+    parent = { path: "/merchant/loyalty/history", label: "Chính sách điểm" };
+    const version = query.get("version");
+    current = query.get("mode") === "new"
+      ? "Tạo chính sách mới"
+      : `Chỉnh sửa chính sách hiện tại${version && /^\d+$/.test(version) ? ` · v${version}` : ""}`;
+  } else if (Number.isSafeInteger(orderId) && orderId > 0) {
     parent = { path: "/merchant/orders", label: "Đơn hàng" };
     current = `Đơn #${orderId}`;
   } else if (Number.isSafeInteger(voucherId) && voucherId > 0) {

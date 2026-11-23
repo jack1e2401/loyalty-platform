@@ -124,18 +124,38 @@ export async function createShop(price = "6000", multiplier = "1.00", initialQua
   return result;
 }
 
-export async function savePolicy(shop: Shop, changes: { rate?: number; active?: boolean; silverThreshold?: number; bronzeMultiplier?: string } = {}) {
+export async function savePolicy(shop: Shop, changes: {
+  rate?: number;
+  active?: boolean;
+  silverThreshold?: number;
+  bronzeMultiplier?: string;
+  qualificationMode?: "POINTS" | "SPEND";
+  reset?: { enabled: boolean; month: number; day: number; strategy: "ONE_DOWN" | "SELECTED"; targetLevel: string | null };
+  publishAsNewVersion?: boolean;
+} = {}) {
+  const qualificationMode = changes.qualificationMode ?? "POINTS";
+  const thresholds = [0, changes.silverThreshold ?? 1000, 5000, 10000];
+  const tierData = [
+    { level: "default", name: "Default", multiplier: changes.bronzeMultiplier ?? "1.00", color: "#6B7280" },
+    { level: "silver", name: "Silver", multiplier: "1.50", color: "#8A949D" },
+    { level: "gold", name: "Gold", multiplier: "1.80", color: "#C6912D" },
+    { level: "platinum", name: "Platinum", multiplier: "2.00", color: "#5B6F8D" },
+  ];
   const result = await request("/api/merchant/loyalty", "PUT", shop.token, {
+    ...(changes.publishAsNewVersion ? { publishAsNewVersion: true } : {}),
     vndPerPoint: changes.rate ?? 10000,
     isActive: changes.active ?? true,
-    qualificationMode: "POINTS",
-    reset: { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
-    tiers: [
-      { level: "default", name: "Default", minLifetimePoints: 0, multiplier: changes.bronzeMultiplier ?? "1.00", benefits: [], iconUrl: null, color: "#6B7280", maintenanceSpendVnd: null, sortOrder: 0, isActive: true },
-      { level: "silver", name: "Silver", minLifetimePoints: changes.silverThreshold ?? 1000, multiplier: "1.50", benefits: [], iconUrl: null, color: "#8A949D", maintenanceSpendVnd: null, sortOrder: 1, isActive: true },
-      { level: "gold", name: "Gold", minLifetimePoints: 5000, multiplier: "1.80", benefits: [], iconUrl: null, color: "#C6912D", maintenanceSpendVnd: null, sortOrder: 2, isActive: true },
-      { level: "platinum", name: "Platinum", minLifetimePoints: 10000, multiplier: "2.00", benefits: [], iconUrl: null, color: "#5B6F8D", maintenanceSpendVnd: null, sortOrder: 3, isActive: true },
-    ],
+    qualificationMode,
+    reset: changes.reset ?? { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
+    tiers: tierData.map((tier, index) => ({
+      ...tier,
+      ...(qualificationMode === "POINTS" ? { minLifetimePoints: thresholds[index] } : { minSpendVnd: String(thresholds[index]) }),
+      benefits: [],
+      iconUrl: null,
+      maintenanceSpendVnd: null,
+      sortOrder: index,
+      isActive: true,
+    })),
   });
   assert.equal(result.status, 200);
 }

@@ -250,13 +250,19 @@ export const loyaltyConfigRepository = {
           },
         });
       }
-      if (!wasUnchanged || !latest) {
+      if (!wasUnchanged || !latest || input.publishAsNewVersion === true) {
         await tx.loyaltyPolicyVersion.create({
           data: {
             merchantId,
             version: (latest?.version ?? 0) + 1,
             vndPerPoint: input.vndPerPoint,
             isActive: input.isActive,
+            qualificationMode: input.qualificationMode,
+            resetEnabled: input.reset.enabled,
+            resetMonth: input.reset.month,
+            resetDay: input.reset.day,
+            resetStrategy: input.reset.strategy,
+            resetTargetLevel: input.reset.targetLevel,
             tiers: jsonTiers(input.tiers),
             source: "MERCHANT_PUBLISH",
             publishedById,
@@ -278,6 +284,14 @@ export const loyaltyConfigRepository = {
       version: version.version,
       vndPerPoint: version.vndPerPoint,
       isActive: version.isActive,
+      qualificationMode: version.qualificationMode,
+      reset: version.resetEnabled === null ? null : {
+        enabled: version.resetEnabled,
+        month: version.resetMonth,
+        day: version.resetDay,
+        strategy: version.resetStrategy,
+        targetLevel: version.resetTargetLevel,
+      },
       tiers: version.tiers,
       source: version.source,
       publishedAt: version.publishedAt.toISOString(),

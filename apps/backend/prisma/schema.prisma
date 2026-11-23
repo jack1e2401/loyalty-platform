@@ -486,6 +486,12 @@ model LoyaltyPolicyVersion {
   version       Int
   vndPerPoint   Int
   isActive      Boolean
+  qualificationMode TierQualificationMode?
+  resetEnabled  Boolean?
+  resetMonth    Int?
+  resetDay      Int?
+  resetStrategy TierResetStrategy?
+  resetTargetLevel String?                  @db.VarChar(64)
   tiers         Json
   source        LoyaltyPolicyVersionSource @default(MERCHANT_PUBLISH)
   publishedById Int?

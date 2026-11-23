@@ -208,13 +208,18 @@ test("mock payment freezes the immutable published policy snapshot in member and
   const otherShop = await createShop("10000");
   const member = await createMember();
   await adjustStock(shop, "products", shop.productId, "in", 2, "Policy snapshot checkout stock");
-  const historyBefore = await request<{ versions: { id: number; version: number; vndPerPoint: number; publishedById: number | null; tiers: unknown }[] }>(
+  const historyBefore = await request<{ versions: { id: number; version: number; vndPerPoint: number; publishedById: number | null; qualificationMode: string | null; reset: { enabled: boolean; month: number | null; day: number | null; strategy: string | null; targetLevel: string | null } | null; tiers: unknown }[] }>(
     "/api/merchant/loyalty/history", "GET", shop.token,
   );
   assert.equal(historyBefore.status, 200);
   const versionOne = historyBefore.json.versions.find(({ version }) => version === 1);
   assert.ok(versionOne);
   assert.equal(versionOne.publishedById, (await prisma.merchant.findUniqueOrThrow({ where: { id: shop.id } })).ownerId);
+  assert.equal(versionOne.qualificationMode, "POINTS");
+  assert.deepEqual(versionOne.reset, { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null });
+  await savePolicy(shop);
+  const unchangedHistory = await request<{ versions: { version: number }[] }>("/api/merchant/loyalty/history", "GET", shop.token);
+  assert.deepEqual(unchangedHistory.json.versions.map(({ version }) => version), [1]);
 
   const order = await createOrder(shop, member);
   assert.equal((await request(`/api/orders/${order.id}/pay`, "POST", member.token)).status, 200);
@@ -234,8 +239,20 @@ test("mock payment freezes the immutable published policy snapshot in member and
   assert.equal(merchantDetail.json.order.appliedLoyaltyPolicy?.policyVersionId, versionOne.id);
   assert.equal((await request(`/api/merchant/orders/${order.id}`, "GET", otherShop.token)).status, 404);
 
-  await savePolicy(shop, { rate: 5000, silverThreshold: 1 });
-  const historyAfter = await request<{ versions: { id: number; version: number; vndPerPoint: number; tiers: unknown }[] }>(
+  await savePolicy(shop, { publishAsNewVersion: true });
+  const explicitNewPolicyHistory = await request<{ versions: { version: number; vndPerPoint: number; qualificationMode: string | null; reset: unknown }[] }>(
+    "/api/merchant/loyalty/history", "GET", shop.token,
+  );
+  assert.deepEqual(explicitNewPolicyHistory.json.versions.map(({ version }) => version), [2, 1]);
+  assert.equal(explicitNewPolicyHistory.json.versions[0]?.vndPerPoint, 10000);
+  assert.equal(explicitNewPolicyHistory.json.versions[0]?.qualificationMode, "POINTS");
+
+  await savePolicy(shop, {
+    rate: 5000,
+    qualificationMode: "SPEND",
+    reset: { enabled: true, month: 8, day: 15, strategy: "SELECTED", targetLevel: "silver" },
+  });
+  const historyAfter = await request<{ versions: { id: number; version: number; vndPerPoint: number; qualificationMode: string | null; reset: { enabled: boolean; month: number | null; day: number | null; strategy: string | null; targetLevel: string | null } | null; tiers: unknown }[] }>(
     "/api/merchant/loyalty/history", "GET", shop.token,
   );
   assert.equal(historyAfter.status, 200);
@@ -245,16 +262,24 @@ test("mock payment freezes the immutable published policy snapshot in member and
     version: versionOneAfter.version,
     vndPerPoint: versionOneAfter.vndPerPoint,
     publishedById: versionOneAfter.publishedById,
+    qualificationMode: versionOneAfter.qualificationMode,
+    reset: versionOneAfter.reset,
     tiers: versionOneAfter.tiers,
   }, {
     id: versionOne.id,
     version: versionOne.version,
     vndPerPoint: versionOne.vndPerPoint,
     publishedById: versionOne.publishedById,
+    qualificationMode: versionOne.qualificationMode,
+    reset: versionOne.reset,
     tiers: versionOne.tiers,
   });
-  assert.equal(historyAfter.json.versions[0]?.version, 2);
+  assert.equal(historyAfter.json.versions[0]?.version, 3);
   assert.equal(historyAfter.json.versions[0]?.vndPerPoint, 5000);
+  assert.equal(historyAfter.json.versions[0]?.qualificationMode, "SPEND");
+  assert.deepEqual(historyAfter.json.versions[0]?.reset, { enabled: true, month: 8, day: 15, strategy: "SELECTED", targetLevel: "silver" });
+  assert.equal(historyAfter.json.versions[1]?.version, 2);
+  assert.equal(historyAfter.json.versions[1]?.vndPerPoint, 10000);
   const legacyOrderStillShowsAppliedVersion = await request<{ order: { appliedLoyaltyPolicy: { policyVersionId: number; version: number } | null } }>(
     `/api/member/orders/${order.id}`, "GET", member.token,
   );
@@ -269,7 +294,7 @@ test("mock payment freezes the immutable published policy snapshot in member and
     `/api/merchant/orders/${nextOrder.id}`, "GET", shop.token,
   );
   assert.equal(nextDetail.status, 200);
-  assert.equal(nextDetail.json.order.appliedLoyaltyPolicy?.version, 2);
+  assert.equal(nextDetail.json.order.appliedLoyaltyPolicy?.version, 3);
   assert.equal(nextDetail.json.order.appliedLoyaltyPolicy?.vndPerPoint, 5000);
   assert.equal((await request("/api/merchant/loyalty/history", "GET", otherShop.token)).status, 200);
 });

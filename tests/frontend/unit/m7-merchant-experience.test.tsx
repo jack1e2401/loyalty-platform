@@ -108,10 +108,10 @@ describe("M7 Merchant Experience", () => {
       return Response.json({ error: "Not found" }, { status: 404 });
     });
 
-    renderMerchantPage("/merchant/loyalty", <MerchantLoyalty />);
+    renderMerchantPage("/merchant/loyalty/config?mode=edit", <MerchantLoyalty />);
 
     await waitFor(() => {
-      expect(screen.getByText("Cấu hình điểm")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Chương trình" })).toBeInTheDocument();
       expect(screen.getByText(/lưu ý: thay đổi tỷ lệ hoặc hạng/i)).toBeInTheDocument();
     });
 
@@ -129,6 +129,86 @@ describe("M7 Merchant Experience", () => {
     // The formula explains that fractional points carry forward.
     expect(screen.queryByText(/làm tròn xuống/i)).not.toBeInTheDocument();
     expect(screen.getByText(/điểm lẻ được cộng dồn/i)).toBeInTheDocument();
+  });
+
+  it("requires confirmation before publishing a changed policy or running a tier reset", async () => {
+    const config = {
+      merchantId: 7,
+      vndPerPoint: 10000,
+      isActive: true,
+      qualificationMode: "POINTS",
+      reset: { enabled: true, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
+      tiers: [
+        { level: "default", name: "Default", minLifetimePoints: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#647a69", maintenanceSpendVnd: null, sortOrder: 0, isActive: true },
+        { level: "silver", name: "Silver", minLifetimePoints: 100, multiplier: "1.25", benefits: [], iconUrl: null, color: "#8A949D", maintenanceSpendVnd: null, sortOrder: 1, isActive: true },
+      ],
+    };
+    const writes: string[] = [];
+    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/merchant/loyalty/history")) return Response.json({ versions: [] });
+      if (url.endsWith("/api/merchant/loyalty") && init?.method === "PUT") {
+        writes.push(`${init.method} ${url}`);
+        return Response.json({ config: { ...config, vndPerPoint: 5000 } });
+      }
+      if (url.endsWith("/api/merchant/loyalty/tier-reset/run") && init?.method === "POST") {
+        writes.push(`${init.method} ${url}`);
+        return Response.json({ cycleYear: 2026, processedCount: 1, alreadyProcessed: false });
+      }
+      if (url.endsWith("/api/merchant/loyalty") && (!init || init.method === "GET")) return Response.json({ config });
+      return Response.json({ error: "Not found" }, { status: 404 });
+    });
+
+    renderMerchantPage("/merchant/loyalty/config?mode=edit", <MerchantLoyalty />);
+    expect(await screen.findByLabelText("VND cho mỗi điểm")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset hạng" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chạy reset đến hạn" }));
+    expect(screen.getByText(/Ví điểm và lịch sử giao dịch được giữ nguyên/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(writes).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Chạy reset đến hạn" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chạy reset" }));
+    await waitFor(() => expect(writes).toHaveLength(1));
+    expect(writes[0]).toContain("POST http://localhost:3000/api/merchant/loyalty/tier-reset/run");
+
+    fireEvent.click(screen.getByRole("button", { name: "Chương trình" }));
+    fireEvent.change(screen.getByLabelText("VND cho mỗi điểm"), { target: { value: "5000" } });
+    const navigationAlert = vi.spyOn(window, "alert").mockImplementation(() => {});
+    fireEvent.click(screen.getByRole("link", { name: "Quay lại chính sách điểm" }));
+    expect(navigationAlert).toHaveBeenCalledWith("Vui lòng lưu cấu hình trước khi rời trang.");
+    expect(screen.getByLabelText("VND cho mỗi điểm")).toHaveValue(5000);
+    fireEvent.click(await screen.findByRole("button", { name: "Lưu cấu hình" }));
+    expect(await screen.findByText(/sẽ được lưu thành một phiên bản chính sách mới/i)).toBeInTheDocument();
+    expect(writes).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Phát hành phiên bản mới" }));
+    await waitFor(() => expect(writes).toHaveLength(2));
+    expect(writes[1]).toContain("PUT http://localhost:3000/api/merchant/loyalty");
+    expect(await screen.findByText("Các phiên bản trước")).toBeInTheDocument();
+  });
+
+  it("redirects the bare config route and publishes an unchanged new-policy draft as a new version", async () => {
+    const config = { merchantId: 7, vndPerPoint: 10000, isActive: true, qualificationMode: "POINTS", reset: { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null }, tiers: [{ level: "default", name: "Default", minLifetimePoints: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#647a69", maintenanceSpendVnd: null, sortOrder: 0, isActive: true }] };
+    let publishedBody: Record<string, unknown> | null = null;
+    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/merchant/loyalty/history")) return Response.json({ versions: [] });
+      if (url.endsWith("/api/merchant/loyalty") && init?.method === "PUT") {
+        publishedBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+        return Response.json({ config });
+      }
+      if (url.endsWith("/api/merchant/loyalty") && (!init || init.method === "GET")) return Response.json({ config });
+      return Response.json({ error: "Not found" }, { status: 404 });
+    });
+
+    renderMerchantPage("/merchant/loyalty/config", <MerchantLoyalty />);
+    expect(await screen.findByText("Các phiên bản trước")).toBeInTheDocument();
+    cleanup();
+    renderMerchantPage("/merchant/loyalty/config?mode=new", <MerchantLoyalty />);
+    expect(await screen.findByRole("heading", { name: "Tạo chính sách mới" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Lưu cấu hình" }));
+    fireEvent.click(screen.getByRole("button", { name: "Phát hành phiên bản mới" }));
+    await waitFor(() => expect(publishedBody?.publishAsNewVersion).toBe(true));
   });
 
   it("displays exact fractional earned points in MerchantOrders rather than rounding down to 0", async () => {
@@ -365,7 +445,7 @@ describe("M7 Merchant Experience", () => {
     renderMerchantPage("/merchant/loyalty/transactions", <MerchantLoyalty />);
 
     await waitFor(() => {
-      expect(screen.getByText("Giao dịch điểm")).toBeInTheDocument();
+      expect(screen.getByRole("table", { name: "Sổ giao dịch điểm" })).toBeInTheDocument();
     });
 
     const ledger = await screen.findByRole("table", { name: "Sổ giao dịch điểm" });

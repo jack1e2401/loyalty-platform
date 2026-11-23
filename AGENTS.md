@@ -50,6 +50,7 @@ These safeguards apply whenever touching orders, payments, points, tier, voucher
 - Refunds and reversals must account for points already spent and any fractional remainder; do not silently discard value or allow double reversal.
 - Do not invent business policies. If a rule has not been approved, identify it as a proposal in the implementation plan and avoid silently baking it into the code.
 - Preserve authorization and role boundaries. Merchant actions cannot affect another merchant; member operations cannot access another member's records.
+- Treat each published loyalty policy version as an immutable snapshot. Editing the current policy and publishing changes creates a new version; never overwrite a published version. Previous versions are read-only. Reusing an old version means copying its saved values into a new editable draft and publishing that draft as a new version.
 
 ## 5. Frontend UI conventions
 
@@ -61,6 +62,7 @@ These safeguards apply whenever touching orders, payments, points, tier, voucher
 - Keep authentication forms focused on the form, validation feedback, and the next useful action.
 - Do not add mock adapters, seeded browser accounts, or sample commerce data to product flows. Connect only endpoints that exist in the backend; hide or clearly disable actions when an endpoint is unavailable.
 - Render order, payment, points, tier, voucher, refund, and fulfillment outcomes from backend responses. Never infer or invent a confirmed transaction state.
+- Before any user-initiated action that creates, updates, deletes, resets, publishes, or otherwise changes persisted business data, show an accessible in-app confirmation modal. Explain the target and material effect; perform the write only after explicit confirmation. Cancel or dismiss must leave persisted data unchanged. Read-only navigation and previews do not need confirmation.
 - Keep accessibility, keyboard navigation, responsiveness, and actionable errors intact.
 
 ## 6. Verification: prefer the Orca browser over Playwright

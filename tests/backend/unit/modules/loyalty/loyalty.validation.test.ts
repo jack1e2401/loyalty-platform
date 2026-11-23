@@ -24,6 +24,12 @@ test("accepts a variable number of named loyalty tiers and valid point rate", ()
   assert.deepEqual(parsed.reset, defaultReset);
 });
 
+test("accepts explicit publish-as-new-version intent and rejects invalid intent values", () => {
+  assert.equal(parseConfig({ ...config, publishAsNewVersion: true }).publishAsNewVersion, true);
+  assert.equal(parseConfig({ ...config, publishAsNewVersion: false }).publishAsNewVersion, undefined);
+  assert.throws(() => parseConfig({ ...config, publishAsNewVersion: "yes" }), HttpError);
+});
+
 test("accepts spend-qualified dynamic tiers and keeps qualification mode in the config", () => {
   const { minLifetimePoints: _defaultPoints, ...defaultTier } = config.tiers[0];
   const { minLifetimePoints: _silverPoints, ...silverTier } = config.tiers[1];

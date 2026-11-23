@@ -16,6 +16,18 @@ const reconciliationPath = resolve(
   migrations,
   "20261122091000_manual_refund_reconciliation/migration.sql",
 );
+const qualificationBackfillPath = resolve(
+  migrations,
+  "20261123100000_backfill_qualification_progress/migration.sql",
+);
+
+test("existing qualification progress is backfilled from lifetime earnings", () => {
+  assert.equal(existsSync(qualificationBackfillPath), true);
+  const sql = readFileSync(qualificationBackfillPath, "utf8");
+  assert.match(sql, /UPDATE `MerchantMembership` AS membership/i);
+  assert.match(sql, /JOIN `LoyaltyWallet` AS wallet ON wallet\.`membershipId` = membership\.`id`/i);
+  assert.match(sql, /SET membership\.`qualificationProgress` = wallet\.`netLifetimeEarned`/i);
+});
 
 test("legacy settled provider references are copied before PaymentAttempt is dropped", () => {
   assert.equal(

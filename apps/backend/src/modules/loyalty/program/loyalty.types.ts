@@ -23,6 +23,7 @@ export interface TierResetConfigInput {
 }
 
 export interface LoyaltyConfigInput {
+  publishAsNewVersion?: boolean;
   vndPerPoint: number;
   isActive: boolean;
   qualificationMode: TierQualificationMode;

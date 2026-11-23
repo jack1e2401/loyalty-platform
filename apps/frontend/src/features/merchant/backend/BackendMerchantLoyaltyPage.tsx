@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import type {
   LoyaltyConfigInput,
   MerchantLoyaltyPreviewResponse,
@@ -21,7 +21,8 @@ import {
 import { MerchantLoyaltyTransactions } from "../MerchantLoyaltyTransactions";
 import { MerchantLoyaltyHistory } from "../MerchantLoyaltyHistory";
 import { MerchantLoyaltyMembers } from "../MerchantLoyaltyMembers";
-import { api, formatPrice, message, useToken } from "../merchant-page-support";
+import { ConfirmActionDialog } from "../../../components/ui/ConfirmActionDialog";
+import { api, message, useToken } from "../merchant-page-support";
 
 function changeQualificationMode(form: LoyaltyConfigInput, mode: "POINTS" | "SPEND"): LoyaltyConfigInput {
   if (form.qualificationMode === mode) return form;
@@ -41,7 +42,11 @@ export function MerchantLoyalty() {
   const resource = useResource(() => api.getLoyaltyConfig(token), [token]);
   const history = useResource(() => api.getLoyaltyPolicyHistory(token), [token]);
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
+  const editorMode = params.get("mode");
+  const isNewPolicy = editorMode === "new";
+  const isEditorRoute = editorMode === "new" || editorMode === "edit";
   const activeTab = pathname.endsWith("/transactions")
     ? "ledger"
     : pathname.endsWith("/history")
@@ -58,6 +63,7 @@ export function MerchantLoyalty() {
   const [showOptional, setShowOptional] = useState<Record<string, boolean>>({});
   const [expandedTiers, setExpandedTiers] = useState<Record<string, boolean>>({});
   const [editingPolicy, setEditingPolicy] = useState(false);
+  const [confirmingAction, setConfirmingAction] = useState<"publish" | "reset" | null>(null);
 
   // Formula preview state
   const [previewAmount, setPreviewAmount] = useState("");
@@ -78,33 +84,44 @@ export function MerchantLoyalty() {
           tiers: config.tiers.map((tier) => ({ ...tier })),
         }
       : null);
-  const isDirty = Boolean(config && form && JSON.stringify(form) !== JSON.stringify({
+  const canEditPolicy = isEditorRoute || editingPolicy;
+  const hasChanges = Boolean(config && form && JSON.stringify(form) !== JSON.stringify({
     vndPerPoint: config.vndPerPoint,
     isActive: config.isActive,
     qualificationMode: config.qualificationMode,
     reset: config.reset,
     tiers: config.tiers,
   }));
+  const isDirty = isNewPolicy || hasChanges;
 
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("loyalty-config-dirty", { detail: isDirty }));
+    window.dispatchEvent(new CustomEvent("loyalty-config-dirty", { detail: hasChanges }));
     return () => { window.dispatchEvent(new CustomEvent("loyalty-config-dirty", { detail: false })); };
-  }, [isDirty]);
+  }, [hasChanges]);
 
-  async function save(event: FormEvent<HTMLFormElement>) {
+  function requestSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form || busy) return;
+    if (!form || busy || !isDirty || !canEditPolicy) return;
+    setConfirmingAction("publish");
+  }
+
+  async function save(): Promise<boolean> {
+    if (!form || busy) return false;
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      const result = await api.putLoyaltyConfig(form, token);
+      const result = await api.putLoyaltyConfig({ ...form, ...(isNewPolicy ? { publishAsNewVersion: true } : {}) }, token);
       resource.setData(result);
       history.reload();
       setDraft(null);
-      setNotice("Đã lưu cấu hình.");
+      setEditingPolicy(false);
+      setNotice("Đã phát hành phiên bản chính sách mới.");
+      navigate("/merchant/loyalty/history");
+      return true;
     } catch (reason) {
       setError(message(reason));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -130,20 +147,35 @@ export function MerchantLoyalty() {
     }
   }
 
-  async function runTierReset() {
-    if (resetBusy) return;
+  async function runTierReset(): Promise<boolean> {
+    if (resetBusy) return false;
     setResetBusy(true);
     setError("");
     setNotice("");
     try {
       const result = await api.runTierReset(token);
       setNotice(result.alreadyProcessed ? `Chu kỳ ${result.cycleYear} đã được xử lý (${result.processedCount} hội viên).` : `Đã xử lý ${result.processedCount} hội viên cho chu kỳ ${result.cycleYear}.`);
+      return true;
     } catch (reason) {
       const code = message(reason);
       setError(code.includes("TIER_RESET_NOT_DUE") ? "Chỉ có thể chạy reset vào ngày đã cấu hình theo giờ Việt Nam." : code.includes("TIER_RESET_DISABLED") ? "Hãy bật và lưu lịch reset trước." : code);
+      return false;
     } finally {
       setResetBusy(false);
     }
+  }
+
+  async function confirmPendingAction() {
+    const succeeded = confirmingAction === "publish"
+      ? await save()
+      : confirmingAction === "reset"
+        ? await runTierReset()
+        : false;
+    if (succeeded) setConfirmingAction(null);
+  }
+
+  if (activeTab === "config" && !isEditorRoute) {
+    return <Navigate to="/merchant/loyalty/history" replace />;
   }
 
   return (
@@ -159,6 +191,19 @@ export function MerchantLoyalty() {
           <EmptyState title="Chưa có cấu hình" description="Cấu hình chưa khả dụng." />
         ) : (
           <div className="mx-auto w-full max-w-5xl space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-semibold text-[#294833]">{isNewPolicy ? "Tạo chính sách mới" : "Chỉnh sửa chính sách hiện tại"}</h1>
+                <p className="mt-1 text-xs text-[#718075]">Khi phát hành, hệ thống tạo phiên bản mới và giữ nguyên lịch sử trước đó.</p>
+              </div>
+              <Link to="/merchant/loyalty/history" onClickCapture={(event) => {
+                if (hasChanges) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  window.alert("Vui lòng lưu cấu hình trước khi rời trang.");
+                }
+              }} className="text-xs font-medium text-[#416b48] hover:underline">Quay lại chính sách điểm</Link>
+            </div>
             <div className="rounded-lg bg-[#fff8eb] px-3 py-2 text-xs leading-4 text-[#97682a]">
               <p className="font-bold">
                 Lưu ý: Thay đổi tỷ lệ hoặc hạng tích điểm chỉ áp dụng cho các đơn hàng phát sinh sau này.
@@ -176,12 +221,12 @@ export function MerchantLoyalty() {
                 ))}
                 </div>
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-xs text-[#53645a]"><input type="checkbox" checked={editingPolicy} onChange={(event) => setEditingPolicy(event.target.checked)} />Chỉnh sửa chính sách</label>
-                  {isDirty && <Button type="submit" form="loyalty-config-form" disabled={busy || !editingPolicy} size="sm">{busy ? <BusyLabel>Đang lưu</BusyLabel> : "Lưu cấu hình"}</Button>}
+                  {!isEditorRoute && <label className="flex items-center gap-2 text-xs text-[#53645a]"><input type="checkbox" checked={editingPolicy} onChange={(event) => setEditingPolicy(event.target.checked)} />Chỉnh sửa chính sách</label>}
+                  {isDirty && <Button type="submit" form="loyalty-config-form" disabled={busy || !canEditPolicy} size="sm">{busy ? <BusyLabel>Đang lưu</BusyLabel> : "Lưu cấu hình"}</Button>}
                 </div>
               </div>
-              <form id="loyalty-config-form" onSubmit={save} className="space-y-3">
-                <fieldset disabled={!editingPolicy} className="space-y-3 disabled:opacity-70">
+              <form id="loyalty-config-form" onSubmit={requestSave} className="space-y-3">
+                <fieldset disabled={!canEditPolicy} className="space-y-3 disabled:opacity-70">
                 {configSection === "program" && <>
                 <LoyaltyFormula config={config} />
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -219,7 +264,16 @@ export function MerchantLoyalty() {
                     <div className="flex items-end"><Button type="button" disabled={previewBusy || !previewAmount} onClick={() => void runFormulaPreview()}>{previewBusy ? <BusyLabel>Đang tính</BusyLabel> : "Tính thử điểm"}</Button></div>
                   </div>
                   {previewError && <p role="alert" className="mt-2 text-xs text-[#a4473a]">{previewError}</p>}
-                  {previewResult && <p className="mt-2 text-sm">Điểm ước tính: <b>{previewResult.estimatedPointsExact}</b></p>}
+                  {previewResult && <div className="mt-3 rounded-lg bg-[#edf4e9] p-3 text-xs text-[#46614d]">
+                    <p className="text-sm font-bold text-[#294833]">Điểm ước tính: <span className="font-mono">{previewResult.estimatedPointsExact}</span> điểm</p>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                      <span>Phần nguyên: <b>{previewResult.integerProjection}</b></span>
+                      <span>Phần lẻ: <b>{previewResult.fractionalProjection}</b></span>
+                      <span>Hệ số: <b>{previewResult.multiplier}×</b></span>
+                      <span>Tỷ lệ: <b>{previewResult.vndPerPoint.toLocaleString("vi-VN")} ₫/điểm</b></span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-[#637269]">Làm tròn: {previewResult.rounding} · Độ chính xác: {previewResult.scale} chữ số thập phân</p>
+                  </div>}
                 </details>
                 </>}
                 {configSection === "tiers" && <>
@@ -274,7 +328,7 @@ export function MerchantLoyalty() {
                 </section>
                 <section aria-label="Thực hiện reset" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#ead8d4] bg-[#fcf8f7] p-3">
                   <div><h3 className="text-sm font-semibold text-[#7a4038]">Thực hiện reset</h3><p className="mt-1 text-xs muted">Thao tác này cập nhật hạng và tiến trình xét hạng của hội viên khi đến lịch đã cấu hình.</p></div>
-                  <Button type="button" variant="outline" disabled={!form.reset.enabled || resetBusy || !editingPolicy} onClick={() => { if (window.confirm("Bạn muốn chạy reset hạng đến hạn cho hội viên?")) void runTierReset(); }}>{resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Chạy reset đến hạn"}</Button>
+                  <Button type="button" variant="outline" disabled={!form.reset.enabled || resetBusy || !canEditPolicy} onClick={() => setConfirmingAction("reset")}>{resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Chạy reset đến hạn"}</Button>
                 </section>
                 </>}
                 </fieldset>
@@ -291,75 +345,6 @@ export function MerchantLoyalty() {
               </form>
             </Card>
 
-            {config && previewResult && <Card className="p-6 sm:p-8">
-              <h2 className="text-lg font-extrabold">Xem trước công thức tích điểm</h2>
-              <p className="mt-1 text-xs muted">
-                Thử tính toán điểm số cho đơn hàng dựa trên công thức hiện tại mà không thay đổi dữ liệu.
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                <Field label="Số tiền đơn hàng thử nghiệm (VNĐ)">
-                  <Input
-                    required
-                    type="number"
-                    min={1}
-                    aria-label="Số tiền đơn hàng thử nghiệm"
-                    value={previewAmount}
-                    onChange={(event) => setPreviewAmount(event.target.value)}
-                    placeholder="50000"
-                  />
-                </Field>
-                <Field label="Hạng thành viên (tùy chọn)">
-                  <Select
-                    value={previewTier}
-                    onChange={(event) => setPreviewTier(event.target.value as TierLevel | "")}
-                  >
-                    <option value="">Theo cấu hình</option>
-                    {config.tiers.map((tier) => <option key={tier.level} value={tier.level}>{tier.name ?? tier.level}</option>)}
-                  </Select>
-                </Field>
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    disabled={previewBusy || !previewAmount}
-                    onClick={() => void runFormulaPreview()}
-                  >
-                    {previewBusy ? <BusyLabel>Đang tính</BusyLabel> : "Tính thử điểm"}
-                  </Button>
-                </div>
-              </div>
-
-              {previewError && (
-                <p role="alert" className="mt-3 text-xs text-[#a4473a]">
-                  {previewError}
-                </p>
-              )}
-
-              {previewResult && (
-                <div className="mt-4 rounded-xl bg-[#edf4e9] p-4 text-xs">
-                  <p className="text-sm font-bold text-[#294833]">
-                    Điểm ước tính:{" "}
-                    <span className="font-mono text-base">{previewResult.estimatedPointsExact}</span> điểm
-                  </p>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-[#46614d] sm:grid-cols-4">
-                    <p>
-                      Phần nguyên: <b>{previewResult.integerProjection}</b>
-                    </p>
-                    <p>
-                      Phần lẻ: <b>{previewResult.fractionalProjection}</b>
-                    </p>
-                    <p>
-                      Hệ số: <b>{previewResult.multiplier}×</b>
-                    </p>
-                    <p>
-                      Tỷ lệ: <b>{formatPrice(String(previewResult.vndPerPoint))}/điểm</b>
-                    </p>
-                  </div>
-                  <p className="mt-2 text-[11px] text-[#637269]">
-                    Làm tròn: {previewResult.rounding} · Độ chính xác: {previewResult.scale} chữ số thập phân
-                  </p>
-                </div>
-              )}
-            </Card>}
           </div>
         )
       ) : activeTab === "ledger" ? (
@@ -372,11 +357,23 @@ export function MerchantLoyalty() {
         <ErrorState message={history.error} retry={history.reload} />
       ) : (
         <Card className="mx-auto w-full max-w-5xl p-3 sm:p-4">
-          <MerchantLoyaltyHistory versions={history.data?.versions ?? []} />
+          <MerchantLoyaltyHistory versions={history.data?.versions ?? []} currentConfig={config} />
         </Card>
       )}
       </>}
       </div>
+      <ConfirmActionDialog
+        open={confirmingAction !== null}
+        onOpenChange={(open) => { if (!open && !busy && !resetBusy) setConfirmingAction(null); }}
+        title={confirmingAction === "reset" ? "Chạy reset hạng đến hạn?" : "Phát hành chính sách mới?"}
+        description={confirmingAction === "reset"
+          ? "Hạng và tiến trình xét hạng của hội viên đủ điều kiện sẽ được cập nhật theo lịch đã lưu. Ví điểm và lịch sử giao dịch được giữ nguyên."
+          : "Thay đổi sẽ được lưu thành một phiên bản chính sách mới. Các phiên bản đã phát hành trước đó vẫn được giữ nguyên. Chỉ tiếp tục nếu bạn muốn áp dụng cấu hình này cho các đơn hàng sau."}
+        confirmLabel={confirmingAction === "reset" ? "Chạy reset" : "Phát hành phiên bản mới"}
+        busy={confirmingAction === "reset" ? resetBusy : busy}
+        error={error || undefined}
+        onConfirm={() => void confirmPendingAction()}
+      />
     </>
   );
 }

@@ -79,6 +79,19 @@ describe("V4 navigation UX", () => {
     expect(screen.getByRole("banner")).toHaveTextContent(expectedTitle);
   });
 
+  it.each([
+    ["/merchant/loyalty/config?mode=edit&version=7", "Chỉnh sửa chính sách hiện tại · v7"],
+    ["/merchant/loyalty/config?mode=new", "Tạo chính sách mới"],
+  ])("identifies the loyalty policy editor in the title and breadcrumb for %s", async (path, label) => {
+    sessionStorage.setItem("loyalty.m2.session", JSON.stringify({ accessToken: "token", user: { id: 2, email: "merchant@example.com", role: "MERCHANT", isActive: true } }));
+    commerceClient.getOwnMerchant.mockResolvedValue({ merchant: { id: 5, isActive: true } });
+    render(<AuthSessionProvider><MemoryRouter initialEntries={[path]}><Routes><Route path="/merchant" element={<BackendConsoleLayout />}><Route path="loyalty/config" element={<p>Policy editor</p>} /></Route></Routes></MemoryRouter></AuthSessionProvider>);
+    await screen.findByText("Policy editor");
+    expect(screen.getByRole("banner")).toHaveTextContent(label);
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toHaveTextContent(label);
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toHaveTextContent("Chính sách điểm");
+  });
+
   it("resets merchant content to the top after navigating to a new management page", async () => {
     sessionStorage.setItem("loyalty.m2.session", JSON.stringify({ accessToken: "token", user: { id: 2, email: "merchant@example.com", role: "MERCHANT", isActive: true } }));
     commerceClient.getOwnMerchant.mockResolvedValue({ merchant: { id: 5, isActive: true } });

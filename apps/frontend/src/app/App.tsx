@@ -168,7 +168,7 @@ function LegacyMerchantLoyaltyRedirect() {
         ? "history"
         : tab === "members"
           ? "members"
-          : "config";
+          : "history";
   const queryParams = new URLSearchParams(searchParams);
   queryParams.delete("tab");
   const query = queryParams.size ? `?${queryParams.toString()}` : "";
