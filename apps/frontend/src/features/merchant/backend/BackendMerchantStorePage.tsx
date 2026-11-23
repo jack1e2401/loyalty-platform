@@ -18,7 +18,7 @@ export function MerchantStore() {
       ) : (
         <EmptyState
           title="Chưa có cửa hàng"
-          description="Cửa hàng chỉ hoạt động sau khi Admin duyệt hồ sơ Merchant."
+          description="Chưa có cấu hình cửa hàng cho ứng dụng này."
         />
       )}
     </>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "@phosphor-icons/react";
 import { useAuthSession } from "../../api/auth-session";
@@ -86,6 +86,7 @@ export function MemberCheckout() {
   const { accessToken } = useAuthSession();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const idempotency = useRef<{ payload: string; key: string } | null>(null);
   const [error, setError] = useState("");
   const [voucherId, setVoucherId] = useState("");
   const [earningEstimate, setEarningEstimate] = useState<string | null>(null);
@@ -156,13 +157,20 @@ export function MemberCheckout() {
     setError("");
     try {
       const items = cart.lines.map(({ product, quantity }) => ({ productId: product.id, quantity }));
+      const orderInput = {
+        ...(items.length === 1 ? items[0] : { items }),
+        ...(voucherId ? { voucherId: Number(voucherId) } : {}),
+      };
+      const payload = JSON.stringify({ items: [...items].sort((left, right) => left.productId - right.productId), voucherId: voucherId ? Number(voucherId) : null });
+      if (!idempotency.current || idempotency.current.payload !== payload) {
+        idempotency.current = { payload, key: crypto.randomUUID() };
+      }
       const { order } = await commerce.createOrder(
-        {
-          ...(items.length === 1 ? items[0] : { items }),
-          ...(voucherId ? { voucherId: Number(voucherId) } : {}),
-        },
+        orderInput,
         accessToken,
+        idempotency.current.key,
       );
+      idempotency.current = null;
       cart.clear();
       navigate(`${basePath}/orders/${order.id}`, { state: { order } });
     } catch (reason) {

@@ -3,7 +3,7 @@ import type { PointTransactionType } from "../../../generated/prisma/enums.js";
 import { prisma } from "../../../lib/prisma.js";
 import { defaultTiers } from "./loyalty.config.js";
 import { describeTransaction, describeWallet, exactPoints } from "./loyalty.balance.js";
-import { calculateEarnedPoints, selectTier, type TierLevel } from "./loyalty.calculation.js";
+import { calculateEarnedPoints, selectQualifiedTier, type TierLevel } from "./loyalty.calculation.js";
 import { HttpError } from "../../../lib/http-error.js";
 
 export const VALID_TRANSACTION_TYPES: readonly PointTransactionType[] = [
@@ -27,7 +27,7 @@ async function readWallet(memberId: number, merchantId: number) {
         },
       }),
       tx.loyaltyRule.findUnique({ where: { merchantId } }),
-      tx.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+      tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     ]);
     const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
     const ranked = membership && (membership.tierId !== null || membership.wallet?.transactions.some((entry) => entry.type === "EARN"));
@@ -35,10 +35,11 @@ async function readWallet(memberId: number, merchantId: number) {
       merchantId,
       policy: {
         merchantId, vndPerPoint: rule?.vndPerPoint ?? 10000, isActive: rule?.isActive ?? true,
-        tiers: tiers.map((tier) => ({ level: tier.level, minLifetimePoints: tier.minLifetimePoints, multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2) })),
+        qualificationMode: rule?.qualificationMode ?? "POINTS",
+        tiers: tiers.map((tier) => ({ level: tier.level, name: tier.name, minLifetimePoints: tier.minLifetimePoints, minSpendVnd: tier.minSpendVnd === null || tier.minSpendVnd === undefined ? null : typeof tier.minSpendVnd === "string" ? tier.minSpendVnd : tier.minSpendVnd.toFixed(0), multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2), benefits: Array.isArray(tier.benefits) ? tier.benefits : [], iconUrl: tier.iconUrl, color: tier.color })),
       },
       ...describeWallet(membership?.wallet),
-      tier: ranked ? selectTier(membership.wallet?.netLifetimeEarned ?? "0", tiers) ?? "UNRANKED" : "UNRANKED",
+      tier: ranked ? selectQualifiedTier(membership.qualificationProgress, tiers, rule?.qualificationMode ?? "POINTS") ?? "UNRANKED" : "UNRANKED",
       transactions: (membership?.wallet?.transactions ?? []).map((entry) => ({
         id: entry.id, type: entry.type, ...describeTransaction(entry), reason: entry.reason,
         eventRef: entry.eventRef, source: entry.source, actorId: entry.actorId,
@@ -64,7 +65,7 @@ export async function getMerchantMemberWallet(merchantId: number, memberId: numb
 export type MerchantMemberFilters = { email?: string; cursor?: number; limit: number };
 
 export async function listMerchantMembers(merchantId: number, { email, cursor, limit }: MerchantMemberFilters) {
-  const [memberships, configuredTiers] = await prisma.$transaction([
+  const [memberships, configuredTiers, rule] = await prisma.$transaction([
     prisma.merchantMembership.findMany({
       where: {
         merchantId,
@@ -87,15 +88,16 @@ export async function listMerchantMembers(merchantId: number, { email, cursor, l
         },
       },
     }),
-    prisma.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+    prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.loyaltyRule.findUnique({ where: { merchantId } }),
   ]);
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
   const page = memberships.slice(0, limit);
   return {
-    items: page.map(({ member, wallet, tierId }) => {
+    items: page.map(({ member, wallet, tierId, qualificationProgress }) => {
       const { availablePoints, netLifetimeEarned, pointDebt } = describeWallet(wallet);
       const ranked = tierId !== null || (wallet?._count.transactions ?? 0) > 0;
-      const tier = ranked ? selectTier(netLifetimeEarned, tiers) ?? "UNRANKED" : "UNRANKED";
+      const tier = ranked ? selectQualifiedTier(qualificationProgress, tiers, rule?.qualificationMode ?? "POINTS") ?? "UNRANKED" : "UNRANKED";
       const latest = wallet?.transactions[0];
       return {
         ...member,
@@ -119,7 +121,7 @@ export async function previewMemberEarning(memberId: number, merchantId: number,
   const [merchant, rule, configuredTiers, membership] = await Promise.all([
     prisma.merchant.findFirst({ where: { id: merchantId, isActive: true }, select: { id: true } }),
     prisma.loyaltyRule.findUnique({ where: { merchantId } }),
-    prisma.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+    prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.merchantMembership.findUnique({
       where: { memberId_merchantId: { memberId, merchantId } },
       include: { wallet: true },
@@ -129,7 +131,7 @@ export async function previewMemberEarning(memberId: number, merchantId: number,
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
   const active = rule?.isActive ?? true;
   const vndPerPoint = rule?.vndPerPoint ?? 10000;
-  const currentLevel = selectTier(membership?.wallet?.netLifetimeEarned ?? "0", tiers) ?? "BRONZE";
+  const currentLevel = selectQualifiedTier(membership?.qualificationProgress ?? "0", tiers, rule?.qualificationMode ?? "POINTS") ?? tiers[0]!.level;
   const tier = tiers.find((t) => t.level === currentLevel)!;
   const multiplier = typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2);
   let estimatedPointsExact = "0";
@@ -158,17 +160,16 @@ export async function previewMemberEarning(memberId: number, merchantId: number,
 
 export async function previewMerchantPolicy(merchantId: number, input: { netOrderAmountVnd: string; tierLevel?: TierLevel }) {
   if (!input.netOrderAmountVnd || !/^\d+$/.test(input.netOrderAmountVnd)) throw new HttpError(400, "INVALID_INPUT");
-  const validTiers: TierLevel[] = ["BRONZE", "SILVER", "GOLD", "PLATINUM"];
-  if (input.tierLevel && !validTiers.includes(input.tierLevel)) throw new HttpError(400, "INVALID_INPUT");
   const [rule, configuredTiers] = await Promise.all([
     prisma.loyaltyRule.findUnique({ where: { merchantId } }),
-    prisma.loyaltyTier.findMany({ where: { merchantId }, orderBy: { minLifetimePoints: "asc" } }),
+    prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
   ]);
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
   const active = rule?.isActive ?? true;
   const vndPerPoint = rule?.vndPerPoint ?? 10000;
-  const level: TierLevel = input.tierLevel ?? "BRONZE";
-  const tier = tiers.find((t) => t.level === level) ?? defaultTiers.find((t) => t.level === level)!;
+  const level: TierLevel = input.tierLevel ?? tiers[0]!.level;
+  const tier = tiers.find((t) => t.level === level);
+  if (!tier) throw new HttpError(400, "INVALID_INPUT");
   const multiplier = typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2);
 
   let exact = "0";

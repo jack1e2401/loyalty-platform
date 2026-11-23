@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildRevenueSeries,
@@ -52,7 +52,7 @@ test("computeAnalyticsKpis uses exact Decimal arithmetic, ROUND_HALF_UP AOV, and
 
   // 150001 / 2 = 75000.5 -> ROUND_HALF_UP => 75001
   assert.deepEqual(kpis, {
-    netRevenueVnd: "150001",
+    qualifyingOrderRevenueVnd: "150001",
     paidOnlyRevenueVnd: "100001",
     refundPendingRevenueVnd: "50000",
     refundedRevenueVnd: "80000",
@@ -72,7 +72,7 @@ test("computeAnalyticsKpis uses exact Decimal arithmetic, ROUND_HALF_UP AOV, and
     returningCustomers: 0,
   });
   assert.equal(emptyKpis.averageOrderValueVnd, "0");
-  assert.equal(emptyKpis.netRevenueVnd, "0");
+  assert.equal(emptyKpis.qualifyingOrderRevenueVnd, "0");
 });
 
 test("buildRevenueSeries assigns Asia/Ho_Chi_Minh day/month buckets and zero-fills empty buckets", () => {
@@ -132,9 +132,9 @@ test("product analytics helpers compute top, slow-moving, no-sales-90d, and low-
 });
 
 test("customer domain helpers compute Customer 360 stats, unranked tier rule, and query validation", () => {
-  const query = parseCustomerListQuery({ q: " alice@test ", tier: "GOLD", purchaseStatus: "buyers", page: "2", limit: "15" });
-  assert.deepEqual(query, { q: "alice@test", tier: "GOLD", purchaseStatus: "buyers", page: 2, limit: 15 });
-  assert.throws(() => parseCustomerListQuery({ tier: "DIAMOND" }));
+  const query = parseCustomerListQuery({ q: " alice@test ", tier: "gold", purchaseStatus: "buyers", page: "2", limit: "15" });
+  assert.deepEqual(query, { q: "alice@test", tier: "gold", purchaseStatus: "buyers", page: 2, limit: 15 });
+  assert.throws(() => parseCustomerListQuery({ tier: "invalid tier" }));
   assert.throws(() => parseCustomerListQuery({ purchaseStatus: "vip" }));
 
   assert.equal(
@@ -143,7 +143,7 @@ test("customer domain helpers compute Customer 360 stats, unranked tier rule, an
   );
   assert.equal(
     resolveMemberTier({ tierId: null, hasEarnTransaction: true, netLifetimeEarned: "1200", tiers: defaultTiers }),
-    "SILVER",
+    "silver",
   );
 
   const stats = computeCustomerStats([

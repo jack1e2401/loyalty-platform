@@ -5,6 +5,5 @@ export { MerchantVouchers } from "./backend/BackendMerchantVouchersPage";
 export { MerchantLoyalty } from "./backend/BackendMerchantLoyaltyPage";
 export { MerchantLoyaltyTransactions } from "./MerchantLoyaltyTransactions";
 export { MerchantRefundDialog } from "./MerchantRefundDialog";
-export { MerchantAbuseReportDialog } from "./MerchantAbuseReportDialog";
 export { MerchantRewardQueue } from "./MerchantRewardQueue";
 export { MerchantProducts } from "./MerchantProductsPage";

@@ -32,7 +32,7 @@ export function MerchantLoyaltyHistory({ versions }: MerchantLoyaltyHistoryProps
           <ul className="mt-3 grid gap-1 text-sm text-slate-600 sm:grid-cols-2">
             {policy.tiers.map((tier) => (
               <li key={tier.level}>
-                {tier.level} · từ {tier.minLifetimePoints.toLocaleString("vi-VN")} điểm · x{tier.multiplier}
+                {tier.name ?? tier.level} · {tier.minSpendVnd ? `từ ${Number(tier.minSpendVnd).toLocaleString("vi-VN")} ₫ chi tiêu` : `từ ${(tier.minLifetimePoints ?? 0).toLocaleString("vi-VN")} điểm`} · x{tier.multiplier}
               </li>
             ))}
           </ul>

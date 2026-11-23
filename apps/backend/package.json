@@ -10,12 +10,11 @@
     "typecheck": "npm run db:generate && tsc --noEmit",
     "test": "npm run db:generate && tsx --test ../../tests/backend/unit/**/*.test.ts",
     "test:db": "npm run db:generate && tsx --test --test-concurrency=1 ../../tests/backend/integration/*.integration.test.ts",
-    "test:admin-read": "npm run db:generate && tsx --test ../../tests/backend/integration/admin-read.integration.test.ts",
     "test:milestone2": "npm run db:generate && tsx --test ../../tests/backend/integration/milestone-2.integration.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:v4": "tsx prisma/v4-demo-seed.ts",
+    "db:seed:demo": "tsx prisma/demo-seed.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

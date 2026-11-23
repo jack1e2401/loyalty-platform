@@ -2,12 +2,50 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import {
-  assertLedger, beginVnpay, cleanup, confirmVnpay, createMember, createOrder, createShop, env,
+  assertLedger, cleanup, createMember, createOrder, createShop,
   pay, prisma, Prisma, request, savePolicy, start, wallet, type Wallet,
 } from "./exact-points.fixtures.js";
 
 before(start);
 after(cleanup);
+
+test("checkout idempotency replays the same order and rejects a changed payload", async () => {
+  const shop = await createShop("12000", "1.00", 10);
+  const member = await createMember();
+  const key = randomUUID();
+  const body = { productId: shop.productId, quantity: 1 };
+  const first = await request<{ order: { id: number } }>("/api/orders", "POST", member.token, body, { "Idempotency-Key": key });
+  const replay = await request<{ order: { id: number } }>("/api/orders", "POST", member.token, body, { "Idempotency-Key": key });
+  assert.equal(first.status, 201);
+  assert.equal(replay.status, 200);
+  assert.equal(replay.json.order.id, first.json.order.id);
+  const conflict = await request<{ error: string }>("/api/orders", "POST", member.token, { productId: shop.productId, quantity: 2 }, { "Idempotency-Key": key });
+  assert.equal(conflict.status, 409);
+  assert.equal(conflict.json.error, "IDEMPOTENCY_KEY_CONFLICT");
+  assert.equal(await prisma.order.count({ where: { memberId: member.id } }), 1);
+  const inventory = await prisma.inventoryBalance.findFirstOrThrow({ where: { merchantId: shop.id, productId: shop.productId, ownerType: "SALE_PRODUCT" } });
+  assert.equal(inventory.reservedQuantity, 1);
+});
+
+test("member profile persists private contact fields and merchant tags stay membership scoped", async () => {
+  const shop = await createShop();
+  const member = await createMember();
+  const joined = await request(`/api/member/merchants/${shop.id}/membership`, "POST", member.token);
+  assert.equal(joined.status, 200);
+  const updated = await request<{ profile: { id: number; name: string; phone: string; address: string; birthDate: string } }>("/api/member/profile", "PATCH", member.token, {
+    name: "Flow Member", phone: "+84900000000", address: "District 1", birthDate: "1994-06-15",
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.json.profile.id, member.id);
+  assert.deepEqual({ name: updated.json.profile.name, phone: updated.json.profile.phone, address: updated.json.profile.address, birthDate: updated.json.profile.birthDate }, { name: "Flow Member", phone: "+84900000000", address: "District 1", birthDate: "1994-06-15" });
+  const invalid = await request("/api/member/profile", "PATCH", member.token, { birthDate: "2024-02-31" });
+  assert.equal(invalid.status, 400);
+  const tagged = await request<{ tags: string[] }>(`/api/merchant/customers/${member.id}/tags`, "PATCH", shop.token, { tags: ["vip", " local ", "vip"] });
+  assert.equal(tagged.status, 200);
+  assert.deepEqual(tagged.json.tags, ["vip", "local"]);
+  const membership = await prisma.merchantMembership.findUniqueOrThrow({ where: { memberId_merchantId: { memberId: member.id, merchantId: shop.id } } });
+  assert.deepEqual(membership.tags, ["vip", "local"]);
+});
 
 async function createDiscountDefinition(shop: { token: string }, title: string, discountAmount: string) {
   const created = await request<{ definition: { id: number } }>("/api/merchant/vouchers", "POST", shop.token, {
@@ -76,7 +114,7 @@ test("earning applies the multiplier before rounding and preserves carry across 
   await savePolicy(shop, { rate: 20000, silverThreshold: 1 });
   assert.equal((await wallet(shop, member)).exactBalance, "0.9");
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.3");
-  assert.equal((await wallet(shop, member)).tier, "SILVER");
+  assert.equal((await wallet(shop, member)).tier, "silver");
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.45");
   const result = await wallet(shop, member);
   assert.equal(result.exactBalance, "1.65");
@@ -274,96 +312,14 @@ test("same-key retry issues one voucher and one ledger debit, while different-de
   await assertLedger(shop, member, "1");
 });
 
-test("VNPay freezes tier, multiplier and policy at initiation; duplicate IPN preserves exact ledger", async () => {
-  env.paymentMode = "vnpay";
-  try {
-    const shop = await createShop();
-    const member = await createMember();
-    const first = await beginVnpay(shop, member);
-    const second = await beginVnpay(shop, member);
-    const snapshot = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId: second.order.id } });
-    assert.equal(snapshot.snapshotTierLevel, "BRONZE");
-    assert.equal(snapshot.snapshotMultiplier?.toString(), "1");
-    await savePolicy(shop, { rate: 20000, bronzeMultiplier: "1.50", silverThreshold: 1 });
-    assert.equal(await confirmVnpay(first), "00");
-    assert.equal(await confirmVnpay(second), "00");
-    assert.equal(await confirmVnpay(second), "02");
-    assert.equal((await wallet(shop, member)).tier, "SILVER");
-    assert.equal((await wallet(shop, member)).exactBalance, "1.2");
-    const future = await beginVnpay(shop, member);
-    assert.equal(await confirmVnpay(future), "00");
-    assert.equal((await wallet(shop, member)).exactBalance, "1.65");
-    const stored = await assertLedger(shop, member, "1.65");
-    assert.equal(stored.reservedPoints.toString(), "0");
-    assert.equal(stored.transactions.length, 3);
-  } finally {
-    env.paymentMode = "mock";
-  }
-});
-
 test("policy threshold changes select earning tier from exact lifetime instead of a stale membership tier", async () => {
   const shop = await createShop();
   const member = await createMember();
   await pay(shop, member);
   await pay(shop, member);
-  assert.equal((await wallet(shop, member)).tier, "BRONZE");
+  assert.equal((await wallet(shop, member)).tier, "default");
   await savePolicy(shop, { silverThreshold: 1 });
   assert.equal((await pay(shop, member)).earnedPointsExact, "0.9");
-  assert.equal((await wallet(shop, member)).tier, "SILVER");
+  assert.equal((await wallet(shop, member)).tier, "silver");
   await assertLedger(shop, member, "2.1");
-});
-
-test("legacy zero-reservation VNPay attempts retain their original integer award while new attempts earn fractions", async () => {
-  env.paymentMode = "vnpay";
-  try {
-    const shop = await createShop();
-    const member = await createMember();
-    const legacy = await beginVnpay(shop, member);
-    const attempt = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId: legacy.order.id } });
-    const stored = await prisma.loyaltyWallet.findFirstOrThrow({ where: { membership: { memberId: member.id, merchantId: shop.id } } });
-    // Emulate the pre-M1 integer calculator: 6000/10000 earned/reserved zero.
-    // Nullable new fields identify attempts that were initiated before M1.
-    await prisma.$transaction([
-      prisma.paymentAttempt.update({ where: { id: attempt.id }, data: {
-        reservedPoints: 0, snapshotTierLevel: null, snapshotMultiplier: null,
-        snapshotPolicy: Prisma.DbNull,
-      } }),
-      prisma.loyaltyWallet.update({ where: { id: stored.id }, data: { reservedPoints: 0 } }),
-    ]);
-    assert.equal(await confirmVnpay(legacy), "00");
-    const legacyCredit = await prisma.pointTransaction.findFirstOrThrow({ where: { orderId: legacy.order.id } });
-    assert.equal(legacyCredit.delta.toString(), "0");
-    assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: legacy.order.id } })).earnedPointsExact?.toString(), "0");
-    await assertLedger(shop, member, "0");
-    const current = await beginVnpay(shop, member);
-    assert.equal(await confirmVnpay(current), "00");
-    await assertLedger(shop, member, "0.6");
-  } finally {
-    env.paymentMode = "mock";
-  }
-});
-
-test("failed VNPay IPN releases the exact fractional reservation without creating an earning", async () => {
-  env.paymentMode = "vnpay";
-  try {
-    const shop = await createShop();
-    const member = await createMember();
-    const payment = await beginVnpay(shop, member);
-    const attempt = await prisma.paymentAttempt.findUniqueOrThrow({ where: { orderId: payment.order.id } });
-    assert.equal(attempt.reservedPoints.toString(), "1.2");
-    const before = await prisma.loyaltyWallet.findFirstOrThrow({ where: { membership: { memberId: member.id, merchantId: shop.id } } });
-    assert.equal(before.reservedPoints.toString(), "1.2");
-    const failure = { vnp_ResponseCode: "24", vnp_TransactionStatus: "02" };
-    assert.equal(await confirmVnpay(payment, failure), "00");
-    assert.equal(await confirmVnpay(payment, failure), "02");
-    assert.equal((await prisma.paymentAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).status, "FAILED");
-    assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: payment.order.id } })).status, "PENDING");
-    const after = await assertLedger(shop, member, "0");
-    assert.equal(after.reservedPoints.toString(), "0");
-    assert.equal(after.netLifetimeEarned.toString(), "0");
-    assert.equal(after.transactions.length, 0);
-    assert.equal((await wallet(shop, member)).exactBalance, "0");
-  } finally {
-    env.paymentMode = "mock";
-  }
 });

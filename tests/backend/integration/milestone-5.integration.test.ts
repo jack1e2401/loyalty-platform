@@ -67,7 +67,7 @@ after(async () => {
   await prisma.rewardCancellation.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
   await prisma.pointTransaction.deleteMany({ where: { walletId: { in: walletIds } } });
   await prisma.orderItem.deleteMany({ where: { order: { memberId: { in: fixtureIds } } } });
-  await prisma.merchantFeeTransaction.deleteMany({ where: { order: { memberId: { in: fixtureIds } } } });
+  await prisma.orderRequest.deleteMany({ where: { order: { memberId: { in: fixtureIds } } } });
   await prisma.order.deleteMany({ where: { memberId: { in: fixtureIds } } });
   await prisma.memberVoucher.deleteMany({ where: { membershipId: { in: membershipIds } } });
   await prisma.loyaltyWallet.deleteMany({ where: { membershipId: { in: membershipIds } } });
@@ -90,7 +90,12 @@ async function request(path: string, method = "GET", token?: string, body?: unkn
     : body;
   const response = await fetch(`${baseUrl}${path}`, {
     method,
-    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(payload !== undefined ? { "content-type": "application/json" } : {}), ...options.headers },
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(payload !== undefined ? { "content-type": "application/json" } : {}),
+      ...(method === "POST" && path === "/api/orders" ? { "Idempotency-Key": randomUUID() } : {}),
+      ...options.headers,
+    },
     ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
   });
   return { response, json: await response.json() as Record<string, any> };
@@ -175,10 +180,10 @@ test("redemption spends points once and keeps vouchers merchant scoped", async (
   const definition = await request("/api/merchant/vouchers", "POST", merchantAToken, { type: "DISCOUNT", title: "Giảm 20k", pointsCost: 200, discountAmount: "20000" });
   assert.equal(definition.response.status, 201);
   const tiers = await prisma.loyaltyTier.createMany({ data: [
-    { merchantId: merchantAId, level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" },
-    { merchantId: merchantAId, level: "SILVER", minLifetimePoints: 1000, multiplier: "1.20" },
-    { merchantId: merchantAId, level: "GOLD", minLifetimePoints: 5000, multiplier: "1.50" },
-    { merchantId: merchantAId, level: "PLATINUM", minLifetimePoints: 10000, multiplier: "2.00" },
+    { merchantId: merchantAId, level: "default", name: "Default", minLifetimePoints: 0, multiplier: "1.00" },
+    { merchantId: merchantAId, level: "silver", name: "Silver", minLifetimePoints: 1000, multiplier: "1.20" },
+    { merchantId: merchantAId, level: "gold", name: "Gold", minLifetimePoints: 5000, multiplier: "1.50" },
+    { merchantId: merchantAId, level: "platinum", name: "Platinum", minLifetimePoints: 10000, multiplier: "2.00" },
   ] });
   assert.equal(tiers.count, 4);
   const membership = await prisma.merchantMembership.create({ data: { memberId, merchantId: merchantAId } });
@@ -374,7 +379,7 @@ test("first paid order stays Bronze when its discount reduces total to zero", as
   const wallet = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", otherToken);
   assert.equal(wallet.json.wallet.availablePoints, 0);
   assert.equal(wallet.json.wallet.lifetimeEarnedPoints, 0);
-  assert.equal(wallet.json.wallet.tier, "BRONZE");
+  assert.equal(wallet.json.wallet.tier, "default");
 });
 
 test("m5 reward fulfillment cancellation: success refunds exact integer points and records audit", async () => {

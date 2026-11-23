@@ -19,7 +19,6 @@ export default defineConfig({
     timeout: 30_000,
     env: {
       VITE_API_MODE: "http",
-      VITE_PAYMENT_MODE: "vnpay",
       VITE_API_BASE_URL: "http://localhost:3000",
     },
   },

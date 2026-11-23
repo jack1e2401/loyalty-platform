@@ -2,14 +2,14 @@ import { useState } from "react";
 import { ArrowUpRight, Package, Storefront } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { createCommerceClient } from "../../api/commerce-http";
-import type { ProductDto, TierLevel } from "../../api/commerce-types";
+import type { ProductDto } from "../../api/commerce-types";
 import type { BackendMerchantDto } from "../../api/contracts/auth";
 import { useResource } from "../../api/useResource";
 import { Button, Card, Skeleton, StatusText } from "../../components/ui";
 import { money, number } from "../../lib/utils";
 
 const api = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
-const tierName: Record<TierLevel, string> = {
+const tierName: Record<string, string> = {
   BRONZE: "Bronze",
   SILVER: "Silver",
   GOLD: "Gold",
@@ -82,8 +82,8 @@ function MerchantLoyaltySummary({ token }: { token: string }) {
                 key={tier.level}
                 className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2.5 text-sm"
               >
-                <span className="font-bold">{tierName[tier.level]}</span>
-                <span className="text-[#53685a]">{number(tier.minLifetimePoints)} điểm</span>
+                <span className="font-bold">{tier.name ?? tierName[tier.level] ?? tier.level}</span>
+                <span className="text-[#53685a]">{config.qualificationMode === "SPEND" ? `${number(Number(tier.minSpendVnd ?? 0))} ₫` : `${number(tier.minLifetimePoints ?? 0)} điểm`}</span>
                 <span className="min-w-9 text-right font-bold text-[#406d47]">
                   {number(Number(tier.multiplier))}×
                 </span>

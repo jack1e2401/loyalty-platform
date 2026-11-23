@@ -1,20 +1,21 @@
 import type { RequestHandler } from "express";
 import { readRouteId } from "../products/products.validation.js";
 import { ordersService } from "./orders.service.js";
-import { paymentsService } from "../payments/payments.service.js";
 import { readCreateOrderInput } from "./orders.validation.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { OrderNotCancellableError } from "./orders.types.js";
 
 export const createOrder: RequestHandler = async (request, response) => {
   const input = readCreateOrderInput(request.body);
-  const order = await ordersService.createOrder(response.locals.user.id, input);
-  response.status(201).json({ order });
+  const key = request.get("Idempotency-Key");
+  if (!key || key.length < 8 || key.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(key)) throw new HttpError(400, "IDEMPOTENCY_KEY_REQUIRED");
+  const result = await ordersService.createOrder(response.locals.user.id, input, key);
+  response.status(result.replayed ? 200 : 201).json({ order: result.order });
 };
 
 export const payOrder: RequestHandler = async (request, response) => {
   const orderId = readRouteId(request.params.orderId);
-  const order = await paymentsService.payMock(response.locals.user.id, orderId);
+  const order = await ordersService.payOrder(response.locals.user.id, orderId);
   response.json({ order });
 };
 
@@ -51,7 +52,6 @@ export const cancelOrder: RequestHandler = async (request, response) => {
       response.status(409).json({
         error: "ORDER_NOT_CANCELLABLE",
         orderStatus: error.orderStatus,
-        paymentStatus: error.paymentStatus,
       });
       return;
     }

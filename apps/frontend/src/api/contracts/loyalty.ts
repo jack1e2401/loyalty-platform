@@ -1,4 +1,4 @@
-export type TierLevel = "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
+export type TierLevel = string;
 
 export type MemberTier = TierLevel | "UNRANKED";
 
@@ -16,21 +16,41 @@ export interface AppliedLoyaltyPolicySnapshot {
 
 export interface LoyaltyTierDto {
   level: TierLevel;
-  minLifetimePoints: number;
+  name?: string;
+  minLifetimePoints?: number;
+  minSpendVnd?: string;
   multiplier: string;
+  benefits?: string[];
+  iconUrl?: string | null;
+  color?: string;
+  maintenanceSpendVnd?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface TierResetConfigDto {
+  enabled: boolean;
+  month: number;
+  day: number;
+  strategy: "ONE_DOWN" | "SELECTED";
+  targetLevel: string | null;
 }
 
 export interface LoyaltyConfigDto {
   merchantId: number;
   vndPerPoint: number;
   isActive: boolean;
+  qualificationMode: "POINTS" | "SPEND";
   tiers: LoyaltyTierDto[];
+  reset: TierResetConfigDto;
 }
 
 export interface LoyaltyConfigInput {
   vndPerPoint: number;
   isActive: boolean;
+  qualificationMode: "POINTS" | "SPEND";
   tiers: LoyaltyTierDto[];
+  reset: TierResetConfigDto;
 }
 
 export type PointTransactionType =

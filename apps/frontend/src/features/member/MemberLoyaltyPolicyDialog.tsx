@@ -1,10 +1,10 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "@phosphor-icons/react";
-import type { LoyaltyConfigDto, TierLevel } from "../../api/commerce-types";
+import type { LoyaltyConfigDto } from "../../api/commerce-types";
 import { LoyaltyFormula } from "../../components/LoyaltyFormula";
 import { Button } from "../../components/ui";
 
-export const memberTierLabel: Record<TierLevel, string> = {
+export const memberTierLabel: Record<string, string> = {
   BRONZE: "Bronze",
   SILVER: "Silver",
   GOLD: "Gold",
@@ -24,7 +24,7 @@ export function MemberLoyaltyPolicyDialog({ policy }: { policy: LoyaltyConfigDto
             Chính sách tích điểm
           </Dialog.Title>
           <Dialog.Description className="mt-2 pr-8 text-sm leading-6 text-[#53685a]">
-            Hạng được xét theo tổng điểm tích lũy tại cửa hàng này.
+            {policy.qualificationMode === "SPEND" ? "Hạng được xét theo chi tiêu đủ điều kiện tại cửa hàng này." : "Hạng được xét theo tổng điểm tích lũy tại cửa hàng này."}
           </Dialog.Description>
           <Dialog.Close asChild>
             <Button aria-label="Đóng" variant="ghost" size="icon" className="absolute right-3 top-3">
@@ -55,10 +55,10 @@ export function MemberLoyaltyPolicyDialog({ policy }: { policy: LoyaltyConfigDto
               {policy.tiers.map((tier) => (
                 <tr key={tier.level}>
                   <th scope="row" className="py-2.5 font-semibold">
-                    {memberTierLabel[tier.level]}
+                    {tier.name ?? memberTierLabel[tier.level] ?? tier.level}
                   </th>
                   <td className="py-2.5 text-right tabular-nums">
-                    {tier.minLifetimePoints.toLocaleString("vi-VN")}
+                    {policy.qualificationMode === "SPEND" ? `${Number(tier.minSpendVnd ?? 0).toLocaleString("vi-VN")} ₫` : `${(tier.minLifetimePoints ?? 0).toLocaleString("vi-VN")} điểm`}
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
                     {Number(tier.multiplier).toLocaleString("vi-VN")}×

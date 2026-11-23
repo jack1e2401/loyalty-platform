@@ -142,6 +142,10 @@ function StorefrontHomeContent({
 
   const displayProducts =
     (data.featuredProducts.length > 0 ? data.featuredProducts : (fallbackProducts.data ?? [])).slice(0, 6);
+  const memberTier = memberWallet.data?.tier;
+  const memberTierName = memberTier
+    ? memberWallet.data?.policy?.tiers.find((tier) => tier.level === memberTier)?.name ?? memberTierLabel[memberTier] ?? memberTier
+    : "";
   const enabledSections = useMemo(
     () => [...data.config.sections].filter((s) => s.enabled).sort((a, b) => a.order - b.order),
     [data.config.sections],
@@ -187,7 +191,7 @@ function StorefrontHomeContent({
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#5d6f62]">
                   {memberWallet.data.tier === "UNRANKED"
                     ? "Thành viên mới"
-                    : `Thành viên ${memberTierLabel[memberWallet.data.tier]}`}
+                    : `Thành viên ${memberTierName}`}
                 </p>
                 <p className="text-sm font-extrabold text-[#20392a] tabular-nums">
                   {memberWallet.data.availablePoints.toLocaleString("vi-VN")} điểm khả dụng

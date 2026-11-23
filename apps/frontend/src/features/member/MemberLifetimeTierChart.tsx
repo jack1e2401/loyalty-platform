@@ -32,9 +32,9 @@ function eventDate(date: string | null) {
 
 export function MemberLifetimeTierChart({ wallet }: { wallet: WalletDto }) {
   const history = buildLifetimeTierHistory(wallet.transactions, wallet.netLifetimeEarned);
-  const tiers = [...(wallet.policy?.tiers ?? [])].sort(
-    (a, b) => a.minLifetimePoints - b.minLifetimePoints,
-  );
+  const tiers = [...(wallet.policy?.tiers ?? [])]
+    .filter((tier) => tier.minLifetimePoints !== undefined)
+    .sort((a, b) => (a.minLifetimePoints ?? 0) - (b.minLifetimePoints ?? 0));
 
   return (
     <Card role="region" aria-labelledby="member-lifetime-chart-title" className="mt-7 p-5 sm:p-7">
@@ -52,7 +52,11 @@ export function MemberLifetimeTierChart({ wallet }: { wallet: WalletDto }) {
         </p>
       </div>
 
-      {!history.isConsistent ? (
+      {wallet.policy?.qualificationMode === "SPEND" ? (
+        <p role="status" className="mt-5 rounded-xl bg-[#f7f9f5] p-4 text-sm muted">
+          Hạng được xét theo chi tiêu đủ điều kiện; biểu đồ điểm lifetime không thể hiện tiến trình hạng.
+        </p>
+      ) : !history.isConsistent ? (
         <p role="status" className="mt-5 rounded-xl bg-[#f7f9f5] p-4 text-sm muted">
           Biểu đồ chưa khả dụng vì lịch sử ledger chưa khớp số dư điểm hiện tại.
         </p>
@@ -79,7 +83,7 @@ function LifetimeChart({
   const values = history.map((point) => Number(point.total));
   const minValue = Math.min(0, ...values);
   const latestValue = values.at(-1) ?? 0;
-  const nextThreshold = tiers.find((tier) => tier.minLifetimePoints > latestValue)?.minLifetimePoints;
+  const nextThreshold = tiers.find((tier) => (tier.minLifetimePoints ?? 0) > latestValue)?.minLifetimePoints;
   const dataMax = Math.max(1, ...values);
   const nearbyThreshold = nextThreshold !== undefined && nextThreshold <= dataMax * 1.5 ? nextThreshold : 0;
   const baseMax = Math.max(dataMax, nearbyThreshold);
@@ -113,7 +117,7 @@ function LifetimeChart({
               className="h-3 w-3 rounded-sm border border-black/10"
               style={{ backgroundColor: tierColor(tier.level), opacity: 0.62 }}
             />
-            {tier.level} · {numberFormat.format(tier.minLifetimePoints)} điểm
+            {tier.name ?? tier.level} · {numberFormat.format(tier.minLifetimePoints ?? 0)} điểm
           </span>
         ))}
       </div>
@@ -136,7 +140,8 @@ function LifetimeChart({
             Điểm lifetime
           </text>
           {tiers.map((tier, index) => {
-            const bandStart = Math.max(minValue, tier.minLifetimePoints);
+            const threshold = tier.minLifetimePoints ?? 0;
+            const bandStart = Math.max(minValue, threshold);
             const bandEnd = Math.min(maxValue, tiers[index + 1]?.minLifetimePoints ?? maxValue);
             if (bandEnd <= bandStart) return null;
             return (
@@ -165,9 +170,9 @@ function LifetimeChart({
             );
           })}
           {tiers
-            .filter((tier) => tier.minLifetimePoints >= minValue && tier.minLifetimePoints <= maxValue)
+            .filter((tier) => (tier.minLifetimePoints ?? 0) >= minValue && (tier.minLifetimePoints ?? 0) <= maxValue)
             .map((tier) => {
-              const y = yFor(tier.minLifetimePoints);
+              const y = yFor(tier.minLifetimePoints ?? 0);
               return (
                 <g key={tier.level}>
                   <line

@@ -4,7 +4,6 @@ import { after, before, test } from "node:test";
 import type { Server } from "node:http";
 
 process.env.JWT_SECRET ??= "v4-challenges-refund-test-secret-32-bytes";
-process.env.PAYMENT_MODE = "mock";
 const [{ app }, { prisma }, { signAccessToken }] = await Promise.all([
   import("../../../apps/backend/src/app.js"),
   import("../../../apps/backend/src/lib/prisma.js"),
@@ -18,11 +17,9 @@ let server: Server;
 let base = "";
 let merchantToken = "";
 let memberToken = "";
-let adminToken = "";
 let merchantId = 0;
 let ownerId = 0;
 let memberId = 0;
-let adminId = 0;
 let productId = 0;
 let orderChallengeId = 0;
 const extraMemberIds: number[] = [];
@@ -30,25 +27,28 @@ const extraMemberIds: number[] = [];
 async function req(path: string, method = "GET", token?: string, body?: unknown) {
   const response = await fetch(base + path, {
     method,
-    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body ? { "content-type": "application/json" } : {}) },
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(body ? { "content-type": "application/json" } : {}),
+      ...(method === "POST" && path === "/api/orders" ? { "Idempotency-Key": randomUUID() } : {}),
+    },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   return { status: response.status, json: await response.json() as ApiResponse };
 }
 
 before(async () => {
-  const [owner, member, admin] = await Promise.all([
+  const [owner, member] = await Promise.all([
     prisma.user.create({ data: { email: `${slug}-owner@test.local`, passwordHash: "x", role: "MERCHANT" } }),
     prisma.user.create({ data: { email: `${slug}-member@test.local`, passwordHash: "x", role: "MEMBER" } }),
-    prisma.user.create({ data: { email: `${slug}-admin@test.local`, passwordHash: "x", role: "ADMIN" } }),
   ]);
-  ownerId = owner.id; memberId = member.id; adminId = admin.id;
+  ownerId = owner.id; memberId = member.id;
   const store = await prisma.merchant.create({ data: { ownerId, name: slug, slug } });
   merchantId = store.id;
   const product = await prisma.product.create({ data: { merchantId, name: "Test coffee", price: "10000" } });
   productId = product.id;
   await prisma.inventoryBalance.create({ data: { merchantId, ownerType: "SALE_PRODUCT", productId, onHandQuantity: 10 } });
-  [merchantToken, memberToken, adminToken] = await Promise.all([signAccessToken(ownerId), signAccessToken(memberId), signAccessToken(adminId)]);
+  [merchantToken, memberToken] = await Promise.all([signAccessToken(ownerId), signAccessToken(memberId)]);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", resolve));
   const addr = server.address();
@@ -66,9 +66,9 @@ after(async () => {
   await prisma.challengeProgress.deleteMany({ where: { challenge: { merchantId } } });
   await prisma.memberActivity.deleteMany({ where: { membership: { merchantId } } });
   await prisma.pointTransaction.deleteMany({ where: { wallet: { membership: { merchantId } } } });
-  await prisma.merchantFeeTransaction.deleteMany({ where: { merchantId } });
   await prisma.inventoryMovement.deleteMany({ where: { merchantId } });
   await prisma.orderItem.deleteMany({ where: { order: { merchantId } } });
+  await prisma.orderRequest.deleteMany({ where: { order: { merchantId } } });
   await prisma.order.deleteMany({ where: { merchantId } });
   await prisma.challenge.deleteMany({ where: { merchantId } });
   await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId } } });
@@ -79,7 +79,7 @@ after(async () => {
   await prisma.loyaltyRule.deleteMany({ where: { merchantId } });
   await prisma.loyaltyPolicyVersion.deleteMany({ where: { merchantId } });
   await prisma.merchant.deleteMany({ where: { id: merchantId } });
-  await prisma.user.deleteMany({ where: { id: { in: [ownerId, memberId, adminId, ...extraMemberIds] } } });
+  await prisma.user.deleteMany({ where: { id: { in: [ownerId, memberId, ...extraMemberIds] } } });
   await prisma.$disconnect();
 });
 
@@ -223,9 +223,6 @@ test("refund approval gates mock refunds and blocks merchant bypass", async () =
   const submitted = await req(`/api/orders/${order.id}/refund-request`, "POST", memberToken, { reason: "Wrong item" });
   assert.equal(submitted.status, 201);
   const requestId = (submitted.json.refundRequest as { id: number }).id;
-  assert.equal((await req(`/api/admin/refund-requests/${requestId}`, "GET", adminToken)).status, 200);
-  assert.equal((await req(`/api/admin/refund-requests/${requestId}/approve`, "POST", adminToken)).status, 404);
-  assert.equal((await req(`/api/admin/refund-requests/${requestId}/reject`, "POST", adminToken, { reason: "No" })).status, 404);
   const approved = await req(`/api/merchant/refund-requests/${requestId}/approve`, "POST", merchantToken, { note: "Checked" });
   assert.equal(approved.status, 200);
   assert.equal((approved.json.refundRequest as { status: string }).status, "COMPLETED");
@@ -293,7 +290,6 @@ test("locked fields, WAITING_BUDGET FIFO replenishment, Option B keep-above-targ
   // Now member1 has currentValue = 2 on orderChallengeId (target = 1), cycle 2 GRANTED!
   const o3Req = await req(`/api/orders/${o3Id}/refund-request`, "POST", memberToken, { reason: "Keep above target test" });
   const o3ReqId = (o3Req.json.refundRequest as { id: number }).id;
-  await prisma.refundRequest.update({ where: { id: o3ReqId }, data: { status: "PENDING_ADMIN", merchantReviewedById: ownerId, merchantReviewedAt: new Date() } });
   const pending = await req("/api/merchant/refund-requests?status=PENDING_MERCHANT", "GET", merchantToken);
   assert.ok((pending.json.items as { id: number }[]).some(({ id }) => id === o3ReqId));
   const o3Approve = await req(`/api/merchant/refund-requests/${o3ReqId}/approve`, "POST", merchantToken);
@@ -312,9 +308,9 @@ test("locked fields, WAITING_BUDGET FIFO replenishment, Option B keep-above-targ
   await prisma.pointTransaction.deleteMany({ where: { wallet: { membershipId: m2Membership.id } } });
   await prisma.loyaltyWallet.deleteMany({ where: { membershipId: m2Membership.id } });
   await prisma.merchantMembership.deleteMany({ where: { id: m2Membership.id } });
-  await prisma.merchantFeeTransaction.deleteMany({ where: { orderId: o2Id } });
   await prisma.inventoryMovement.deleteMany({ where: { orderId: o2Id } });
   await prisma.orderItem.deleteMany({ where: { orderId: o2Id } });
+  await prisma.orderRequest.deleteMany({ where: { orderId: o2Id } });
   await prisma.order.deleteMany({ where: { id: o2Id } });
   await prisma.user.deleteMany({ where: { id: member2.id } });
 });

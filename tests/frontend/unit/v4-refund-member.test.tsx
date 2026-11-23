@@ -20,7 +20,7 @@ const order = {
   id: 42, merchantId: 5, memberId: 1, status: "PAID" as const, subtotal: "100000", discountAmount: "0", total: "100000",
   paidAt: "2026-11-16T00:00:00.000Z", earnedPointsExact: "0", paymentStatus: null,
   items: [{ productId: 7, productName: "Cà phê", unitPrice: "100000", quantity: 1, lineTotal: "100000" }],
-  actions: { canCancel: false, canRefund: false, canRequestRefund: true, requiresReconciliation: false },
+  actions: { canCancel: false, canRefund: false, canRequestRefund: true },
 };
 const session = { accessToken: "member-token", user: { id: 1, email: "member@test.local", role: "MEMBER", isActive: true } };
 function renderPage() {

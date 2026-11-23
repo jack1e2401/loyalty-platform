@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -224,7 +224,7 @@ describe("V4 Workstreams D & E UI", () => {
     renderWithRouter("/merchant/customers/101", <MerchantCustomerDetailPage />, "/merchant/customers/:memberId");
 
     await waitFor(() => {
-      expect(screen.getByText("alice@test.local")).toBeInTheDocument();
+      expect(screen.getAllByText("alice@test.local").length).toBeGreaterThan(0);
       expect(screen.getByText("Earned from order #55")).toBeInTheDocument();
       expect(screen.getByText("Giảm 20k")).toBeInTheDocument();
       expect(screen.getByText("Matcha ×1")).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe("V4 Workstreams D & E UI", () => {
         return Response.json({
           range: { from: "2026-11-01", to: "2026-11-16", granularity: "day", timezone: "Asia/Ho_Chi_Minh" },
           kpis: {
-            netRevenueVnd: "500000",
+            qualifyingOrderRevenueVnd: "500000",
             paidOnlyRevenueVnd: "450000",
             refundPendingRevenueVnd: "50000",
             refundedRevenueVnd: "20000",

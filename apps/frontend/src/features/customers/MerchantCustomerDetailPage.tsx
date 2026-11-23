@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { Link, useParams } from "react-router-dom";
 import { createAnalyticsClient } from "../../api/analytics-client";
@@ -83,6 +84,27 @@ export function MerchantCustomerDetailPage() {
   );
 
   const customer = resource.data?.customer;
+  const [tagsDraft, setTagsDraft] = useState<string | null>(null);
+  const [tagsBusy, setTagsBusy] = useState(false);
+  const [tagsError, setTagsError] = useState("");
+  const [tagsNotice, setTagsNotice] = useState("");
+
+  async function saveTags() {
+    if (!customer || !accessToken || tagsBusy) return;
+    setTagsBusy(true);
+    setTagsError("");
+    setTagsNotice("");
+    try {
+      await analyticsApi.updateMerchantCustomerTags(customer.member.id, (tagsDraft ?? customer.tags.join(",")).split(",").map((tag) => tag.trim()).filter(Boolean), accessToken);
+      setTagsDraft(null);
+      setTagsNotice("Đã lưu nhãn khách hàng.");
+      resource.reload();
+    } catch (error) {
+      setTagsError(error instanceof Error ? error.message : "Không thể lưu nhãn.");
+    } finally {
+      setTagsBusy(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -100,10 +122,26 @@ export function MerchantCustomerDetailPage() {
         customer && (
           <>
             <PageHeader
-              title={customer.member.email}
+              title={customer.member.name || customer.member.email}
               description={`Thành viên #${customer.member.id} · Tham gia ${new Date(customer.member.joinedAt).toLocaleDateString("vi-VN")}`}
               action={<MemberLoyaltyPolicyDialog policy={customer.wallet.policy} />}
             />
+
+            <Card className="p-5 sm:p-6">
+              <h2 className="text-lg font-extrabold text-[#20392a]">Hồ sơ khách hàng</h2>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div><dt className="text-xs font-bold muted">Email</dt><dd className="mt-1 break-all text-sm">{customer.member.email}</dd></div>
+                <div><dt className="text-xs font-bold muted">Điện thoại</dt><dd className="mt-1 text-sm">{customer.member.phone || "Chưa cập nhật"}</dd></div>
+                <div><dt className="text-xs font-bold muted">Ngày sinh</dt><dd className="mt-1 text-sm">{customer.member.birthDate || "Chưa cập nhật"}</dd></div>
+                <div className="sm:col-span-2 lg:col-span-4"><dt className="text-xs font-bold muted">Địa chỉ</dt><dd className="mt-1 text-sm">{customer.member.address || "Chưa cập nhật"}</dd></div>
+              </dl>
+              <div className="mt-5 max-w-xl space-y-2">
+                <label htmlFor="customer-tags" className="text-xs font-bold muted">Nhãn riêng của cửa hàng (phân tách bằng dấu phẩy)</label>
+                <div className="flex flex-wrap gap-2"><input id="customer-tags" className="min-h-10 min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm" value={tagsDraft ?? (customer.tags ?? []).join(", ")} onChange={(event) => setTagsDraft(event.target.value)} /><Button type="button" disabled={tagsBusy} onClick={() => void saveTags()}>{tagsBusy ? "Đang lưu" : "Lưu nhãn"}</Button></div>
+                {tagsError && <p role="alert" className="text-sm text-[#a4473a]">{tagsError}</p>}
+                {tagsNotice && <p role="status" className="text-sm text-[#357044]">{tagsNotice}</p>}
+              </div>
+            </Card>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
@@ -112,7 +150,7 @@ export function MerchantCustomerDetailPage() {
                 note={`${customer.stats.paidOrderCount} đã trả · ${customer.stats.refundPendingOrderCount} chờ hoàn · ${customer.stats.refundedOrderCount} đã hoàn`}
               />
               <StatCard
-                label="Chi tiêu ròng"
+                label="Chi tiêu đơn đủ điều kiện"
                 value={money(Number(customer.stats.netSpendVnd))}
                 note={
                   customer.stats.refundPendingOrderCount > 0

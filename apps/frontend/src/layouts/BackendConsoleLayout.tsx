@@ -11,16 +11,6 @@ import { MerchantCmsProvider } from "../features/merchant/cms";
 
 const commerce = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 
-const adminLinks = [
-  ["/admin", "Tổng quan"],
-  ["/admin/applications", "Duyệt cửa hàng"],
-  ["/admin/merchants", "Cửa hàng"],
-  ["/admin/users", "Người dùng"],
-  ["/admin/blacklist", "Danh sách đen"],
-  ["/admin/audit-logs", "Nhật ký"],
-  ["/admin/abuse-reports", "Báo cáo vi phạm"],
-  ["/admin/refund-requests", "Lịch sử hoàn tiền"],
-];
 const merchantGroups = [
   { label: "Vận hành", icon: Gauge, links: [["/merchant", "Tổng quan"], ["/merchant/orders", "Đơn hàng"], ["/merchant/refund-requests", "Hoàn tiền"]] },
   { label: "Sản phẩm", icon: Package, links: [["/merchant/products", "Sản phẩm"], ["/merchant/categories", "Danh mục"]] },
@@ -41,12 +31,11 @@ const merchantGroups = [
   { label: "Báo cáo", icon: ChartBar, links: [["/merchant/analytics", "Phân tích"]] },
 ];
 
-export function BackendConsoleLayout({ role }: { role: "admin" | "merchant" }) {
+export function BackendConsoleLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, logout } = useAuthSession();
   const navigate = useNavigate();
   const location = useLocation();
-  const links = adminLinks;
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(merchantGroups.map((group) => [
       group.label,
@@ -54,33 +43,27 @@ export function BackendConsoleLayout({ role }: { role: "admin" | "merchant" }) {
     ])),
   );
   useEffect(() => {
-    if (role !== "merchant") return;
     const active = merchantGroups.find((group) => group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))));
     if (active) setExpandedGroups((current) => ({ ...current, [active.label]: true }));
-  }, [location.pathname, role]);
+  }, [location.pathname]);
   useLayoutEffect(() => {
-    if (role !== "merchant") return;
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, [location.pathname, role]);
-  const routeLabels = role === "admin" ? adminLinks : merchantGroups.flatMap((group) => group.links);
-  const challengePageTitle = role === "merchant"
-    ? location.pathname === "/merchant/challenges/new"
-      ? "Tạo nhiệm vụ"
-      : /^\/merchant\/challenges\/\d+\/edit\/?$/.test(location.pathname)
-        ? "Chỉnh sửa nhiệm vụ"
-        : /^\/merchant\/challenges\/\d+\/?$/.test(location.pathname)
-          ? "Chi tiết nhiệm vụ"
-          : undefined
-    : undefined;
+  }, [location.pathname]);
+  const routeLabels = merchantGroups.flatMap((group) => group.links);
+  const challengePageTitle = location.pathname === "/merchant/challenges/new"
+    ? "Tạo nhiệm vụ"
+    : /^\/merchant\/challenges\/\d+\/edit\/?$/.test(location.pathname)
+      ? "Chỉnh sửa nhiệm vụ"
+      : /^\/merchant\/challenges\/\d+\/?$/.test(location.pathname)
+        ? "Chi tiết nhiệm vụ"
+        : undefined;
   const pageTitle = location.pathname.split("/").filter(Boolean).length > 1
-    ? (role === "merchant" && location.pathname.startsWith("/merchant/inventory/") ? "Tồn kho" : undefined) ?? challengePageTitle ?? routeLabels.find(([to]) => to !== "/admin" && to !== "/merchant" && (location.pathname === to || location.pathname.startsWith(`${to}/`)))?.[1] ?? (role === "admin" ? "Quản trị hệ thống" : "Cửa hàng")
-    : role === "admin" ? "Quản trị hệ thống" : "Cửa hàng";
-  const breadcrumbs = role === "merchant"
-    ? merchantBreadcrumbItems(location.pathname, location.search, pageTitle)
-    : undefined;
+    ? (location.pathname.startsWith("/merchant/inventory/") ? "Tồn kho" : undefined) ?? challengePageTitle ?? routeLabels.find(([to]) => to !== "/merchant" && (location.pathname === to || location.pathname.startsWith(`${to}/`)))?.[1] ?? "Cửa hàng"
+    : "Cửa hàng";
+  const breadcrumbs = merchantBreadcrumbItems(location.pathname, location.search, pageTitle);
   return (
-    <MerchantCmsProvider enabled={role === "merchant"}>
+    <MerchantCmsProvider enabled>
     <div className="min-h-dvh bg-[#f7f8f4] lg:pl-[17rem]">
       {menuOpen && (
         <button
@@ -105,30 +88,15 @@ export function BackendConsoleLayout({ role }: { role: "admin" | "merchant" }) {
         </div>
         <div className="mt-7 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#c7ec9f] text-[#203d2c]">
-            {role === "merchant" ? <Storefront size={20} weight="duotone" /> : <Gauge size={20} weight="duotone" />}
+            <Storefront size={20} weight="duotone" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-bold text-white">{role === "merchant" ? "Không gian cửa hàng" : "Trung tâm quản trị"}</span>
-            <span className="mt-0.5 block text-xs text-white/55">{role === "merchant" ? "Quản lý hoạt động" : "Quản lý hệ thống"}</span>
+            <span className="block truncate text-sm font-bold text-white">Không gian cửa hàng</span>
+            <span className="mt-0.5 block text-xs text-white/55">Quản lý hoạt động</span>
           </span>
         </div>
-        <nav aria-label="Điều hướng chính" className={cn("mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto pb-3 pr-1", role === "merchant" && "merchant-sidebar-scroll")}>
-          {role === "admin" ? links.map(([to, label]) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/admin"}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/70 transition duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7ec9f]",
-                  isActive && "bg-white/[0.12] font-semibold text-white shadow-[inset_3px_0_0_#c7ec9f]",
-                )
-              }
-            >
-              {({ isActive }) => <><span className={cn("size-1.5 rounded-full bg-white/25 transition", isActive && "bg-[#c7ec9f]")} />{label}</>}
-            </NavLink>
-          )) : merchantGroups.map((group, index) => {
+        <nav aria-label="Điều hướng chính" className="merchant-sidebar-scroll mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto pb-3 pr-1">
+          {merchantGroups.map((group, index) => {
             const GroupIcon = group.icon;
             const groupId = `merchant-nav-group-${index}`;
             return <section key={group.label} className="pt-1">
@@ -162,15 +130,15 @@ export function BackendConsoleLayout({ role }: { role: "admin" | "merchant" }) {
                   ))}
               </div>
             </section>;
-          })}
+            })}
         </nav>
         <div className="mt-3 flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#315b3b] text-sm font-bold text-[#d8f5bb]">
-            {(user?.email?.[0] ?? (role === "merchant" ? "M" : "A")).toUpperCase()}
+            {(user?.email?.[0] ?? "M").toUpperCase()}
           </span>
           <span className="min-w-0">
             <span className="block truncate text-xs font-semibold text-white/90">{user?.email ?? "Tài khoản"}</span>
-            <span className="mt-0.5 block text-[11px] text-white/50">{role === "merchant" ? "Tài khoản cửa hàng" : "Quản trị viên"}</span>
+            <span className="mt-0.5 block text-[11px] text-white/50">Tài khoản cửa hàng</span>
           </span>
         </div>
       </aside>
@@ -180,13 +148,7 @@ export function BackendConsoleLayout({ role }: { role: "admin" | "merchant" }) {
             <List size={24} />
           </button>
           <div className="min-w-0">
-            {role === "merchant" && (
-              <Breadcrumb
-                aria-label="Breadcrumb"
-                className="mb-0.5 text-xs"
-                items={breadcrumbs}
-              />
-            )}
+            <Breadcrumb aria-label="Breadcrumb" className="mb-0.5 text-xs" items={breadcrumbs} />
             <p className="font-semibold text-[#294833]">{pageTitle}</p>
           </div>
         </div>
@@ -201,7 +163,7 @@ export function BackendConsoleLayout({ role }: { role: "admin" | "merchant" }) {
         </button>
       </header>
       <main className="mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-8 lg:pt-10">
-        {role === "merchant" ? <MerchantAccess /> : <Outlet />}
+        <MerchantAccess />
       </main>
     </div>
     </MerchantCmsProvider>
@@ -214,7 +176,7 @@ function MerchantAccess() {
   if (resource.loading) return <LoadingState cards={2} />;
   if (resource.error) return <ErrorState message={resource.error} retry={resource.reload} />;
   if (!resource.data?.merchant.isActive)
-    return <ErrorState message="Cửa hàng chưa được Admin kích hoạt." retry={resource.reload} />;
+    return <ErrorState message="Cửa hàng chưa hoạt động." retry={resource.reload} />;
   return <Outlet />;
 }
 
@@ -238,9 +200,6 @@ function merchantBreadcrumbItems(
   } else if (Number.isSafeInteger(voucherId) && voucherId > 0) {
     parent = { path: "/merchant/orders", label: "Đơn hàng" };
     current = `Quà đổi thưởng #${voucherId}`;
-  } else if (query.get("tab") === "fees") {
-    parent = { path: "/merchant/orders", label: "Đơn hàng" };
-    current = "Sổ phí bán hàng";
   } else if (Number.isSafeInteger(requestId) && requestId > 0) {
     parent = { path: "/merchant/refund-requests", label: "Hoàn tiền" };
     current = `Yêu cầu #${requestId}`;

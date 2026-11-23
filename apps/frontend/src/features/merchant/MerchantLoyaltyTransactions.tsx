@@ -5,7 +5,7 @@ import { useAuthSession } from "../../api/auth-session";
 import { createCommerceClient } from "../../api/commerce-http";
 import type { MerchantLedgerItemDto, PointTransactionType } from "../../api/commerce-types";
 import { useResource } from "../../api/useResource";
-import { financeDateTime } from "../finance/finance-format";
+import { formatVietnamDateTime } from "../../lib/vietnam-date";
 import { pastYearRange, vietnamDateBounds } from "../../lib/vietnam-date";
 import {
   Button,
@@ -190,7 +190,7 @@ export function MerchantLoyaltyTransactions() {
               <tbody>
                 {transactions.map((tx) => (
                   <tr key={tx.id} className="border-t border-[#edf2eb]">
-                    <td className="whitespace-nowrap px-4 py-3">{financeDateTime(tx.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{formatVietnamDateTime(tx.createdAt)}</td>
                     <td className="whitespace-nowrap px-4 py-3">
                       #{tx.id} · {transactionTypeLabel(tx.type)}
                     </td>
@@ -260,7 +260,7 @@ function PointTransactionDetail({ transaction: tx }: { transaction: MerchantLedg
             {transactionTypeLabel(tx.type)} #{tx.id}
           </Dialog.Title>
           <Dialog.Description className="mt-1 text-sm muted">
-            {tx.reason} · {financeDateTime(tx.createdAt)}
+            {tx.reason} · {formatVietnamDateTime(tx.createdAt)}
           </Dialog.Description>
           <dl className="mt-4 divide-y divide-[#edf2eb] text-sm">
             {fields.map(

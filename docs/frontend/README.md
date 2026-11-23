@@ -1,37 +1,32 @@
-# IncomSG Loyalty Commerce Frontend
+# IncomSG Frontend
 
-Giao diện của prototype thương mại và loyalty cho nhiều cửa hàng. Mỗi shop có chính sách tích điểm riêng. Ví, hạng và voucher của Member được quản lý riêng theo shop.
+React, TypeScript, Vite, Tailwind CSS, Radix UI, and React Router power the merchant CMS, member storefront, and authenticated member account flows. Each running app connects to the backend and database for one merchant installation.
 
-Ứng dụng dùng React, TypeScript, Vite, Tailwind CSS, Radix UI và React Router.
+## Experiences
 
-## Trải nghiệm theo vai trò
-
-| Vai trò | Tính năng chính |
+| Role | Features |
 | --- | --- |
-| Admin | Duyệt hoặc từ chối hồ sơ mở shop, xem lịch sử duyệt, danh sách cửa hàng và số liệu hệ thống. |
-| Merchant | Xem doanh thu 7 ngày, xem trước gian hàng, quản lý sản phẩm và cấu hình loyalty. Theo dõi người mua trên đơn, phát hành mẫu voucher và xác nhận trao quà. |
-| Member | Mua nhiều sản phẩm của cùng một shop trong một đơn, dùng voucher giảm giá, xem ví và chính sách của từng shop, đổi điểm lấy voucher hoặc quà. |
+| Merchant owner | Storefront CMS, catalog and inventory, orders, loyalty settings, events, challenges, analytics, and member refund review. |
+| Member | Public storefront, member registration, checkout, Mock payment, order history, wallet, vouchers, rewards, and challenges. |
 
-Khi backend xác nhận đơn đã thanh toán, màn kết quả hiển thị số điểm thực nhận và lời chúc mừng nếu đơn giúp Member đạt hạng mới. Mở lại đơn vẫn xem được kết quả đã ghi cho đơn đó.
+Payment and loyalty outcomes come from backend responses. Mock refunds complete synthetically and update order, wallet, voucher, and challenge records without moving real money.
 
-Trong tab **Ví điểm**, nút **Chính sách tích điểm** mở tỷ lệ quy đổi, ngưỡng tích lũy và hệ số từng hạng của shop hiện tại. Biểu đồ Merchant dùng uPlot và chỉ tính đơn đã thanh toán theo ngày ở giờ Việt Nam.
+## Local development
 
-## Khởi động local
+Use Node.js 22.12 or newer and create `apps/frontend/.env` from [.env.example](../../apps/frontend/.env.example). Set `VITE_API_BASE_URL` to the backend URL and `VITE_API_MODE=http` for the installation-backed app.
 
-Dùng Node.js 22.12 trở lên. Tạo `apps/frontend/.env` theo [.env.example](../../apps/frontend/.env.example). Khi demo với backend local, đặt `VITE_API_MODE=http` và `VITE_PAYMENT_MODE=mock`. API mặc định ở `http://localhost:3000`.
-
-Từ thư mục gốc `IncomSG`:
+From the repository root:
 
 ```sh
 npm ci
 npm run dev:frontend
 ```
 
-Mở `http://localhost:5173`. Chế độ `VITE_API_MODE=mock` dành cho bản xem offline. Nếu demo VNPay Sandbox, đặt `VITE_PAYMENT_MODE=vnpay` cùng chế độ thanh toán tương ứng ở backend.
+Open `http://localhost:5173`. A merchant owner account is provisioned by the backend installation bootstrap; members register through the app.
 
-## Cấu trúc repo
+## Source map
 
-- [src/app](../../apps/frontend/src/app) và [src/layouts](../../apps/frontend/src/layouts) chứa các route, điều hướng và bố cục theo vai trò.
-- [src/features](../../apps/frontend/src/features) chứa màn hình Admin, Merchant, Member và xác thực.
-- [src/api](../../apps/frontend/src/api) chứa API client và kiểu dữ liệu từ backend.
-- [tests/frontend](../../tests/frontend) chứa unit test, cấu hình Playwright và test trình duyệt.
+- [src/app](../../apps/frontend/src/app) and [src/layouts](../../apps/frontend/src/layouts) define routes and navigation.
+- [src/features](../../apps/frontend/src/features) contains merchant, member, storefront, and authentication experiences.
+- [src/api](../../apps/frontend/src/api) contains backend clients and API contracts.
+- [tests/frontend](../../tests/frontend) contains unit and browser test sources.

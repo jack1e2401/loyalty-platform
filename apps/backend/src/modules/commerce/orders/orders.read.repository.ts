@@ -6,7 +6,6 @@ type OrderReadRecord = Prisma.OrderGetPayload<{
   include: {
     items: true;
     pointTransactions: true;
-    paymentAttempt: true;
     refund: true;
     refundRequest: true;
   };
@@ -23,7 +22,6 @@ export const orderReadRepository = {
       include: {
         items: true,
         pointTransactions: true,
-        paymentAttempt: true,
         refund: true,
         refundRequest: true,
       },
@@ -38,7 +36,6 @@ export const orderReadRepository = {
       include: {
         items: true,
         pointTransactions: true,
-        paymentAttempt: true,
         refund: true,
         refundRequest: true,
       },
@@ -57,7 +54,6 @@ export const orderReadRepository = {
       include: {
         items: true,
         pointTransactions: true,
-        paymentAttempt: true,
         refund: true,
         refundRequest: true,
         member: { select: { email: true } },
@@ -76,7 +72,6 @@ export const orderReadRepository = {
       include: {
         items: true,
         pointTransactions: true,
-        paymentAttempt: true,
         refund: true,
         refundRequest: true,
       },

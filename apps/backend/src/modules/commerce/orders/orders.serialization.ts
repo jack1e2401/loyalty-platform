@@ -1,7 +1,7 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import type {
   OrderStatus,
-  PaymentAttemptStatus,
+  PaymentProvider,
   PointTransactionSource,
   PointTransactionType,
   RefundStatus,
@@ -15,6 +15,9 @@ type OrderRecord = {
   merchantId: number;
   memberId: number;
   status: OrderStatus;
+  paymentProvider: PaymentProvider;
+  paymentProviderReference: string | null;
+  paymentProviderTransactionNo: string | null;
   subtotal: Prisma.Decimal;
   discountAmount: Prisma.Decimal;
   total: Prisma.Decimal;
@@ -29,7 +32,6 @@ type OrderRecord = {
     lineTotal: Prisma.Decimal;
   }[];
   earnedPointsExact?: Prisma.Decimal | null;
-  paymentAttempt?: { status: PaymentAttemptStatus; createdAt: Date } | null;
   refund?: { status: RefundStatus } | null;
   refundRequest?: {
     id: number;
@@ -61,17 +63,23 @@ function appliedPolicy(value: Prisma.JsonValue | null | undefined): AppliedLoyal
       typeof snapshot.vndPerPoint !== "number" || typeof snapshot.ruleActive !== "boolean" ||
       typeof snapshot.tierLevel !== "string" || typeof snapshot.multiplier !== "string" ||
       typeof snapshot.capturedAt !== "string" || typeof snapshot.policyPublishedAt !== "string") return null;
-  const validLevels = ["BRONZE", "SILVER", "GOLD", "PLATINUM"] as const;
-  const tierLevel = validLevels.find((level) => level === snapshot.tierLevel);
-  if (!tierLevel) return null;
+  const tierLevel = snapshot.tierLevel;
+  if (typeof tierLevel !== "string" || tierLevel.length > 64) return null;
   const parsedTiers: AppliedLoyaltyPolicyDto["tiers"] = [];
   for (const tier of tiers) {
     if (!tier || typeof tier !== "object" || Array.isArray(tier)) continue;
     const item = tier as Record<string, Prisma.JsonValue>;
-    const level = validLevels.find((candidate) => candidate === item.level);
-    if (level && typeof item.minLifetimePoints === "number" && typeof item.multiplier === "string") {
-      parsedTiers.push({ level, minLifetimePoints: item.minLifetimePoints, multiplier: item.multiplier });
-    }
+    if (typeof item.level !== "string" || typeof item.multiplier !== "string") continue;
+    parsedTiers.push({
+      level: item.level,
+      name: typeof item.name === "string" ? item.name : item.level,
+      ...(typeof item.minLifetimePoints === "number" ? { minLifetimePoints: item.minLifetimePoints } : {}),
+      ...(typeof item.minSpendVnd === "string" ? { minSpendVnd: item.minSpendVnd } : {}),
+      multiplier: item.multiplier,
+      benefits: Array.isArray(item.benefits) ? item.benefits.filter((benefit): benefit is string => typeof benefit === "string") : [],
+      iconUrl: typeof item.iconUrl === "string" ? item.iconUrl : null,
+      color: typeof item.color === "string" ? item.color : "#6B7280",
+    });
   }
   return {
     policyVersionId: snapshot.policyVersionId,
@@ -86,33 +94,23 @@ function appliedPolicy(value: Prisma.JsonValue | null | undefined): AppliedLoyal
   };
 }
 
-export function isStalePaymentAttempt(attempt: { status: PaymentAttemptStatus; createdAt: Date } | null | undefined): boolean {
-  if (!attempt || attempt.status !== "CREATED") return false;
-  return Date.now() - new Date(attempt.createdAt).getTime() > 15 * 60 * 1000;
-}
-
 export function computeOrderActions(
   status: OrderStatus,
-  attempt: { status: PaymentAttemptStatus; createdAt: Date } | null | undefined,
   refund: { status: RefundStatus } | null | undefined,
   refundRequest?: { status: string } | null,
-  paymentAttempt?: { status: PaymentAttemptStatus } | null,
 ): OrderActionsDto {
-  const requiresReconciliation = isStalePaymentAttempt(attempt);
-  const canCancel = status === "PENDING" && (!attempt || attempt.status === "FAILED");
+  const canCancel = status === "PENDING";
   const canRefund = status === "PAID" && !refund;
   return {
     canCancel,
     canRefund,
-    requiresReconciliation,
-    canRequestRefund: status === "PAID" && !refund && !refundRequest && paymentAttempt?.status !== "SUCCEEDED",
+    canRequestRefund: status === "PAID" && !refund && !refundRequest,
   };
 }
 
 export function toOrderDto(order: OrderRecord): OrderDto {
   const isPaidOrRefunded = ["PAID", "REFUND_PENDING", "REFUNDED"].includes(order.status);
   const earned = isPaidOrRefunded ? order.earnedPointsExact : null;
-  const paymentAttempt = order.paymentAttempt ?? null;
   const refund = order.refund ?? null;
   const refundRequest = order.refundRequest ?? null;
   const pointTransactions = order.pointTransactions;
@@ -134,6 +132,9 @@ export function toOrderDto(order: OrderRecord): OrderDto {
     merchantId: order.merchantId,
     memberId: order.memberId,
     status: order.status,
+    paymentProvider: order.paymentProvider,
+    paymentProviderReference: order.paymentProviderReference,
+    paymentProviderTransactionNo: order.paymentProviderTransactionNo,
     subtotal: order.subtotal.toFixed(0),
     discountAmount: order.discountAmount.toFixed(0),
     total: order.total.toFixed(0),
@@ -149,7 +150,6 @@ export function toOrderDto(order: OrderRecord): OrderDto {
       quantity: item.quantity,
       lineTotal: item.lineTotal.toFixed(0),
     })),
-    paymentStatus: paymentAttempt?.status ?? null,
     refundStatus: refund?.status ?? null,
     refundRequest: refundRequest ? {
       id: refundRequest.id,
@@ -162,6 +162,6 @@ export function toOrderDto(order: OrderRecord): OrderDto {
       adminDecisionReason: refundRequest.status === "REJECTED" ? refundRequest.adminDecisionReason : null,
     } : null,
     loyaltyEvents,
-    actions: computeOrderActions(order.status, paymentAttempt, refund, refundRequest, paymentAttempt),
+    actions: computeOrderActions(order.status, refund, refundRequest),
   };
 }

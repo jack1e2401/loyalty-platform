@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Button, Empty, Segmented, Select, type TableColumnsType } from "antd";
+import { Button, Empty, Select, type TableColumnsType } from "antd";
 import { createRefundsClient } from "../../../api/refunds-client";
 import type { RefundRequestListItemDto, RefundRequestStatus } from "../../../api/refunds-types";
 import { useResource } from "../../../api/useResource";
@@ -8,24 +8,15 @@ import { CmsDataTable, CmsFilterBar, CmsPageHeader, CmsStatusTag } from "../cms"
 import { isRefundAwaitingMerchant, refundRequestStatusLabel } from "../../refunds/refund-status";
 import { useToken } from "../merchant-page-support";
 import { MerchantRefundReviewDetail } from "./MerchantRefundReviewDetail";
-import { PendingProviderRefunds } from "./PendingProviderRefunds";
 
 const api = createRefundsClient();
 const limit = 20;
-const states: (RefundRequestStatus | "ALL")[] = [
-  "ALL",
-  "PENDING_MERCHANT",
-  "APPROVED",
-  "PROCESSING",
-  "COMPLETED",
-  "FAILED",
-  "REJECTED",
-];
+const states: (RefundRequestStatus | "ALL")[] = ["ALL", "PENDING_MERCHANT", "APPROVED", "PROCESSING", "COMPLETED", "FAILED", "REJECTED"];
 
 function statusTone(status: RefundRequestStatus) {
   if (status === "COMPLETED") return "success" as const;
   if (status === "REJECTED" || status === "FAILED") return "error" as const;
-  if (status === "PENDING_MERCHANT" || status === "PENDING_ADMIN" || status === "PROCESSING") return "warning" as const;
+  if (status === "PENDING_MERCHANT" || status === "PROCESSING") return "warning" as const;
   return "info" as const;
 }
 
@@ -40,7 +31,6 @@ export function MerchantRefundRequestsPage() {
   const [status, setStatus] = useState<RefundRequestStatus | "ALL">("PENDING_MERCHANT");
   const [page, setPage] = useState(1);
   const [decision, setDecision] = useState<RefundRequestStatus | null>(null);
-  const [view, setView] = useState<"requests" | "provider">("requests");
   const requestIdParam = searchParams.get("requestId");
   const parsedRequestId = Number(requestIdParam);
   const requestId = Number.isSafeInteger(parsedRequestId) && parsedRequestId > 0 ? parsedRequestId : null;
@@ -142,8 +132,6 @@ export function MerchantRefundRequestsPage() {
         title="Yêu cầu hoàn tiền"
         description="Xem lý do, kiểm tra tác động dự kiến rồi chọn cách xử lý."
       />
-      <div className="mb-4"><Segmented aria-label="Loại hoàn tiền" value={view} onChange={(value) => setView(value as "requests" | "provider")} options={[{ label: "Yêu cầu hoàn tiền", value: "requests" }, { label: "Chờ cổng xác nhận", value: "provider" }]} /></div>
-      {view === "provider" ? <PendingProviderRefunds token={token} /> : <>
       {decision ? (
         <p role="status" className="mb-3 text-sm text-[#357044]">
           Đã cập nhật: {refundRequestStatusLabel(decision)}
@@ -184,7 +172,6 @@ export function MerchantRefundRequestsPage() {
           } : false}
         />
       )}
-      </>}
     </div>
   );
 }

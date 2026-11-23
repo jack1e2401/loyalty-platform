@@ -23,12 +23,20 @@ function RevenueBars({ orders }: { orders: readonly OrderDto[] }) {
   });
   const daysByKey = new Map(days.map((day) => [day.key, day]));
   let paidOrderCount = 0;
+  let refundPendingOrderCount = 0;
+  let refundedAmount = 0n;
   for (const order of orders) {
-    if (order.status !== "PAID" || !order.paidAt) continue;
+    if (!order.paidAt) continue;
+    if (order.status === "REFUNDED") {
+      refundedAmount += BigInt(order.total);
+      continue;
+    }
+    if (order.status !== "PAID" && order.status !== "REFUND_PENDING") continue;
     const day = daysByKey.get(dayKey.format(new Date(order.paidAt)));
     if (!day) continue;
     day.amount += BigInt(order.total);
     paidOrderCount += 1;
+    if (order.status === "REFUND_PENDING") refundPendingOrderCount += 1;
   }
 
   if (paidOrderCount === 0) {
@@ -51,6 +59,7 @@ function RevenueBars({ orders }: { orders: readonly OrderDto[] }) {
           <li key={day.key}>{`${day.label}: ${vnd.format(day.amount)}`}</li>
         ))}
       </ol>
+      <p className="mt-3 text-xs muted">{refundPendingOrderCount} đơn chờ hoàn trong tổng đủ điều kiện · đơn đã hoàn riêng: {vnd.format(refundedAmount)}.</p>
     </>
   );
 }
@@ -71,9 +80,9 @@ export function MerchantRevenueChart({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="merchant-revenue-title" className="text-lg font-extrabold text-[#294833]">
-            Tiền từ đơn đã thanh toán
+            Doanh thu đơn đủ điều kiện
           </h2>
-          <p className="mt-1 text-sm muted">7 ngày gần nhất · Giờ Việt Nam</p>
+          <p className="mt-1 text-sm muted">7 ngày gần nhất · PAID và chờ hoàn, theo thời điểm thanh toán giờ Việt Nam</p>
         </div>
         <Button asChild size="sm" variant="outline">
           <Link to="/merchant/orders">Xem đơn hàng</Link>
@@ -94,7 +103,9 @@ export function MerchantRevenueChart({
           </Button>
         </div>
       ) : (
-        <RevenueBars orders={orders ?? []} />
+        <>
+          <RevenueBars orders={orders ?? []} />
+        </>
       )}
     </Card>
   );

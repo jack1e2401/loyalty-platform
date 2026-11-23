@@ -3,7 +3,6 @@ import { ArrowRight, Package, Storefront } from "@phosphor-icons/react";
 import { useResource } from "../../../api/useResource";
 import { Button, EmptyState, ErrorState, LoadingState, PageHeader, StatCard } from "../../../components/ui";
 import { MerchantRevenueChart } from "../MerchantRevenueChart";
-import { MerchantFinanceOverview } from "../../finance/MerchantFinanceOverview";
 import { api, useToken } from "../merchant-page-support";
 
 export function MerchantOverview() {
@@ -30,7 +29,7 @@ export function MerchantOverview() {
     return (
       <EmptyState
         title="Chưa có cửa hàng"
-        description="Cửa hàng chỉ hoạt động sau khi Admin duyệt hồ sơ Merchant."
+        description="Chưa có cấu hình cửa hàng cho ứng dụng này."
       />
     );
   return (
@@ -68,7 +67,6 @@ export function MerchantOverview() {
         error={orders.error}
         retry={orders.reload}
       />
-      <MerchantFinanceOverview token={token} />
     </>
   );
 }

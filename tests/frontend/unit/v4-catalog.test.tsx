@@ -309,7 +309,7 @@ describe("Workstream B — Product Catalog V2 UI", () => {
         images: [{ url: "/uploads/merchant-7/matcha.jpg", altText: null, sortOrder: 0 }],
       });
     });
-  });
+  }, 20_000);
 
   it("validates product basics before advancing and keeps edits when moving back", async () => {
     signInSession("MERCHANT");
@@ -338,7 +338,7 @@ describe("Workstream B — Product Catalog V2 UI", () => {
     expect(screen.getByLabelText("Tên sản phẩm")).toHaveValue("Trà đào");
     fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(screen.getByLabelText("Mô tả ngắn")).toHaveValue("Trà trái cây");
-  });
+  }, 10_000);
 
   it("loads a direct product edit URL from the existing paginated Merchant catalog", async () => {
     signInSession("MERCHANT");

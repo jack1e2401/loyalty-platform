@@ -13,7 +13,7 @@ import { calculateDiscountedTotal } from "./order-pricing.js";
 import { toOrderDto } from "./orders.serialization.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { describeWallet, exactPoints } from "../../loyalty/program/loyalty.balance.js";
-import { points, selectTier } from "../../loyalty/program/loyalty.calculation.js";
+import { points, selectQualifiedTier } from "../../loyalty/program/loyalty.calculation.js";
 import { defaultTiers, loadEarningPolicy } from "../../loyalty/program/loyalty.config.js";
 import {
   reserveOrderInventory,
@@ -25,11 +25,10 @@ import { orderReadRepository } from "./orders.read.repository.js";
 export const ordersRepository = {
   ...orderReadRepository,
 
-  async createPendingOrder(input: CreatePendingOrderInput): Promise<OrderDto> {
+  async createPendingOrder(input: CreatePendingOrderInput): Promise<{ order: OrderDto; replayed: boolean }> {
     let order: Prisma.OrderGetPayload<{
       include: {
         items: true;
-        paymentAttempt: true;
         refund: true;
         pointTransactions: true;
       };
@@ -79,9 +78,17 @@ export const ordersRepository = {
               },
               include: {
                 items: { orderBy: { id: "asc" } },
-                paymentAttempt: true,
                 refund: true,
                 pointTransactions: true,
+              },
+            });
+            await tx.orderRequest.create({
+              data: {
+                merchantId: input.merchantId,
+                memberId: input.memberId,
+                idempotencyKey: input.idempotencyKey,
+                payloadHash: input.payloadHash,
+                orderId: created.id,
               },
             });
             await reserveOrderInventory(tx, {
@@ -105,17 +112,24 @@ export const ordersRepository = {
       );
     } catch (error) {
       if (
-        input.voucherId !== null &&
         typeof error === "object" &&
         error !== null &&
         "code" in error &&
         error.code === "P2002"
       ) {
-        throw new HttpError(409, "VOUCHER_ALREADY_RESERVED");
+        const request = await prisma.orderRequest.findUnique({
+          where: { merchantId_memberId_idempotencyKey: { merchantId: input.merchantId, memberId: input.memberId, idempotencyKey: input.idempotencyKey } },
+          include: { order: { include: { items: { orderBy: { id: "asc" } }, refund: true, pointTransactions: true } } },
+        });
+        if (request) {
+          if (request.payloadHash !== input.payloadHash) throw new HttpError(409, "IDEMPOTENCY_KEY_CONFLICT");
+          return { order: toOrderDto(request.order), replayed: true };
+        }
+        if (input.voucherId !== null) throw new HttpError(409, "VOUCHER_ALREADY_RESERVED");
       }
       throw error;
     }
-    return toOrderDto(order);
+    return { order: toOrderDto(order), replayed: false };
   },
 
   async markPaid(
@@ -125,7 +139,6 @@ export const ordersRepository = {
     | OrderDto
     | "missing"
     | "already_paid"
-    | "vnpay_attempt_exists"
     | "reservation_expired"
   > {
     return withTransactionRetry(() =>
@@ -133,11 +146,10 @@ export const ordersRepository = {
         async (tx) => {
           const order = await tx.order.findFirst({
             where: { id: orderId, memberId },
-            include: { items: true, paymentAttempt: true },
+            include: { items: true },
           });
           if (!order) return "missing";
           if (order.status !== "PENDING") return "already_paid";
-          if (order.paymentAttempt) return "vnpay_attempt_exists";
           if (
             order.stockReservedUntil &&
             order.stockReservedUntil.getTime() <= Date.now()
@@ -173,28 +185,13 @@ export const ordersRepository = {
           const order = await tx.order.findFirst({
             where: { id: orderId, memberId },
             include: {
-              paymentAttempt: true,
               voucherReservation: true,
               items: true,
             },
           });
           if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
           if (order.status !== "PENDING") {
-            throw new OrderNotCancellableError(
-              order.status,
-              order.paymentAttempt?.status ?? null,
-            );
-          }
-          if (order.paymentAttempt) {
-            if (
-              order.paymentAttempt.status === "CREATED" ||
-              order.paymentAttempt.status === "SUCCEEDED"
-            ) {
-              throw new OrderNotCancellableError(
-                order.status,
-                order.paymentAttempt.status,
-              );
-            }
+            throw new OrderNotCancellableError(order.status);
           }
 
           await releaseOrderInventory(
@@ -215,7 +212,6 @@ export const ordersRepository = {
             data: { status: "CANCELLED" },
             include: {
               items: true,
-              paymentAttempt: true,
               refund: true,
               pointTransactions: true,
             },
@@ -239,7 +235,7 @@ export const ordersRepository = {
     return prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
-        include: { voucher: true, paymentAttempt: true, refund: true },
+        include: { voucher: true, refund: true },
       });
       if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
       if (order.merchantId !== merchantId)
@@ -252,27 +248,22 @@ export const ordersRepository = {
         throw new HttpError(409, "ORDER_NOT_REFUNDABLE");
       }
 
-      const [membership, configuredTiers] = await Promise.all([
+      const [membership, configuredTiers, rule] = await Promise.all([
         tx.merchantMembership.findUnique({
           where: {
             memberId_merchantId: { memberId: order.memberId, merchantId },
           },
           include: { wallet: true },
         }),
-        tx.loyaltyTier.findMany({
-          where: { merchantId },
-          orderBy: { minLifetimePoints: "asc" },
-        }),
+        tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
+        tx.loyaltyRule.findUnique({ where: { merchantId } }),
       ]);
       const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
       const wallet = membership?.wallet;
       const originalEarned = points(order.earnedPointsExact ?? "0");
 
-      const tierBefore =
-        selectTier(wallet?.netLifetimeEarned ?? "0", tiers) ?? "UNRANKED";
-      const isVnpay = Boolean(
-        order.paymentAttempt && order.paymentAttempt.status === "SUCCEEDED",
-      );
+      const qualificationMode = rule?.qualificationMode ?? "POINTS";
+      const tierBefore = selectQualifiedTier(membership?.qualificationProgress ?? "0", tiers, qualificationMode) ?? "UNRANKED";
       const challengeEntries = await tx.challengeProgressEntry.findMany({
         where: { activity: { orderId: order.id, type: "ORDER_PAID" }, deltaValue: { gt: 0 } },
         include: { progress: { include: { challenge: true, grants: { where: { status: "GRANTED" }, orderBy: { cycle: "desc" }, take: 1 } } } },
@@ -290,7 +281,10 @@ export const ordersRepository = {
         exactBalance: projectedBalance,
         netLifetimeEarned: projectedLifetime,
       });
-      const tierAfter = selectTier(projectedLifetime, tiers) ?? "UNRANKED";
+      const progressReversal = qualificationMode === "SPEND" ? order.total : originalEarned.plus(challengeReversalTotal);
+      const progressAfterReversal = points(membership?.qualificationProgress ?? "0").minus(progressReversal);
+      const projectedProgress = progressAfterReversal.isNegative() ? points("0") : progressAfterReversal;
+      const tierAfter = selectQualifiedTier(projectedProgress, tiers, qualificationMode) ?? "UNRANKED";
 
       return {
         orderId: order.id,
@@ -304,7 +298,6 @@ export const ordersRepository = {
         discountVoucherRestorable: Boolean(
           order.voucherId && order.voucher?.status === "USED",
         ),
-        providerConfirmationRequired: isVnpay,
         challenges,
       };
     });

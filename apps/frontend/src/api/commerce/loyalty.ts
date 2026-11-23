@@ -25,6 +25,12 @@ export function createLoyaltyClient(baseUrl = "", fetcher: typeof fetch = fetch)
         body: input,
       });
     },
+    runTierReset(token: string) {
+      return requestJson<{ cycleYear: number; processedCount: number; alreadyProcessed: boolean }>(fetcher, baseUrl, "/api/merchant/loyalty/tier-reset/run", {
+        method: "POST",
+        token,
+      });
+    },
     getLoyaltyPolicyHistory(token: string) {
       return requestJson<MerchantLoyaltyHistoryResponse>(fetcher, baseUrl, "/api/merchant/loyalty/history", {
         token,

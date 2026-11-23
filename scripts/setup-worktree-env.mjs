@@ -55,6 +55,7 @@ baseUrl.pathname = `/${dbName}`;
 const targetUrl = baseUrl.toString();
 
 const jwtSecret = randomBytes(32).toString("hex");
+const merchantOwnerPassword = randomBytes(32).toString("base64url");
 const backendEnvPath = resolve(worktreeRoot, "apps/backend/.env");
 const frontendEnvPath = resolve(worktreeRoot, "apps/frontend/.env");
 mkdirSync(dirname(backendEnvPath), { recursive: true });
@@ -68,7 +69,10 @@ writeFileSync(
     `DATABASE_URL=${targetUrl}`,
     `TEST_DATABASE_URL=${targetUrl}`,
     `JWT_SECRET=${jwtSecret}`,
-    `PAYMENT_MODE=mock`,
+    `MERCHANT_OWNER_EMAIL=merchant-owner@localhost.test`,
+    `MERCHANT_OWNER_PASSWORD=${merchantOwnerPassword}`,
+    `MERCHANT_NAME=Local Merchant`,
+    `MERCHANT_SLUG=local-merchant`,
     "",
   ].join("\n"),
   "utf8",
@@ -78,7 +82,7 @@ writeFileSync(
   frontendEnvPath,
   [
     `VITE_API_BASE_URL=http://localhost:${port}`,
-    `VITE_API_MODE=backend`,
+    `VITE_API_MODE=http`,
     "",
   ].join("\n"),
   "utf8",

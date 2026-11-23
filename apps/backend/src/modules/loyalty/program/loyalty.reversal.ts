@@ -1,10 +1,10 @@
 import type { Order, Prisma } from "../../../generated/prisma/client.js";
-import { points, selectTier } from "./loyalty.calculation.js";
+import { points, selectQualifiedTier } from "./loyalty.calculation.js";
 import { loadEarningPolicy } from "./loyalty.config.js";
 
 export async function reverseOrderPoints(
   tx: Prisma.TransactionClient,
-  order: Pick<Order, "id" | "memberId" | "merchantId" | "earnedPointsExact">,
+  order: Pick<Order, "id" | "memberId" | "merchantId" | "earnedPointsExact" | "total">,
   ownerId: number,
 ) {
   const { merchantId } = order;
@@ -40,17 +40,6 @@ export async function reverseOrderPoints(
         code: "P2034",
       });
 
-    const policy = await loadEarningPolicy(tx, merchantId);
-    const nextLevel =
-      selectTier(lifetimeAfter, policy.tiers) ?? "BRONZE";
-    const nextTier = policy.tiers.find((t) => t.level === nextLevel);
-    if (nextTier) {
-      await tx.merchantMembership.update({
-        where: { id: membership.id },
-        data: { tierId: nextTier.id },
-      });
-    }
-
     await tx.pointTransaction.create({
       data: {
         walletId: wallet.id,
@@ -66,4 +55,15 @@ export async function reverseOrderPoints(
       },
     });
   }
+
+  const membership = await tx.merchantMembership.findUniqueOrThrow({
+    where: { memberId_merchantId: { memberId: order.memberId, merchantId } },
+  });
+  const policy = await loadEarningPolicy(tx, merchantId);
+  const progressReversal = policy.qualificationMode === "SPEND" ? points(order.total) : originalEarned;
+  const progressAfterRaw = points(membership.qualificationProgress).minus(progressReversal);
+  const progressAfter = progressAfterRaw.isNegative() ? points("0") : progressAfterRaw;
+  const nextLevel = selectQualifiedTier(progressAfter, policy.tiers, policy.qualificationMode) ?? policy.tiers[0]!.level;
+  const nextTier = policy.tiers.find((tier) => tier.level === nextLevel)!;
+  await tx.merchantMembership.update({ where: { id: membership.id }, data: { tierId: nextTier.id, qualificationProgress: progressAfter } });
 }
