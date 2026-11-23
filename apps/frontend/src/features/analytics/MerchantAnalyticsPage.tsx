@@ -135,12 +135,12 @@ export function MerchantAnalyticsPage() {
           <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Doanh thu ròng"
-                value={money(Number(data.kpis.netRevenueVnd))}
+                label="Doanh thu đơn đủ điều kiện"
+                value={money(Number(data.kpis.qualifyingOrderRevenueVnd))}
                 note={
                   data.kpis.refundPendingOrderCount > 0
-                    ? `Đã thu ${money(Number(data.kpis.paidOnlyRevenueVnd))} · Chờ hoàn ${money(Number(data.kpis.refundPendingRevenueVnd))}`
-                    : `Đã hoàn: ${money(Number(data.kpis.refundedRevenueVnd))}`
+                    ? `PAID ${money(Number(data.kpis.paidOnlyRevenueVnd))} · Chờ hoàn ${money(Number(data.kpis.refundPendingRevenueVnd))} · theo paidAt giờ Việt Nam`
+                    : `Đã hoàn riêng: ${money(Number(data.kpis.refundedRevenueVnd))} · theo paidAt giờ Việt Nam`
                 }
               />
               <StatCard

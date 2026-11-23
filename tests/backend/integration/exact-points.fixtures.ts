@@ -4,6 +4,8 @@ import type { Server } from "node:http";
 
 process.env.JWT_SECRET ??= randomBytes(32).toString("hex");
 
+export const env = { databaseUrl: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL };
+
 export const [{ app }, { prisma }, { signAccessToken }, { Prisma }] = await Promise.all([
   import("../../../apps/backend/src/app.js"),
   import("../../../apps/backend/src/lib/prisma.js"),
@@ -59,6 +61,7 @@ export async function cleanup() {
     await prisma.challengeRewardGrant.deleteMany({ where: { progress: { membership: { memberId: { in: fixtureUserIds } } } } });
     await prisma.challengeProgress.deleteMany({ where: { membership: { memberId: { in: fixtureUserIds } } } });
     await prisma.memberActivity.deleteMany({ where: { membership: { memberId: { in: fixtureUserIds } } } });
+    await prisma.orderRequest.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
     await prisma.order.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
     await prisma.redemptionIdempotency.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
     await prisma.memberVoucher.deleteMany({ where: { membershipId: { in: membershipIds } } });
@@ -125,11 +128,13 @@ export async function savePolicy(shop: Shop, changes: { rate?: number; active?: 
   const result = await request("/api/merchant/loyalty", "PUT", shop.token, {
     vndPerPoint: changes.rate ?? 10000,
     isActive: changes.active ?? true,
+    qualificationMode: "POINTS",
+    reset: { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
     tiers: [
-      { level: "BRONZE", minLifetimePoints: 0, multiplier: changes.bronzeMultiplier ?? "1.00" },
-      { level: "SILVER", minLifetimePoints: changes.silverThreshold ?? 1000, multiplier: "1.50" },
-      { level: "GOLD", minLifetimePoints: 5000, multiplier: "1.80" },
-      { level: "PLATINUM", minLifetimePoints: 10000, multiplier: "2.00" },
+      { level: "default", name: "Default", minLifetimePoints: 0, multiplier: changes.bronzeMultiplier ?? "1.00", benefits: [], iconUrl: null, color: "#6B7280", maintenanceSpendVnd: null, sortOrder: 0, isActive: true },
+      { level: "silver", name: "Silver", minLifetimePoints: changes.silverThreshold ?? 1000, multiplier: "1.50", benefits: [], iconUrl: null, color: "#8A949D", maintenanceSpendVnd: null, sortOrder: 1, isActive: true },
+      { level: "gold", name: "Gold", minLifetimePoints: 5000, multiplier: "1.80", benefits: [], iconUrl: null, color: "#C6912D", maintenanceSpendVnd: null, sortOrder: 2, isActive: true },
+      { level: "platinum", name: "Platinum", minLifetimePoints: 10000, multiplier: "2.00", benefits: [], iconUrl: null, color: "#5B6F8D", maintenanceSpendVnd: null, sortOrder: 3, isActive: true },
     ],
   });
   assert.equal(result.status, 200);
@@ -138,7 +143,7 @@ export async function savePolicy(shop: Shop, changes: { rate?: number; active?: 
 export async function createOrder(shop: Shop, member: Member, voucherId?: number) {
   const result = await request<{ order: Order }>("/api/orders", "POST", member.token, {
     productId: shop.productId, quantity: 1, ...(voucherId === undefined ? {} : { voucherId }),
-  });
+  }, { "Idempotency-Key": randomUUID() });
   assert.equal(result.status, 201);
   return result.json.order;
 }

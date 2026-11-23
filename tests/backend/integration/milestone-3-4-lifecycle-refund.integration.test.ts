@@ -60,10 +60,10 @@ before(async () => {
 
   await prisma.loyaltyTier.createMany({
     data: [
-      { merchantId: merchantA.id, level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" },
-      { merchantId: merchantA.id, level: "SILVER", minLifetimePoints: 1000, multiplier: "1.20" },
-      { merchantId: merchantA.id, level: "GOLD", minLifetimePoints: 5000, multiplier: "1.50" },
-      { merchantId: merchantA.id, level: "PLATINUM", minLifetimePoints: 10000, multiplier: "2.00" },
+      { merchantId: merchantA.id, level: "default", name: "Default", minLifetimePoints: 0, multiplier: "1.00" },
+      { merchantId: merchantA.id, level: "silver", name: "Silver", minLifetimePoints: 1000, multiplier: "1.20" },
+      { merchantId: merchantA.id, level: "gold", name: "Gold", minLifetimePoints: 5000, multiplier: "1.50" },
+      { merchantId: merchantA.id, level: "platinum", name: "Platinum", minLifetimePoints: 10000, multiplier: "2.00" },
     ],
   });
 
@@ -137,6 +137,7 @@ after(async () => {
   await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.memberVoucher.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.orderItem.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
+  await prisma.orderRequest.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
   await prisma.order.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.merchantMembership.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.inventoryBalance.deleteMany({ where: { merchantId: { in: merchantIds } } });
@@ -156,6 +157,7 @@ async function request(path: string, method = "GET", token?: string, body?: unkn
     headers: {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(body ? { "content-type": "application/json" } : {}),
+      ...(method === "POST" && path === "/api/orders" ? { "Idempotency-Key": randomUUID() } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -509,7 +511,7 @@ test("11. preview auth: enforces authentication and role boundaries", async () =
 
   const validMerch = await request("/api/merchant/loyalty/preview", "POST", merchantAToken, {
     netOrderAmountVnd: "50000",
-    tierLevel: "SILVER",
+    tierLevel: "silver",
   });
   assert.equal(validMerch.response.status, 200);
   assert.equal(validMerch.json.estimatedPointsExact, "6"); // 50000/10000 * 1.20 = 6
@@ -679,8 +681,12 @@ test("settled legacy provider refunds require manual reconciliation and preserve
   assert.equal(completedRefund.status, "COMPLETED");
   const completedLedger = await prisma.pointTransaction.findMany({ where: { orderId } });
   const completedWallet = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { id: walletBefore.id } });
-  assert.equal(completedLedger.filter((entry) => entry.type === "EARN_REVERSAL").length, 1);
-  assert.equal(completedWallet.netLifetimeEarned.toString(), "0");
+  const earningReversals = completedLedger.filter((entry) => entry.type === "EARN_REVERSAL");
+  assert.equal(earningReversals.length, 1);
+  assert.equal(
+    completedWallet.netLifetimeEarned.add(earningReversals[0].delta.abs()).toString(),
+    walletBefore.netLifetimeEarned.toString(),
+  );
   const duplicateSettlement = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, settledEvidence);
   assert.equal(duplicateSettlement.response.status, 200);
   assert.equal(duplicateSettlement.json.refund.id, settledResult.json.refund.id);

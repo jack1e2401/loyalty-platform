@@ -1,6 +1,6 @@
 import type { Order, Prisma } from "../../../generated/prisma/client.js";
 import { HttpError } from "../../../lib/http-error.js";
-import { calculateEarnedPoints, maxPoints, points, selectTier, pointScale } from "./loyalty.calculation.js";
+import { calculateEarnedPoints, maxPoints, points, selectQualifiedTier, pointScale } from "./loyalty.calculation.js";
 import { exactPoints } from "./loyalty.balance.js";
 import { loadEarningPolicy } from "./loyalty.config.js";
 
@@ -15,7 +15,7 @@ export async function creditOrderPoints(
     create: { memberId, merchantId: order.merchantId }, update: {}, include: { wallet: true, tier: true },
   });
   const wallet = membership.wallet ?? await tx.loyaltyWallet.create({ data: { membershipId: membership.id } });
-  const currentLevel = selectTier(wallet.netLifetimeEarned, policy.tiers) ?? "BRONZE";
+  const currentLevel = selectQualifiedTier(membership.qualificationProgress, policy.tiers, policy.qualificationMode) ?? policy.tiers[0]!.level;
   const currentTier = policy.tiers.find((tier) => tier.level === currentLevel)!;
   const tierLevel = currentLevel;
   const multiplier = currentTier.multiplier;
@@ -36,8 +36,10 @@ export async function creditOrderPoints(
   }
   const balanceAfter = points(wallet.exactBalance).plus(earned);
   const lifetimeAfter = points(wallet.netLifetimeEarned).plus(earned);
-  const nextTier = policy.tiers.find((tier) => tier.level === selectTier(lifetimeAfter, policy.tiers))!;
-  const promotedToTier = nextTier.minLifetimePoints > (membership.tier?.minLifetimePoints ?? -1) ? nextTier.level : null;
+  const progressDelta = policy.qualificationMode === "SPEND" ? order.total : earned;
+  const progressAfter = points(membership.qualificationProgress).plus(progressDelta);
+  const nextTier = policy.tiers.find((tier) => tier.level === selectQualifiedTier(progressAfter, policy.tiers, policy.qualificationMode))!;
+  const promotedToTier = nextTier.sortOrder > (membership.tier?.sortOrder ?? -1) ? nextTier.level : null;
   const credited = await tx.loyaltyWallet.updateMany({
     where: { id: wallet.id, exactBalance: wallet.exactBalance, netLifetimeEarned: wallet.netLifetimeEarned },
     data: { exactBalance: { increment: earned }, netLifetimeEarned: { increment: earned } },
@@ -58,13 +60,14 @@ export async function creditOrderPoints(
     policyVersionId: policy.policyVersion.id,
     policyVersion: policy.policyVersion.version,
     policyPublishedAt: policy.policyVersion.publishedAt.toISOString(),
-    tiers: policy.tiers.map((tier) => ({ level: tier.level, minLifetimePoints: tier.minLifetimePoints, multiplier: tier.multiplier.toFixed(2) })),
+    qualificationMode: policy.qualificationMode,
+    tiers: policy.tiers.map((tier) => ({ level: tier.level, name: tier.name, minLifetimePoints: tier.minLifetimePoints, minSpendVnd: tier.minSpendVnd?.toFixed(0) ?? null, sortOrder: tier.sortOrder, multiplier: tier.multiplier.toFixed(2), benefits: tier.benefits, iconUrl: tier.iconUrl, color: tier.color, maintenanceSpendVnd: tier.maintenanceSpendVnd?.toFixed(0) ?? null })),
   };
   const paid = await tx.order.update({
     where: { id: order.id },
     data: { earnedPointsExact: earned, loyaltySnapshot: audit, loyaltyPolicyVersionId: policy.policyVersion.id },
     include: { items: true, refund: true, pointTransactions: true },
   });
-  await tx.merchantMembership.update({ where: { id: membership.id }, data: { tierId: nextTier.id } });
+  await tx.merchantMembership.update({ where: { id: membership.id }, data: { tierId: nextTier.id, qualificationProgress: progressAfter } });
   return { paid, promotedToTier, membershipId: membership.id };
 }

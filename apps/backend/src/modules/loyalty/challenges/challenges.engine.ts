@@ -1,6 +1,7 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import type { Prisma as PrismaTypes } from "../../../generated/prisma/client.js";
 import { exactPoints } from "../program/loyalty.balance.js";
+import { points, selectQualifiedTier } from "../program/loyalty.calculation.js";
 import { lockChallenge, recordChallengeProgress, reserveChallengeSlots } from "./challenges.rewards.js";
 
 /** Runs inside completePaidOrder's transaction; never opens a nested transaction. */
@@ -56,9 +57,17 @@ export async function reverseOrderChallenges(tx: PrismaTypes.TransactionClient, 
       const txRow = await tx.pointTransaction.create({ data: { walletId: wallet.id, type: "EARN_REVERSAL", source: "CHALLENGE_REFUND", delta: grant.pointsGranted.negated(), balanceAfter: wallet.exactBalance, reason: `Challenge reward reversal for refunded order #${orderId}`, eventRef: `challenge-refund-${grant.id}`, actorId } });
       await tx.challengeRewardGrant.update({ where: { id: grant.id }, data: { status: "REVERSED", reversalTransactionId: txRow.id, reversedAt: new Date() } });
       await tx.challenge.update({ where: { id: challenge.id }, data: { budgetSpent: { decrement: grant.pointsGranted } } });
-      const tiers = await tx.loyaltyTier.findMany({ where: { merchantId: challenge.merchantId }, orderBy: { minLifetimePoints: "asc" } });
-      const tier = tiers.filter((item) => wallet.netLifetimeEarned.greaterThanOrEqualTo(item.minLifetimePoints)).at(-1);
-      await tx.merchantMembership.update({ where: { id: progress.membershipId }, data: { tierId: tier?.id ?? null } });
+      const [membership, rule, tiers] = await Promise.all([
+        tx.merchantMembership.findUniqueOrThrow({ where: { id: progress.membershipId } }),
+        tx.loyaltyRule.findUnique({ where: { merchantId: challenge.merchantId } }),
+        tx.loyaltyTier.findMany({ where: { merchantId: challenge.merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
+      ]);
+      const mode = rule?.qualificationMode ?? "POINTS";
+      const rawProgress = mode === "POINTS" ? points(membership.qualificationProgress).minus(grant.pointsGranted) : points(membership.qualificationProgress);
+      const qualificationProgress = rawProgress.isNegative() ? points("0") : rawProgress;
+      const level = selectQualifiedTier(qualificationProgress, tiers, mode);
+      const tier = tiers.find((item) => item.level === level);
+      await tx.merchantMembership.update({ where: { id: progress.membershipId }, data: { tierId: tier?.id ?? null, qualificationProgress } });
       reversals += 1;
     }
     const releaseSlot = progress.rewardSlotClaimed && progress.rewardCycle === 1 && !grant;

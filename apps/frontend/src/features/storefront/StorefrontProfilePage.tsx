@@ -6,6 +6,7 @@ import { useResource } from "../../api/useResource";
 import { Button, Card, LoadingState } from "../../components/ui";
 import { memberTierLabel } from "../member/MemberLoyaltyPolicyDialog";
 import { useStorefrontShell } from "./storefront-context";
+import { MemberProfileForm } from "../member/MemberProfileForm";
 
 const commerce = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 
@@ -139,6 +140,8 @@ export function StorefrontProfilePage() {
           </div>
         )}
       </Card>
+
+      {user.role === "MEMBER" && accessToken && <MemberProfileForm token={accessToken} />}
 
       {user.role === "MEMBER" && (
         <div className="grid gap-2.5 sm:grid-cols-2">

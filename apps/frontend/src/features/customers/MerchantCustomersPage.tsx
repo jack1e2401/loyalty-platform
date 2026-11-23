@@ -21,8 +21,8 @@ import { money } from "../../lib/utils";
 
 const analyticsApi = createAnalyticsClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 
-function tierLabel(tier: MemberTier) {
-  return tier === "UNRANKED" ? "Chưa xếp hạng" : tier;
+function tierLabel(tier: MemberTier, names: Map<string, string>) {
+  return tier === "UNRANKED" ? "Chưa xếp hạng" : names.get(tier) ?? tier;
 }
 
 export function MerchantCustomersPage() {
@@ -57,6 +57,7 @@ export function MerchantCustomersPage() {
 
   const items = resource.data?.items ?? [];
   const pagination = resource.data?.pagination ?? { page: 1, limit, totalItems: 0, totalPages: 0 };
+  const tierNames = new Map((resource.data?.tiers ?? []).map((item) => [item.level, item.name]));
 
   return (
     <div className="space-y-6">
@@ -66,10 +67,10 @@ export function MerchantCustomersPage() {
       />
 
       <form className="grid gap-3 sm:grid-cols-[1fr_11rem_12rem_auto] sm:items-end" onSubmit={handleSearch}>
-        <Field label="Tìm theo email">
+        <Field label="Tìm theo tên, email hoặc điện thoại">
           <Input
             type="search"
-            placeholder="member@example.com"
+            placeholder="Tên, email hoặc điện thoại"
             value={draftQuery}
             maxLength={191}
             onChange={(event) => setDraftQuery(event.target.value)}
@@ -86,10 +87,7 @@ export function MerchantCustomersPage() {
           >
             <option value="">Tất cả hạng</option>
             <option value="UNRANKED">Chưa xếp hạng</option>
-            <option value="BRONZE">BRONZE</option>
-            <option value="SILVER">SILVER</option>
-            <option value="GOLD">GOLD</option>
-            <option value="PLATINUM">PLATINUM</option>
+            {(resource.data?.tiers ?? []).map((item) => <option key={item.level} value={item.level}>{item.name}</option>)}
           </Select>
         </Field>
         <Field label="Trạng thái mua hàng">
@@ -146,7 +144,7 @@ export function MerchantCustomersPage() {
                     Đơn đã trả
                   </th>
                   <th scope="col" className="px-4 py-4 text-right">
-                    Chi tiêu ròng
+                    Chi tiêu đủ điều kiện
                   </th>
                   <th scope="col" className="px-4 py-4">
                     Mua gần nhất
@@ -160,7 +158,8 @@ export function MerchantCustomersPage() {
                 {items.map((item) => (
                   <tr key={item.memberId} className="border-t border-[#edf1ea] align-middle text-sm">
                     <th scope="row" className="max-w-64 break-all px-5 py-4 font-bold text-[#20392a]">
-                      {item.email}
+                      {item.name || item.email}
+                      {item.name && <span className="mt-1 block break-all text-xs font-normal muted">{item.email}</span>}
                       <span className="mt-1 block text-xs font-normal muted">#{item.memberId}</span>
                     </th>
                     <td className="px-4 py-4 text-xs muted">
@@ -168,7 +167,7 @@ export function MerchantCustomersPage() {
                         {new Date(item.joinedAt).toLocaleDateString("vi-VN")}
                       </time>
                     </td>
-                    <td className="px-4 py-4">{tierLabel(item.tier)}</td>
+                    <td className="px-4 py-4">{tierLabel(item.tier, tierNames)}</td>
                     <td className="px-4 py-4 text-right tabular-nums">
                       <span className="font-bold">{item.availablePoints.toLocaleString("vi-VN")}</span>
                       <span className="mt-0.5 block text-xs muted">Tích lũy {item.netLifetimeEarned}</span>

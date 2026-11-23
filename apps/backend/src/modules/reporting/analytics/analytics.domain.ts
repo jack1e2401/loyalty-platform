@@ -129,14 +129,14 @@ export function computeAnalyticsKpis(params: {
     }
   }
 
-  const netRevenue = paidOnlyRevenue.plus(refundPendingRevenue);
+  const qualifyingRevenue = paidOnlyRevenue.plus(refundPendingRevenue);
   const paidOrderCount = paidOnlyCount + refundPendingOrderCount;
   const averageOrderValueVnd = paidOrderCount === 0
     ? "0"
-    : netRevenue.div(paidOrderCount).toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP).toFixed(0);
+    : qualifyingRevenue.div(paidOrderCount).toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP).toFixed(0);
 
   return {
-    netRevenueVnd: netRevenue.toFixed(0),
+    qualifyingOrderRevenueVnd: qualifyingRevenue.toFixed(0),
     paidOnlyRevenueVnd: paidOnlyRevenue.toFixed(0),
     refundPendingRevenueVnd: refundPendingRevenue.toFixed(0),
     refundedRevenueVnd: refundedRevenue.toFixed(0),

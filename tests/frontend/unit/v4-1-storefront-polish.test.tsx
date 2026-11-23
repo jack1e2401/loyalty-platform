@@ -5,6 +5,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 let storefrontFetchHandler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 let commerceFetchHandler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 let analyticsFetchHandler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+const authSessionState = vi.hoisted(() => ({ useAuthenticatedMember: false }));
+
+vi.mock("../../../apps/frontend/src/api/auth-session", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../apps/frontend/src/api/auth-session")>();
+  return {
+    ...actual,
+    useAuthSession: () => authSessionState.useAuthenticatedMember
+      ? {
+          user: { id: 2, email: "member@moc.local", role: "MEMBER" as const, isActive: true },
+          accessToken: "member-jwt",
+          login: vi.fn(),
+          registerMember: vi.fn(),
+          logout: vi.fn(),
+        }
+      : actual.useAuthSession(),
+  };
+});
 
 vi.mock("../../../apps/frontend/src/api/storefront-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../apps/frontend/src/api/storefront-client")>();
@@ -41,6 +58,10 @@ vi.mock("../../../apps/frontend/src/api/analytics-client", async (importOriginal
       }),
   };
 });
+
+vi.mock("../../../apps/frontend/src/features/member/MemberProfileForm", () => ({
+  MemberProfileForm: () => null,
+}));
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -130,10 +151,12 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
 
   afterEach(() => {
     cleanup();
+    authSessionState.useAuthenticatedMember = false;
     vi.restoreAllMocks();
   });
 
   it("keeps the same unified Mini-App header and 5-tab bottom navigation across Storefront Home, Products, Vouchers, and Profile", async () => {
+    authSessionState.useAuthenticatedMember = true;
     sessionStorage.setItem(
       "loyalty.m2.session",
       JSON.stringify({
@@ -177,7 +200,12 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
             pointDebt: "0",
             netLifetimeEarned: "13",
             tier: "BRONZE",
-            policy: { merchantId: 5, vndPerPoint: 10000, isActive: true, tiers: [] },
+            policy: {
+              merchantId: 5,
+              vndPerPoint: 10000,
+              isActive: true,
+              tiers: [{ level: "BRONZE", name: "Bronze", minLifetimePoints: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#6B7280" }],
+            },
             transactions: [],
           },
         });
@@ -187,7 +215,6 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
       }
       return Response.json({ error: "Unhandled" }, { status: 404 });
     };
-
     render(
       <AuthSessionProvider>
         <MemoryRouter initialEntries={["/s/ca-phe-moc"]}>
@@ -208,6 +235,7 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
     );
 
     await screen.findByRole("heading", { name: "Hương vị cà phê nguyên bản" });
+    expect(await screen.findByText("Thành viên Bronze")).toBeInTheDocument();
     const bottomNav = screen.getByRole("navigation", { name: "Điều hướng Mini App" });
     expect(bottomNav).toHaveTextContent("Trang chủ");
     expect(bottomNav).toHaveTextContent("Sản phẩm");

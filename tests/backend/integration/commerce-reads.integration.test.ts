@@ -105,6 +105,7 @@ after(async () => {
     await prisma.pointTransaction.deleteMany({ where: { OR: [{ walletId: { in: walletIds } }, { memberVoucherId: { in: voucherIds } }] } });
     await prisma.memberActivity.deleteMany({ where: { membershipId: { in: membershipIds } } });
     await prisma.refundRequest.deleteMany({ where: { orderId: { in: orderIds } } });
+    await prisma.orderRequest.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.memberVoucher.deleteMany({ where: { id: { in: voucherIds } } });
     await prisma.loyaltyWallet.deleteMany({ where: { id: { in: walletIds } } });

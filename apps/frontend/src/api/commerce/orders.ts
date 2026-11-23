@@ -11,10 +11,11 @@ import { requestJson } from "./shared";
 
 export function createOrdersClient(baseUrl = "", fetcher: typeof fetch = fetch) {
   return {
-    createOrder(input: CreateOrderInput, token: string) {
+    createOrder(input: CreateOrderInput, token: string, idempotencyKey: string = crypto.randomUUID()) {
       return requestJson<OrderResponse>(fetcher, baseUrl, "/api/orders", {
         method: "POST",
         token,
+        headers: { "Idempotency-Key": idempotencyKey },
         body: input,
       });
     },

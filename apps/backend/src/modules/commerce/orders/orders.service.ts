@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { productsRepository } from "../products/products.repository.js";
@@ -34,7 +35,7 @@ export const ordersService = {
     return order;
   },
 
-  async createOrder(memberId: number, input: CreateOrderInput): Promise<OrderDto> {
+  async createOrder(memberId: number, input: CreateOrderInput, idempotencyKey: string): Promise<{ order: OrderDto; replayed: boolean }> {
     const products = await productsRepository.findSellableProducts(input.items.map(({ productId }) => productId));
     const merchantId = products[0]?.merchantId;
     if (merchantId === undefined || products.length !== input.items.length) {
@@ -58,9 +59,15 @@ export const ordersService = {
     const subtotal = items.reduce((sum, item) => sum.plus(item.lineTotal), new Prisma.Decimal(0));
     if (subtotal.greaterThan(maxOrderTotal)) throw new HttpError(400, "INVALID_INPUT");
 
+    const payloadHash = createHash("sha256").update(JSON.stringify({
+      items: items.map(({ productId, quantity }) => ({ productId, quantity })).sort((left, right) => left.productId - right.productId),
+      voucherId: input.voucherId ?? null,
+    })).digest("hex");
     return ordersRepository.createPendingOrder({
       memberId,
       merchantId,
+      idempotencyKey,
+      payloadHash,
       items,
       subtotal,
       voucherId: input.voucherId ?? null,

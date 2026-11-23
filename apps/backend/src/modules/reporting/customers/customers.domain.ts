@@ -1,7 +1,7 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import type { OrderStatus } from "../../../generated/prisma/enums.js";
 import { HttpError } from "../../../lib/http-error.js";
-import { selectTier, type TierThreshold } from "../../loyalty/program/loyalty.calculation.js";
+import { selectQualifiedTier, type TierQualificationMode, type TierThreshold } from "../../loyalty/program/loyalty.calculation.js";
 import type {
   CustomerListQuery,
   CustomerPurchaseStatus,
@@ -9,7 +9,6 @@ import type {
   CustomerTier,
 } from "./customers.types.js";
 
-const VALID_TIERS: readonly CustomerTier[] = ["UNRANKED", "BRONZE", "SILVER", "GOLD", "PLATINUM"];
 const VALID_PURCHASE_STATUSES: readonly CustomerPurchaseStatus[] = ["all", "buyers", "non_buyers"];
 
 function readPositiveInt(raw: unknown, fallback: number, max: number): number {
@@ -38,7 +37,7 @@ export function parseCustomerListQuery(query: Record<string, unknown>): Customer
   const tierRaw = query.tier;
   let tier: CustomerTier | undefined;
   if (tierRaw !== undefined && tierRaw !== "") {
-    if (typeof tierRaw !== "string" || !VALID_TIERS.includes(tierRaw as CustomerTier)) {
+    if (typeof tierRaw !== "string" || (tierRaw !== "UNRANKED" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tierRaw))) {
       throw new HttpError(400, "INVALID_INPUT");
     }
     tier = tierRaw as CustomerTier;
@@ -66,11 +65,13 @@ export function resolveMemberTier(params: {
   tierId: number | null;
   hasEarnTransaction: boolean;
   netLifetimeEarned: Prisma.Decimal | string;
+  qualificationProgress?: Prisma.Decimal | string;
+  qualificationMode?: TierQualificationMode;
   tiers: readonly TierThreshold[];
 }): CustomerTier {
   const ranked = params.tierId !== null || params.hasEarnTransaction;
   if (!ranked) return "UNRANKED";
-  return selectTier(params.netLifetimeEarned, params.tiers) ?? "UNRANKED";
+  return selectQualifiedTier(params.qualificationProgress ?? params.netLifetimeEarned, params.tiers, params.qualificationMode ?? "POINTS") ?? "UNRANKED";
 }
 
 export function computeCustomerStats(

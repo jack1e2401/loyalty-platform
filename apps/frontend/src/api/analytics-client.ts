@@ -14,13 +14,15 @@ async function requestAnalyticsJson<T>(
   fetcher: FetchLike,
   baseUrl: string,
   path: string,
-  options: { method?: "GET" | "POST"; token?: string } = {},
+  options: { method?: "GET" | "POST" | "PATCH"; token?: string; body?: unknown } = {},
 ): Promise<T> {
   const headers = new Headers({ Accept: "application/json" });
   if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
+  if (options.body !== undefined) headers.set("Content-Type", "application/json");
   const response = await fetchWithSessionRefresh(fetcher, baseUrl, path, {
     method: options.method ?? "GET",
     headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
   }, options.token);
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
@@ -77,6 +79,15 @@ export function createAnalyticsClient(baseUrl: string, fetcher: FetchLike = fetc
         baseUrl,
         `/api/merchant/customers/${memberId}`,
         { token },
+      );
+    },
+
+    updateMerchantCustomerTags(memberId: number | string, tags: string[], token: string) {
+      return requestAnalyticsJson<{ memberId: number; tags: string[] }>(
+        fetcher,
+        baseUrl,
+        `/api/merchant/customers/${memberId}/tags`,
+        { method: "PATCH", token, body: { tags } },
       );
     },
 

@@ -7,8 +7,10 @@ import { OrderNotCancellableError } from "./orders.types.js";
 
 export const createOrder: RequestHandler = async (request, response) => {
   const input = readCreateOrderInput(request.body);
-  const order = await ordersService.createOrder(response.locals.user.id, input);
-  response.status(201).json({ order });
+  const key = request.get("Idempotency-Key");
+  if (!key || key.length < 8 || key.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(key)) throw new HttpError(400, "IDEMPOTENCY_KEY_REQUIRED");
+  const result = await ordersService.createOrder(response.locals.user.id, input, key);
+  response.status(result.replayed ? 200 : 201).json({ order: result.order });
 };
 
 export const payOrder: RequestHandler = async (request, response) => {

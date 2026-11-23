@@ -47,6 +47,16 @@ enum RefundStatus {
   FAILED
 }
 
+enum TierQualificationMode {
+  POINTS
+  SPEND
+}
+
+enum TierResetStrategy {
+  ONE_DOWN
+  SELECTED
+}
+
 enum PaymentProvider {
   UNKNOWN
   MOCK
@@ -123,28 +133,33 @@ enum LoyaltyPolicyVersionSource {
 }
 
 model User {
-  challengeLimitNoticeReads ChallengeLimitNoticeRead[]
-  id                               Int                       @id @default(autoincrement())
-  email                            String                    @unique @db.VarChar(191)
-  passwordHash                     String                    @db.VarChar(255)
+  challengeLimitNoticeReads        ChallengeLimitNoticeRead[]
+  id                               Int                        @id @default(autoincrement())
+  email                            String                     @unique @db.VarChar(191)
+  passwordHash                     String                     @db.VarChar(255)
+  name                             String?                    @db.VarChar(191)
+  phone                            String?                    @db.VarChar(40)
+  address                          String?                    @db.VarChar(500)
+  birthDate                        DateTime?                  @db.Date
   role                             UserRole
-  accountStatus                    AccountStatus             @default(ACTIVE)
-  createdAt                        DateTime                  @default(now())
-  updatedAt                        DateTime                  @updatedAt
-  merchant                         Merchant?                 @relation("MerchantOwner")
-  memberships                      MerchantMembership[]      @relation("MemberMemberships")
-  orders                           Order[]                   @relation("MemberOrders")
-  fulfilledRewards                 RewardFulfillment[]       @relation("RewardFulfiller")
-  cancelledRewards                 RewardCancellation[]      @relation("RewardCanceller")
-  refundsRequested                 OrderRefund[]             @relation("RefundRequester")
-  publishedLoyaltyPolicies         LoyaltyPolicyVersion[]    @relation("LoyaltyPolicyPublisher")
-  inventoryMovements               InventoryMovement[]       @relation("InventoryMovementActor")
-  updatedStorefrontDrafts          StorefrontDraft[]         @relation("StorefrontDraftUpdater")
-  publishedStorefrontVersions      StorefrontConfigVersion[] @relation("StorefrontVersionPublisher")
-  refundRequestsAsMember           RefundRequest[]           @relation("RefundMember")
-  refundRequestsAsMerchantReviewer RefundRequest[]           @relation("RefundMerchantReviewer")
+  accountStatus                    AccountStatus              @default(ACTIVE)
+  createdAt                        DateTime                   @default(now())
+  updatedAt                        DateTime                   @updatedAt
+  merchant                         Merchant?                  @relation("MerchantOwner")
+  memberships                      MerchantMembership[]       @relation("MemberMemberships")
+  orders                           Order[]                    @relation("MemberOrders")
+  fulfilledRewards                 RewardFulfillment[]        @relation("RewardFulfiller")
+  cancelledRewards                 RewardCancellation[]       @relation("RewardCanceller")
+  refundsRequested                 OrderRefund[]              @relation("RefundRequester")
+  publishedLoyaltyPolicies         LoyaltyPolicyVersion[]     @relation("LoyaltyPolicyPublisher")
+  inventoryMovements               InventoryMovement[]        @relation("InventoryMovementActor")
+  updatedStorefrontDrafts          StorefrontDraft[]          @relation("StorefrontDraftUpdater")
+  publishedStorefrontVersions      StorefrontConfigVersion[]  @relation("StorefrontVersionPublisher")
+  refundRequestsAsMember           RefundRequest[]            @relation("RefundMember")
+  refundRequestsAsMerchantReviewer RefundRequest[]            @relation("RefundMerchantReviewer")
   refundReconciliationAttempts     RefundReconciliationAttempt[] @relation("RefundReconciliationActor")
   refreshSessions                  RefreshSession[]
+  orderRequests                    OrderRequest[]
 }
 
 model RefreshSession {
@@ -193,6 +208,7 @@ model Merchant {
   loyaltyRule        LoyaltyRule?
   voucherDefinitions VoucherDefinition[]
   policyVersions     LoyaltyPolicyVersion[]
+  tierResetRuns      TierResetRun[]
   inventoryBalances  InventoryBalance[]
   inventoryMovements InventoryMovement[]
   storefrontDraft    StorefrontDraft?
@@ -200,6 +216,7 @@ model Merchant {
   events             MerchantEvent[]
   challenges         Challenge[]
   refundRequests     RefundRequest[]
+  orderRequests      OrderRequest[]
 }
 
 model StorefrontDraft {
@@ -349,6 +366,7 @@ model Order {
   loyaltyPolicyVersion   LoyaltyPolicyVersion?    @relation(fields: [loyaltyPolicyVersionId], references: [id], onDelete: Restrict)
   inventoryMovements     InventoryMovement[]
   refundRequest          RefundRequest?
+  request                OrderRequest?
 
   @@index([merchantId, status])
   @@index([merchantId, status, paidAt])
@@ -374,20 +392,39 @@ model OrderItem {
   @@index([productId])
 }
 
+model OrderRequest {
+  id             Int      @id @default(autoincrement())
+  merchantId     Int
+  memberId       Int
+  idempotencyKey String   @db.VarChar(128)
+  payloadHash    String   @db.Char(64)
+  orderId        Int      @unique
+  createdAt      DateTime @default(now())
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  member         User     @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([merchantId, memberId, idempotencyKey])
+  @@index([memberId, createdAt])
+}
+
 model MerchantMembership {
-  id                Int                 @id @default(autoincrement())
-  merchantId        Int
-  memberId          Int
-  tierId            Int?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  merchant          Merchant            @relation(fields: [merchantId], references: [id])
-  member            User                @relation("MemberMemberships", fields: [memberId], references: [id])
-  tier              LoyaltyTier?        @relation(fields: [tierId], references: [id])
-  wallet            LoyaltyWallet?
-  vouchers          MemberVoucher[]
-  activities        MemberActivity[]
-  challengeProgress ChallengeProgress[]
+  id                    Int                 @id @default(autoincrement())
+  merchantId            Int
+  memberId              Int
+  tierId                Int?
+  qualificationProgress Decimal             @default(0) @db.Decimal(38, 12)
+  tags                  Json                @default("[]")
+  lastResetCycleYear    Int?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  merchant              Merchant            @relation(fields: [merchantId], references: [id])
+  member                User                @relation("MemberMemberships", fields: [memberId], references: [id])
+  tier                  LoyaltyTier?        @relation(fields: [tierId], references: [id])
+  wallet                LoyaltyWallet?
+  vouchers              MemberVoucher[]
+  activities            MemberActivity[]
+  challengeProgress     ChallengeProgress[]
 
   @@unique([memberId, merchantId])
   @@index([merchantId])
@@ -395,26 +432,52 @@ model MerchantMembership {
 }
 
 model LoyaltyTier {
-  id                Int                  @id @default(autoincrement())
-  merchantId        Int
-  level             TierLevel
-  minLifetimePoints Int
-  multiplier        Decimal              @db.Decimal(5, 2)
-  merchant          Merchant             @relation(fields: [merchantId], references: [id])
-  memberships       MerchantMembership[]
+  id                  Int                  @id @default(autoincrement())
+  merchantId          Int
+  level               String               @db.VarChar(64)
+  name                String               @db.VarChar(80)
+  minLifetimePoints   Int?
+  minSpendVnd         Decimal?             @db.Decimal(15, 0)
+  sortOrder           Int                  @default(0)
+  multiplier          Decimal              @db.Decimal(5, 2)
+  benefits            Json                 @default("[]")
+  iconUrl             String?              @db.VarChar(512)
+  color               String               @default("#6B7280") @db.Char(7)
+  maintenanceSpendVnd Decimal?             @db.Decimal(15, 0)
+  isActive            Boolean              @default(true)
+  merchant            Merchant             @relation(fields: [merchantId], references: [id])
+  memberships         MerchantMembership[]
 
   @@unique([merchantId, level])
-  @@unique([merchantId, minLifetimePoints])
+  @@index([merchantId, isActive, sortOrder])
 }
 
 model LoyaltyRule {
-  id          Int      @id @default(autoincrement())
-  merchantId  Int      @unique
-  vndPerPoint Int      @default(10000)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  id                Int                   @id @default(autoincrement())
+  merchantId        Int                   @unique
+  vndPerPoint       Int                   @default(10000)
+  isActive          Boolean               @default(true)
+  qualificationMode TierQualificationMode @default(POINTS)
+  resetEnabled      Boolean               @default(false)
+  resetMonth        Int?
+  resetDay          Int?
+  resetStrategy     TierResetStrategy     @default(ONE_DOWN)
+  resetTargetLevel  String?               @db.VarChar(64)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  merchant          Merchant              @relation(fields: [merchantId], references: [id])
+}
+
+model TierResetRun {
+  id             Int      @id @default(autoincrement())
+  merchantId     Int
+  cycleYear      Int
+  processedCount Int      @default(0)
+  completedAt    DateTime @default(now())
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+
+  @@unique([merchantId, cycleYear])
+  @@index([completedAt])
 }
 
 model LoyaltyPolicyVersion {
@@ -453,7 +516,7 @@ model PointTransaction {
   type              PointTransactionType
   delta             Decimal                @db.Decimal(38, 12)
   balanceAfter      Decimal                @db.Decimal(38, 12)
-  promotedToTier    TierLevel?
+  promotedToTier    String?                @db.VarChar(64)
   reason            String                 @db.VarChar(255)
   eventRef          String                 @unique @default(uuid()) @db.VarChar(191)
   source            PointTransactionSource @default(LEGACY_BACKFILL)
@@ -687,43 +750,43 @@ enum RefundReconciliationOutcome {
 }
 
 model Challenge {
-  id           Int                 @id @default(autoincrement())
-  merchantId   Int
-  title        String              @db.VarChar(191)
-  description  String              @db.Text
-  type         ChallengeType
-  status       ChallengeStatus     @default(DRAFT)
-  targetValue  Decimal             @db.Decimal(15, 0)
-  rewardPoints Decimal             @db.Decimal(38, 12)
-  budgetTotal  Decimal             @db.Decimal(38, 12)
-  budgetSpent  Decimal             @default(0) @db.Decimal(38, 12)
+  id                  Int                    @id @default(autoincrement())
+  merchantId          Int
+  title               String                 @db.VarChar(191)
+  description         String                 @db.Text
+  type                ChallengeType
+  status              ChallengeStatus        @default(DRAFT)
+  targetValue         Decimal                @db.Decimal(15, 0)
+  rewardPoints        Decimal                @db.Decimal(38, 12)
+  budgetTotal         Decimal                @db.Decimal(38, 12)
+  budgetSpent         Decimal                @default(0) @db.Decimal(38, 12)
   maxRewardRecipients Int?
-  rewardSlotsClaimed  Int           @default(0)
-  startsAt     DateTime
-  endsAt       DateTime
-  isFeatured   Boolean             @default(false)
-  activatedAt  DateTime?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Restrict)
-  progresses   ChallengeProgress[]
-  milestones   ChallengeMilestone[]
-  limitNotices ChallengeLimitNotice[]
+  rewardSlotsClaimed  Int                    @default(0)
+  startsAt            DateTime
+  endsAt              DateTime
+  isFeatured          Boolean                @default(false)
+  activatedAt         DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  merchant            Merchant               @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  progresses          ChallengeProgress[]
+  milestones          ChallengeMilestone[]
+  limitNotices        ChallengeLimitNotice[]
 
   @@index([merchantId, status, startsAt])
   @@index([merchantId, type])
 }
 
 model ChallengeLimitNotice {
-  id          Int       @id @default(autoincrement())
-  challengeId Int?
-  title       String    @db.VarChar(191)
+  id            Int                        @id @default(autoincrement())
+  challengeId   Int?
+  title         String                     @db.VarChar(191)
   previousLimit Int
-  newLimit    Int
-  actorId     Int
-  createdAt   DateTime  @default(now())
-  challenge   Challenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
-  reads       ChallengeLimitNoticeRead[]
+  newLimit      Int
+  actorId       Int
+  createdAt     DateTime                   @default(now())
+  challenge     Challenge?                 @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  reads         ChallengeLimitNoticeRead[]
 
   @@index([challengeId, id])
 }
@@ -732,7 +795,7 @@ model ChallengeLimitNoticeRead {
   noticeId Int
   memberId Int
   notice   ChallengeLimitNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-  member   User @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member   User                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@id([memberId, noticeId])
   @@index([noticeId])
@@ -769,20 +832,20 @@ model MemberActivity {
 }
 
 model ChallengeProgress {
-  id           Int                      @id @default(autoincrement())
-  challengeId  Int
-  membershipId Int
-  currentValue Decimal                  @default(0) @db.Decimal(15, 0)
-  rewardState  ChallengeRewardState     @default(IN_PROGRESS)
-  rewardCycle  Int                      @default(1)
-  rewardSlotClaimed Boolean             @default(false)
-  completedAt  DateTime?
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-  challenge    Challenge                @relation(fields: [challengeId], references: [id], onDelete: Restrict)
-  membership   MerchantMembership       @relation(fields: [membershipId], references: [id], onDelete: Restrict)
-  entries      ChallengeProgressEntry[]
-  grants       ChallengeRewardGrant[]
+  id                Int                      @id @default(autoincrement())
+  challengeId       Int
+  membershipId      Int
+  currentValue      Decimal                  @default(0) @db.Decimal(15, 0)
+  rewardState       ChallengeRewardState     @default(IN_PROGRESS)
+  rewardCycle       Int                      @default(1)
+  rewardSlotClaimed Boolean                  @default(false)
+  completedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  challenge         Challenge                @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+  membership        MerchantMembership       @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  entries           ChallengeProgressEntry[]
+  grants            ChallengeRewardGrant[]
 
   @@unique([challengeId, membershipId])
   @@index([challengeId, rewardState, completedAt])

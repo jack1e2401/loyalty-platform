@@ -66,6 +66,7 @@ after(async () => {
   await prisma.merchantMembership.deleteMany({ where: { id: { in: membershipIds } } });
   const orders = await prisma.order.findMany({ where: { memberId: { in: memberIds } }, select: { id: true } });
   await prisma.orderItem.deleteMany({ where: { orderId: { in: orders.map((order) => order.id) } } });
+  await prisma.orderRequest.deleteMany({ where: { orderId: { in: orders.map((order) => order.id) } } });
   await prisma.order.deleteMany({ where: { id: { in: orders.map((order) => order.id) } } });
   await prisma.inventoryBalance.deleteMany({ where: { merchantId: { in: [merchantAId, merchantBId] } } });
   await prisma.product.deleteMany({ where: { merchantId: { in: [merchantAId, merchantBId] } } });
@@ -83,6 +84,7 @@ async function request(path: string, method: string, token?: string, body?: unkn
     headers: {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(body ? { "content-type": "application/json" } : {}),
+      ...(method === "POST" && path === "/api/orders" ? { "Idempotency-Key": randomUUID() } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -91,12 +93,12 @@ async function request(path: string, method: string, token?: string, body?: unkn
 
 test("merchant can save only a valid loyalty configuration for its own store", async () => {
   const tiers = [
-    { level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" },
-    { level: "SILVER", minLifetimePoints: 1000, multiplier: "1.20" },
-    { level: "GOLD", minLifetimePoints: 5000, multiplier: "1.50" },
-    { level: "PLATINUM", minLifetimePoints: 10000, multiplier: "2.00" },
+    { level: "default", name: "Default", minLifetimePoints: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#6B7280", maintenanceSpendVnd: null, sortOrder: 0, isActive: true },
+    { level: "silver", name: "Silver", minLifetimePoints: 1000, multiplier: "1.20", benefits: [], iconUrl: null, color: "#8A949D", maintenanceSpendVnd: null, sortOrder: 1, isActive: true },
+    { level: "gold", name: "Gold", minLifetimePoints: 5000, multiplier: "1.50", benefits: [], iconUrl: null, color: "#C6912D", maintenanceSpendVnd: null, sortOrder: 2, isActive: true },
+    { level: "platinum", name: "Platinum", minLifetimePoints: 10000, multiplier: "2.00", benefits: [], iconUrl: null, color: "#5B6F8D", maintenanceSpendVnd: null, sortOrder: 3, isActive: true },
   ];
-  const saved = await request("/api/merchant/loyalty", "PUT", merchantAToken, { vndPerPoint: 10000, isActive: true, tiers });
+  const saved = await request("/api/merchant/loyalty", "PUT", merchantAToken, { vndPerPoint: 10000, isActive: true, qualificationMode: "POINTS", tiers });
   assert.equal(saved.response.status, 200);
   assert.equal(saved.json.config.merchantId, merchantAId);
   assert.equal(saved.json.config.tiers.length, 4);
@@ -104,23 +106,24 @@ test("merchant can save only a valid loyalty configuration for its own store", a
   const foreign = await request("/api/merchant/loyalty", "PUT", merchantBToken, {
     vndPerPoint: 5000,
     isActive: true,
+    qualificationMode: "POINTS",
     tiers,
   });
   assert.equal(foreign.response.status, 200);
   assert.equal(foreign.json.config.merchantId, merchantBId);
 
   for (const invalid of [
-    { vndPerPoint: 0, isActive: true, tiers },
-    { vndPerPoint: 10000, isActive: true, tiers: tiers.slice(1) },
-    { vndPerPoint: 10000, isActive: true, tiers: tiers.map((tier, i) => ({ ...tier, minLifetimePoints: [0, 1000, 900, 10000][i] })) },
-    { vndPerPoint: 10000, isActive: true, tiers: tiers.map((tier, i) => i === 0 ? { ...tier, multiplier: "0.00" } : tier) },
+    { vndPerPoint: 0, isActive: true, qualificationMode: "POINTS", tiers },
+    { vndPerPoint: 10000, isActive: true, qualificationMode: "POINTS", tiers: tiers.slice(1) },
+    { vndPerPoint: 10000, isActive: true, qualificationMode: "POINTS", tiers: tiers.map((tier, i) => ({ ...tier, minLifetimePoints: [0, 1000, 900, 10000][i] })) },
+    { vndPerPoint: 10000, isActive: true, qualificationMode: "POINTS", tiers: tiers.map((tier, i) => i === 0 ? { ...tier, multiplier: "0.00" } : tier) },
   ]) {
     const result = await request("/api/merchant/loyalty", "PUT", merchantAToken, invalid);
     assert.equal(result.response.status, 400);
     assert.equal(result.json.error, "INVALID_INPUT");
   }
 
-  const member = await request("/api/merchant/loyalty", "PUT", memberToken, { vndPerPoint: 10000, isActive: true, tiers });
+  const member = await request("/api/merchant/loyalty", "PUT", memberToken, { vndPerPoint: 10000, isActive: true, qualificationMode: "POINTS", tiers });
   assert.equal(member.response.status, 403);
   const own = await request("/api/merchant/loyalty", "GET", merchantAToken);
   assert.equal(own.response.status, 200);
@@ -153,7 +156,7 @@ test("member becomes Bronze and earns points only after a paid order at that mer
   ]);
   assert.equal(walletA.json.wallet.availablePoints, 20);
   assert.equal(walletA.json.wallet.lifetimeEarnedPoints, 20);
-  assert.equal(walletA.json.wallet.tier, "BRONZE");
+  assert.equal(walletA.json.wallet.tier, "default");
   assert.equal(walletA.json.wallet.transactions.length, 1);
   assert.equal(walletA.json.wallet.transactions[0].orderId, created.json.order.id);
   assert.equal(walletB.json.wallet.availablePoints, 0);
@@ -195,13 +198,13 @@ test("paid orders keep the tier reached by that order, even after another promot
 
   const gold = await pay(large.json.product.id);
   assert.equal(gold.earnedPoints, 5000);
-  assert.equal(gold.promotedToTier, "GOLD");
+  assert.equal(gold.promotedToTier, "gold");
   assert.equal((await pay(small.json.product.id)).promotedToTier, null);
-  assert.equal((await pay(large.json.product.id)).promotedToTier, "PLATINUM");
+  assert.equal((await pay(large.json.product.id)).promotedToTier, "platinum");
   const receipt = await request(`/api/member/orders/${gold.id}`, "GET", secondMemberToken);
   assert.equal(receipt.response.status, 200);
   assert.equal(receipt.json.order.earnedPoints, 5000);
-  assert.equal(receipt.json.order.promotedToTier, "GOLD");
+  assert.equal(receipt.json.order.promotedToTier, "gold");
 });
 
 test("concurrent paid orders serialize the wallet balance and preserve member isolation", async () => {
@@ -237,7 +240,7 @@ test("a sub-threshold first paid order creates Bronze and preserves fractional p
   const paid = await request(`/api/orders/${order.json.order.id}/pay`, "POST", secondMemberToken);
   assert.equal(paid.response.status, 200);
   const wallet = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", secondMemberToken);
-  assert.equal(wallet.json.wallet.tier, "BRONZE");
+  assert.equal(wallet.json.wallet.tier, "default");
   assert.equal(wallet.json.wallet.availablePoints, 0);
   assert.equal(wallet.json.wallet.exactBalance, "0.9999");
   assert.equal(wallet.json.wallet.fractionalCarry, "0.9999");

@@ -19,6 +19,7 @@ import { merchantCustomerRoutes } from "./modules/reporting/customers/customers.
 import { merchantAnalyticsRoutes } from "./modules/reporting/analytics/analytics.routes.js";
 import { merchantChallengeRoutes, publicChallengeRoutes, memberChallengeRoutes } from "./modules/loyalty/challenges/challenges.routes.js";
 import { memberRefundRequestRoutes, orderRefundRequestRoutes, merchantRefundRequestRoutes } from "./modules/commerce/refunds/refunds.routes.js";
+import { memberProfileRoutes, merchantMemberTagRoutes } from "./modules/platform/auth/member-profile.js";
 
 export const app = express();
 app.use(cors({ origin: env.frontendOrigin, credentials: true }));
@@ -36,11 +37,13 @@ app.use("/api/merchant/storefront", merchantStorefrontRoutes);
 app.use("/api/public", publicStorefrontRoutes);
 app.use("/api/merchant/events", merchantEventRoutes);
 app.use("/api/merchant/customers", merchantCustomerRoutes);
+app.use("/api/merchant/customers", merchantMemberTagRoutes);
 app.use("/api/merchant/analytics", merchantAnalyticsRoutes);
 app.use("/api/merchant/challenges", merchantChallengeRoutes);
 app.use("/api/merchant/refund-requests", merchantRefundRequestRoutes);
 app.use("/api/public/stores", publicChallengeRoutes);
 app.use("/api/member", memberChallengeRoutes);
+app.use("/api/member", memberProfileRoutes);
 app.use("/api/merchant/orders", merchantOrderReadRoutes);
 app.use("/api/merchant/loyalty", merchantLoyaltyRoutes);
 app.use("/api/member", memberLoyaltyRoutes);
