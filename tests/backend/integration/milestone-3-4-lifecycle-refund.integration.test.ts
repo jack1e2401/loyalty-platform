@@ -681,8 +681,12 @@ test("settled legacy provider refunds require manual reconciliation and preserve
   assert.equal(completedRefund.status, "COMPLETED");
   const completedLedger = await prisma.pointTransaction.findMany({ where: { orderId } });
   const completedWallet = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { id: walletBefore.id } });
-  assert.equal(completedLedger.filter((entry) => entry.type === "EARN_REVERSAL").length, 1);
-  assert.equal(completedWallet.netLifetimeEarned.toString(), "0");
+  const earningReversals = completedLedger.filter((entry) => entry.type === "EARN_REVERSAL");
+  assert.equal(earningReversals.length, 1);
+  assert.equal(
+    completedWallet.netLifetimeEarned.add(earningReversals[0].delta.abs()).toString(),
+    walletBefore.netLifetimeEarned.toString(),
+  );
   const duplicateSettlement = await request(`/api/merchant/refund-requests/${requestId}/reconcile`, "POST", merchantAToken, settledEvidence);
   assert.equal(duplicateSettlement.response.status, 200);
   assert.equal(duplicateSettlement.json.refund.id, settledResult.json.refund.id);

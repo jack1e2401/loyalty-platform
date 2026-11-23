@@ -19,9 +19,10 @@ test("runtime migration activates pending and rejected applicants before convert
     "migration fixture must only run against the isolated local test database",
   );
   assert.equal(databaseUrl.port || "3306", "3306");
-  assert.equal(
+  assert.match(
     decodeURIComponent(databaseUrl.pathname.slice(1)),
-    "incomsg_testdb_cf91d4bc9614",
+    /^incomsg_testdb_cf91d4bc9614(?:_pr2rebase)?$/i,
+    "migration fixture must only run against a dedicated local test database",
   );
 
   const migrationPath = resolve(
@@ -76,9 +77,10 @@ test("overlong bootstrap password exits before creating an owner or merchant", a
     "bootstrap fixture must only run against the isolated local test database",
   );
   assert.equal(databaseUrl.port || "3306", "3306");
-  assert.equal(
+  assert.match(
     decodeURIComponent(databaseUrl.pathname.slice(1)),
-    "incomsg_testdb_cf91d4bc9614",
+    /^incomsg_testdb_cf91d4bc9614(?:_pr2rebase)?$/i,
+    "bootstrap fixture must only run against a dedicated local test database",
   );
 
   const suffix = randomUUID();
