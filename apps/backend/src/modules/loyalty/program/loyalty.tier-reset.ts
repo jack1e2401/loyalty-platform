@@ -39,14 +39,14 @@ export async function runAnnualTierReset(merchantId: number, now = new Date()) {
   if (today.month !== resetMonth || today.day !== dueDay) throw new HttpError(409, "TIER_RESET_NOT_DUE");
 
   const cycleYear = today.year;
+  const spendFrom = vndStartOfDayUtc(cycleYear - 1, resetMonth, resolvedResetDay(cycleYear - 1, resetMonth, resetDay));
+  const spendTo = vndStartOfDayUtc(cycleYear, resetMonth, dueDay);
   try {
     return await prisma.$transaction(async (tx) => {
-      const run = await tx.tierResetRun.create({ data: { merchantId, cycleYear } });
+      const run = await tx.tierResetRun.create({ data: { merchantId, cycleYear, effectiveAt: spendTo } });
       const tiers = await tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } });
       if (tiers.length === 0 || tiers[0]!.level !== "default") throw new HttpError(409, "DEFAULT_TIER_REQUIRED");
       const memberships = await tx.merchantMembership.findMany({ where: { merchantId }, include: { tier: true } });
-      const spendFrom = vndStartOfDayUtc(cycleYear - 1, resetMonth, resolvedResetDay(cycleYear - 1, resetMonth, resetDay));
-      const spendTo = vndStartOfDayUtc(cycleYear, resetMonth, dueDay);
       for (const membership of memberships) {
         const spend = await tx.order.aggregate({
           where: { merchantId, memberId: membership.memberId, status: { in: ["PAID", "REFUND_PENDING"] }, paidAt: { gte: spendFrom, lt: spendTo } },
@@ -63,7 +63,7 @@ export async function runAnnualTierReset(merchantId: number, now = new Date()) {
         });
         await tx.merchantMembership.update({
           where: { id: membership.id },
-          data: { tierId: result.tierId, qualificationProgress: result.progress, lastResetCycleYear: cycleYear },
+          data: { tierId: result.tierId, qualificationProgress: result.progress, lastResetCycleYear: cycleYear, lastResetAt: spendTo },
         });
       }
       await tx.tierResetRun.update({ where: { id: run.id }, data: { processedCount: memberships.length } });

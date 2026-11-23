@@ -2,6 +2,7 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import type { Prisma as PrismaTypes } from "../../../generated/prisma/client.js";
 import { exactPoints } from "../program/loyalty.balance.js";
 import { points, selectQualifiedTier } from "../program/loyalty.calculation.js";
+import { isQualificationContributionInCurrentCycle } from "../program/loyalty.cycle.js";
 import { lockChallenge, recordChallengeProgress, reserveChallengeSlots } from "./challenges.rewards.js";
 
 /** Runs inside completePaidOrder's transaction; never opens a nested transaction. */
@@ -63,11 +64,13 @@ export async function reverseOrderChallenges(tx: PrismaTypes.TransactionClient, 
         tx.loyaltyTier.findMany({ where: { merchantId: challenge.merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
       ]);
       const mode = rule?.qualificationMode ?? "POINTS";
-      const rawProgress = mode === "POINTS" ? points(membership.qualificationProgress).minus(grant.pointsGranted) : points(membership.qualificationProgress);
-      const qualificationProgress = rawProgress.isNegative() ? points("0") : rawProgress;
-      const level = selectQualifiedTier(qualificationProgress, tiers, mode);
-      const tier = tiers.find((item) => item.level === level);
-      await tx.merchantMembership.update({ where: { id: progress.membershipId }, data: { tierId: tier?.id ?? null, qualificationProgress } });
+      if (isQualificationContributionInCurrentCycle(grant.grantedAt, membership.lastResetAt)) {
+        const rawProgress = mode === "POINTS" ? points(membership.qualificationProgress).minus(grant.pointsGranted) : points(membership.qualificationProgress);
+        const qualificationProgress = rawProgress.isNegative() ? points("0") : rawProgress;
+        const level = selectQualifiedTier(qualificationProgress, tiers, mode);
+        const tier = tiers.find((item) => item.level === level);
+        await tx.merchantMembership.update({ where: { id: progress.membershipId }, data: { tierId: tier?.id ?? null, qualificationProgress } });
+      }
       reversals += 1;
     }
     const releaseSlot = progress.rewardSlotClaimed && progress.rewardCycle === 1 && !grant;

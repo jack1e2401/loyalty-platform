@@ -73,6 +73,7 @@ export async function cleanup() {
     await prisma.loyaltyTier.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.loyaltyRule.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.loyaltyPolicyVersion.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.tierResetRun.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.merchant.deleteMany({ where: { id: { in: merchantIds } } });
     await prisma.user.deleteMany({ where: { id: { in: fixtureUserIds } } });
   } finally {
