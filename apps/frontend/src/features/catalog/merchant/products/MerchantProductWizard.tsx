@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { Alert, Button, Card, Descriptions, Flex, Form, Input, InputNumber, Select, Steps } from "antd";
+import { Alert, Button, Card, Flex, Form, Input, InputNumber, Select, Steps } from "antd";
 import { createCommerceClient, translateApiError } from "../../../../api/commerce-http";
 import type { ProductCategoryDto, ProductDto } from "../../../../api/commerce-types";
 import { CmsPageHeader } from "../../../merchant/cms";
 import { MerchantProductGalleryEditor } from "./MerchantProductGalleryEditor";
+import { ProductReview } from "./ProductReview";
 import { initialProductForm, validateProductBasics, type ProductFormState } from "./product-form";
 
 const api = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
@@ -242,51 +243,7 @@ export function MerchantProductWizard({
                 />
               </div>
             ) : null}
-            {step === 2 ? (
-              <Card title="Kiểm tra thông tin" size="small">
-                <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                  <Descriptions.Item label="Loại">
-                    {form.kind === "REWARD" ? "Chỉ đổi thưởng" : "Sản phẩm bán"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Tên">{form.name.trim()}</Descriptions.Item>
-                  <Descriptions.Item label="SKU">{form.sku.trim() || "—"}</Descriptions.Item>
-                  <Descriptions.Item label="Danh mục">
-                    {categories.find((category) => String(category.id) === form.categoryId)?.name ?? "—"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Giá">
-                    {form.kind === "REWARD" ? "—" : `${form.price} ₫`}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Tồn kho ban đầu">
-                    {isNew ? form.initialQuantity : "Không thay đổi"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngưỡng tồn kho thấp">{form.lowStockThreshold}</Descriptions.Item>
-                  <Descriptions.Item label="Trạng thái">
-                    {form.status === "ACTIVE" ? "Đang hoạt động" : "Đã ẩn"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ảnh" span="filled">
-                    {form.images.filter((image) => image.url.trim()).length}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Mô tả ngắn" span="filled">
-                    <div className="whitespace-pre-wrap break-words">{form.description || "—"}</div>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Mô tả chi tiết" span="filled">
-                    <div className="whitespace-pre-wrap break-words">{form.richDescription || "—"}</div>
-                  </Descriptions.Item>
-                </Descriptions>
-                <div className="flex flex-wrap gap-3">
-                  {form.images
-                    .filter((image) => image.url.trim())
-                    .map((image, index) => (
-                      <img
-                        key={index}
-                        src={image.url.trim()}
-                        alt={image.altText || `Ảnh sản phẩm ${index + 1}`}
-                        className="size-24 rounded-lg border border-[#e3e9e2] object-cover"
-                      />
-                    ))}
-                </div>
-              </Card>
-            ) : null}
+            {step === 2 ? <ProductReview form={form} categories={categories} isNew={isNew} /> : null}
             {error ? <Alert type="error" showIcon title={error} className="mt-4" /> : null}
             <Flex justify="space-between" gap={8} wrap style={{ marginTop: 24 }}>
               <Button onClick={onCancel} disabled={busy}>
