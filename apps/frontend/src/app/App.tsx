@@ -1,18 +1,13 @@
 import { Link, Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { AuthSessionProvider, useAuthSession } from "../api/auth-session";
 import { Button } from "../components/ui";
-import { ApplicationStatusPage, LoginPage, RegisterPage } from "../features/auth/AuthPages";
+import { LoginPage, RegisterPage } from "../features/auth/AuthPages";
+import { RequireRole } from "../features/auth/RequireRole";
 import { EditorialArtPanel } from "../components/EditorialArtPanel";
-import { AdminApplicationsPage, RequireRole } from "../features/auth/AdminApplicationsPage";
 import { BackendConsoleLayout } from "../layouts/BackendConsoleLayout";
 import { ApiProvider } from "../api/client";
 import { ConsoleLayout as DemoConsoleLayout } from "../layouts/ConsoleLayout";
 import { MemberLayout as DemoMemberLayout } from "../layouts/MemberLayout";
-import {
-  AdminApplications as DemoAdminApplications,
-  AdminMerchants as DemoAdminMerchants,
-  AdminOverview as DemoAdminOverview,
-} from "../features/admin/AdminPages";
 import { MerchantLoyalty as DemoMerchantLoyalty } from "../features/merchant/legacy/MerchantLoyaltyPage";
 import { MerchantOrders as DemoMerchantOrders } from "../features/merchant/legacy/MerchantOrdersPage";
 import { MerchantOverview as DemoMerchantOverview } from "../features/merchant/legacy/MerchantOverviewPage";
@@ -33,15 +28,6 @@ import {
   MemberVouchers as DemoMemberVouchers,
   MemberWallet as DemoMemberWallet,
 } from "../features/member/MemberLoyalty";
-import {
-  AdminOverview,
-  AdminMerchants,
-  AdminUsers,
-  AdminBlacklist,
-  AdminAuditLogs,
-  AdminAbuseReports,
-  AdminRefundHistoryPage,
-} from "../features/admin/BackendAdminPages";
 import {
   MerchantLoyalty,
   MerchantOrders,
@@ -100,22 +86,8 @@ function BackendRoutes() {
       <Route path="/" element={<Welcome />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/application/status" element={<ApplicationStatusPage />} />
-      <Route element={<RequireRole role="ADMIN" />}>
-        <Route path="/admin" element={<BackendConsoleLayout role="admin" />}>
-          <Route index element={<AdminOverview />} />
-          <Route path="applications" element={<AdminApplicationsPage />} />
-          <Route path="merchants" element={<AdminMerchants />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="blacklist" element={<AdminBlacklist />} />
-          <Route path="email-blacklist" element={<AdminBlacklist />} />
-          <Route path="audit-logs" element={<AdminAuditLogs />} />
-          <Route path="abuse-reports" element={<AdminAbuseReports />} />
-          <Route path="refund-requests" element={<AdminRefundHistoryPage />} />
-        </Route>
-      </Route>
       <Route element={<RequireRole role="MERCHANT" />}>
-        <Route path="/merchant" element={<BackendConsoleLayout role="merchant" />}>
+        <Route path="/merchant" element={<BackendConsoleLayout />}>
           <Route index element={<MerchantOverview />} />
           <Route path="store" element={<MerchantStore />} />
           <Route path="storefront" element={<MerchantStorefrontEditor />} />
@@ -207,12 +179,7 @@ function DemoRoutes() {
     <ApiProvider>
       <Routes>
         <Route path="/" element={<DemoWelcome />} />
-        <Route path="/admin" element={<DemoConsoleLayout role="admin" />}>
-          <Route index element={<DemoAdminOverview />} />
-          <Route path="applications" element={<DemoAdminApplications />} />
-          <Route path="merchants" element={<DemoAdminMerchants />} />
-        </Route>
-        <Route path="/merchant/:merchantId" element={<DemoConsoleLayout role="merchant" />}>
+        <Route path="/merchant/:merchantId" element={<DemoConsoleLayout />}>
           <Route index element={<DemoMerchantOverview />} />
           <Route path="store" element={<DemoMerchantStore />} />
           <Route path="products" element={<DemoMerchantProducts />} />
@@ -253,9 +220,6 @@ function DemoWelcome() {
             <Button asChild size="lg" variant="outline" className="rounded-full px-7">
               <Link to="/merchant/moc">Merchant</Link>
             </Button>
-            <Button asChild size="lg" variant="ghost" className="rounded-full px-7">
-              <Link to="/admin">Admin</Link>
-            </Button>
           </div>
         </LandingBody>
       </div>
@@ -268,7 +232,7 @@ function Welcome() {
   if (user)
     return (
       <Navigate
-        to={user.role === "ADMIN" ? "/admin" : user.role === "MERCHANT" ? "/merchant" : "/member"}
+        to={user.role === "MERCHANT" ? "/merchant" : "/member"}
         replace
       />
     );
@@ -310,11 +274,7 @@ function LandingHeader({ demo = false }: { demo?: boolean }) {
       </Link>
       {demo ? (
         <span className="text-sm font-medium text-[#55705b]">Mua sắm thân quen</span>
-      ) : (
-        <Link to="/application/status" className="text-sm font-semibold text-[#55705b] hover:text-[#24452f]">
-          Trạng thái hồ sơ
-        </Link>
-      )}
+      ) : null}
     </header>
   );
 }

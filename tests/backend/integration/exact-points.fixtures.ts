@@ -3,17 +3,11 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 
 process.env.JWT_SECRET ??= randomBytes(32).toString("hex");
-process.env.PAYMENT_MODE = "mock";
-process.env.VNPAY_TMN_CODE = "TESTCODE";
-process.env.VNPAY_HASH_SECRET = "test-exact-points-hash-secret";
-process.env.VNPAY_RETURN_URL = "https://merchant.example/api/payments/vnpay/return";
 
-export const [{ app }, { prisma }, { signAccessToken }, { signVnpay }, { env }, { Prisma }] = await Promise.all([
+export const [{ app }, { prisma }, { signAccessToken }, { Prisma }] = await Promise.all([
   import("../../../apps/backend/src/app.js"),
   import("../../../apps/backend/src/lib/prisma.js"),
   import("../../../apps/backend/src/lib/access-token.js"),
-  import("../../../apps/backend/src/modules/commerce/payments/vnpay-signature.js"),
-  import("../../../apps/backend/src/config/env.js"),
   import("../../../apps/backend/src/generated/prisma/client.js"),
 ]);
 
@@ -30,7 +24,6 @@ export interface Wallet {
     availablePointsAfter: number; fractionalCarryAfter: string; pointDebtAfter: string;
   }[];
 }
-
 interface Order {
   id: number; total: string; earnedPoints: number | null; earnedPointsExact: string | null;
 }
@@ -56,13 +49,11 @@ export async function cleanup() {
     const membershipIds = memberships.map(({ id }) => id);
     const merchants = await prisma.merchant.findMany({ where: { ownerId: { in: fixtureUserIds } }, select: { id: true } });
     const merchantIds = merchants.map(({ id }) => id);
-    await prisma.paymentAttempt.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
     await prisma.rewardFulfillment.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
     await prisma.rewardCancellation.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
     await prisma.pointTransaction.deleteMany({ where: { wallet: { membershipId: { in: membershipIds } } } });
     await prisma.orderItem.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
     await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
-    await prisma.merchantFeeTransaction.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
     await prisma.refundRequest.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
     await prisma.challengeProgressEntry.deleteMany({ where: { progress: { membership: { memberId: { in: fixtureUserIds } } } } });
     await prisma.challengeRewardGrant.deleteMany({ where: { progress: { membership: { memberId: { in: fixtureUserIds } } } } });
@@ -99,14 +90,14 @@ export async function request<T>(path: string, method = "GET", token?: string, b
   return { status: response.status, json: await response.json() as T };
 }
 
-export async function createUser(role: "MEMBER" | "MERCHANT" | "ADMIN") {
+export async function createUser(role: "MEMBER" | "MERCHANT") {
   const user = await prisma.user.create({ data: { email: `exact-${randomUUID()}@test.local`, passwordHash: "fixture", role } });
   fixtureUserIds.push(user.id);
   return { id: user.id, token: await signAccessToken(user.id) };
 }
 
 export async function completeRefundApproval(shop: Shop, orderId: number, reason = "Approved test refund") {
-  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { paymentAttempt: true } });
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
   const memberToken = await signAccessToken(order.memberId);
   const submitted = await request<{ refundRequest?: { id: number } }>(`/api/orders/${orderId}/refund-request`, "POST", memberToken, { reason });
   if (submitted.status !== 201) return submitted;
@@ -187,25 +178,4 @@ export async function assertLedger(shop: Shop, member: Member, exactBalance: str
   assert.equal(total.toFixed(), exactBalance);
   assert.equal(stored.netLifetimeEarned.toFixed(), lifetime.toFixed());
   return stored;
-}
-
-export async function beginVnpay(shop: Shop, member: Member) {
-  const order = await createOrder(shop, member);
-  const attempt = await request<{ txnRef: string }>(`/api/orders/${order.id}/payments/vnpay`, "POST", member.token);
-  assert.equal(attempt.status, 201);
-  return { order, txnRef: attempt.json.txnRef };
-}
-
-export async function confirmVnpay(payment: { txnRef: string; order: Order }, extra: Record<string, string> = {}) {
-  const values = {
-    vnp_Amount: new Prisma.Decimal(payment.order.total).times(100).toFixed(0),
-    vnp_BankCode: "NCB", vnp_OrderInfo: "Exact points payment", vnp_PayDate: "20261111123000",
-    vnp_ResponseCode: "00", vnp_TmnCode: "TESTCODE", vnp_TransactionNo: "123456789",
-    vnp_TransactionStatus: "00", vnp_TxnRef: payment.txnRef,
-    ...extra,
-  };
-  const query = new URLSearchParams({ ...values, vnp_SecureHash: signVnpay(values, process.env.VNPAY_HASH_SECRET!) });
-  const result = await request<{ RspCode: string }>(`/api/payments/vnpay/ipn?${query}`);
-  assert.equal(result.status, 200);
-  return result.json.RspCode;
 }

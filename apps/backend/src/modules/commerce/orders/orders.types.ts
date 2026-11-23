@@ -1,6 +1,6 @@
 import type {
   OrderStatus,
-  PaymentAttemptStatus,
+  PaymentProvider,
   PointTransactionSource,
   PointTransactionType,
   RefundStatus,
@@ -12,12 +12,10 @@ import type { describeWallet } from "../../loyalty/program/loyalty.balance.js";
 
 export class OrderNotCancellableError extends HttpError {
   readonly orderStatus: string;
-  readonly paymentStatus: string | null;
 
-  constructor(orderStatus: string, paymentStatus: string | null) {
+  constructor(orderStatus: string) {
     super(409, "ORDER_NOT_CANCELLABLE");
     this.orderStatus = orderStatus;
-    this.paymentStatus = paymentStatus;
   }
 }
 
@@ -56,7 +54,6 @@ export type OrderItemDto = {
 export type OrderActionsDto = {
   canCancel: boolean;
   canRefund: boolean;
-  requiresReconciliation: boolean;
   canRequestRefund?: boolean;
 };
 export type RefundRequestSummaryDto = {
@@ -89,6 +86,9 @@ export type OrderDto = {
   merchantId: number;
   memberId: number;
   status: OrderStatus;
+  paymentProvider: PaymentProvider;
+  paymentProviderReference: string | null;
+  paymentProviderTransactionNo: string | null;
   subtotal: string;
   discountAmount: string;
   total: string;
@@ -99,7 +99,6 @@ export type OrderDto = {
   earnedPoints?: number | null;
   earnedPointsExact: string | null;
   promotedToTier?: TierLevel | null;
-  paymentStatus?: PaymentAttemptStatus | null;
   refundStatus?: RefundStatus | null;
   refundRequest?: RefundRequestSummaryDto | null;
   loyaltyEvents?: OrderLoyaltyEventDto[];
@@ -134,7 +133,6 @@ export type RefundPreviewDto = {
   tierBefore: string;
   tierAfter: string;
   discountVoucherRestorable: boolean;
-  providerConfirmationRequired: boolean;
   challenges: ChallengeRefundImpactDto[];
 };
 export type ChallengeRefundImpactDto = {

@@ -1,3 +1,13 @@
+const vietnamDateTime = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+export function formatVietnamDateTime(value: string) {
+  return vietnamDateTime.format(new Date(value));
+}
+
 export function pastYearRange(now = new Date()) {
   const to = new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
   const [year, month, day] = to.split("-").map(Number) as [number, number, number];

@@ -8,9 +8,8 @@ import type {
 
 export type OrderStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUND_PENDING" | "REFUNDED";
 
-export type PaymentAttemptStatus = "CREATED" | "SUCCEEDED" | "FAILED";
-
 export type RefundStatus = "PENDING_PROVIDER" | "COMPLETED" | "FAILED";
+export type PaymentProvider = "UNKNOWN" | "MOCK" | "VNPAY";
 
 export interface OrderItemDto {
   productId: number;
@@ -24,14 +23,12 @@ export interface OrderActionsDto {
   canCancel: boolean;
   canRefund: boolean;
   canRequestRefund?: boolean;
-  requiresReconciliation: boolean;
 }
 
 export interface OrderRefundRequestSummaryDto {
   id: number;
   status:
     | "PENDING_MERCHANT"
-    | "PENDING_ADMIN"
     | "REJECTED"
     | "APPROVED"
     | "PROCESSING"
@@ -50,6 +47,9 @@ export interface OrderDto {
   merchantId: number;
   memberId: number;
   status: OrderStatus;
+  paymentProvider?: PaymentProvider;
+  paymentProviderReference?: string | null;
+  paymentProviderTransactionNo?: string | null;
   subtotal: string;
   discountAmount: string;
   total: string;
@@ -60,20 +60,11 @@ export interface OrderDto {
   earnedPoints?: number | null;
   earnedPointsExact: string | null;
   promotedToTier?: TierLevel | null;
-  paymentStatus?: PaymentAttemptStatus | null;
   refundStatus?: RefundStatus | string | null;
   refundRequest?: OrderRefundRequestSummaryDto | null;
   loyaltyEvents?: WalletTransactionDto[];
   actions?: OrderActionsDto;
 }
-
-export type PaymentStatusDto = {
-  orderStatus: OrderStatus;
-  paymentStatus: "CREATED" | "SUCCEEDED" | "FAILED" | null;
-};
-
-export type VnpayPaymentResponse =
-  { orderId: number; paymentUrl: string; txnRef: string } | { orderId: number; orderStatus: "PAID" };
 
 export type OrdersResponse = { orders: OrderDto[] };
 
@@ -104,7 +95,6 @@ export interface RefundPreviewDto {
   tierBefore: MemberTier;
   tierAfter: MemberTier;
   discountVoucherRestorable: boolean;
-  providerConfirmationRequired: boolean;
 }
 
 export interface RefundDto {

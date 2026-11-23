@@ -17,10 +17,8 @@ function statusTone(status: MerchantOrderRow["status"]) {
 
 export function MerchantPurchaseOrderDetail({
   order,
-  onReport,
 }: {
   order: MerchantOrderRow;
-  onReport(): void;
 }) {
   const [showPolicy, setShowPolicy] = useState(false);
   const itemColumns: TableColumnsType<MerchantOrderRow["items"][number]> = [
@@ -31,10 +29,9 @@ export function MerchantPurchaseOrderDetail({
   ];
   const action = (
     <Flex gap={8} wrap>
-      {order.refundRequest && ["PENDING_MERCHANT", "PENDING_ADMIN"].includes(order.refundRequest.status) ? (
+      {order.refundRequest?.status === "PENDING_MERCHANT" ? (
         <Button type="primary"><Link to={`/merchant/refund-requests?requestId=${order.refundRequest.id}`}>Xử lý yêu cầu hoàn tiền</Link></Button>
       ) : null}
-      <Button onClick={onReport}>Báo cáo vi phạm</Button>
     </Flex>
   );
 
@@ -65,7 +62,7 @@ export function MerchantPurchaseOrderDetail({
           </Descriptions.Item>
         </Descriptions>
         {order.refundStatus === "PENDING_PROVIDER" ? (
-          <CmsStatusTag label="Chờ cổng xác nhận hoàn tiền" tone="warning" />
+          <CmsStatusTag label="Chờ xác nhận hoàn tiền" tone="warning" />
         ) : null}
         {order.refundStatus === "COMPLETED" && order.status !== "REFUNDED" ? (
           <CmsStatusTag label="Đã hoàn tiền" tone="info" />

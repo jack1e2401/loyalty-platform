@@ -3,8 +3,6 @@ import type {
   OrderResponse,
   MerchantOrdersResponse,
   OrdersResponse,
-  PaymentStatusDto,
-  VnpayPaymentResponse,
   CancelOrderResponse,
   RefundPreviewDto,
   RefundResponseDto,
@@ -23,17 +21,6 @@ export function createOrdersClient(baseUrl = "", fetcher: typeof fetch = fetch) 
     payMockOrder(orderId: number, token: string) {
       return requestJson<OrderResponse>(fetcher, baseUrl, `/api/orders/${orderId}/pay`, {
         method: "POST",
-        token,
-      });
-    },
-    createVnpayPayment(orderId: number, token: string) {
-      return requestJson<VnpayPaymentResponse>(fetcher, baseUrl, `/api/orders/${orderId}/payments/vnpay`, {
-        method: "POST",
-        token,
-      });
-    },
-    getPaymentStatus(orderId: number, token: string) {
-      return requestJson<PaymentStatusDto>(fetcher, baseUrl, `/api/orders/${orderId}/payment-status`, {
         token,
       });
     },

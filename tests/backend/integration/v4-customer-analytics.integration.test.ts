@@ -4,10 +4,6 @@ import type { Server } from "node:http";
 import { after, before, test } from "node:test";
 
 process.env.JWT_SECRET ??= randomBytes(32).toString("hex");
-process.env.PAYMENT_MODE = "mock";
-process.env.VNPAY_TMN_CODE ??= "TESTV4";
-process.env.VNPAY_HASH_SECRET ??= "test-v4-customer-analytics-secret";
-process.env.VNPAY_RETURN_URL ??= "https://merchant.example/api/payments/vnpay/return";
 
 const [{ app }, { prisma }, { signAccessToken }] = await Promise.all([
   import("../../../apps/backend/src/app.js"),
@@ -42,7 +38,6 @@ async function cleanup() {
     const merchantIds = merchants.map(({ id }) => id);
 
     await prisma.orderRefund.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
-    await prisma.paymentAttempt.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
     await prisma.orderVoucherReservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
     await prisma.rewardFulfillment.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
     await prisma.rewardCancellation.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
@@ -54,7 +49,6 @@ async function cleanup() {
     await prisma.memberActivity.deleteMany({ where: { membershipId: { in: membershipIds } } });
     await prisma.orderItem.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
     await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
-    await prisma.merchantFeeTransaction.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.order.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.redemptionIdempotency.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
     await prisma.memberVoucher.deleteMany({ where: { membershipId: { in: membershipIds } } });
@@ -85,7 +79,7 @@ async function request<T>(path: string, method = "GET", token?: string, body?: u
   return { status: response.status, json: (await response.json()) as T };
 }
 
-async function createUser(role: "MEMBER" | "MERCHANT" | "ADMIN") {
+async function createUser(role: "MEMBER" | "MERCHANT") {
   const user = await prisma.user.create({
     data: { email: `v4ca-${randomUUID()}@test.local`, passwordHash: "fixture", role },
   });

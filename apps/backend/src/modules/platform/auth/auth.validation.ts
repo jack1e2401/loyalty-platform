@@ -1,6 +1,5 @@
 import { HttpError } from "../../../lib/http-error.js";
-import { validateExplicitSlug } from "../../merchants/storefront/storefront.slug.js";
-import type { Credentials, MerchantRegistration } from "./auth.types.js";
+import type { Credentials } from "./auth.types.js";
 
 function readObject(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -30,18 +29,6 @@ export function readRegistration(value: unknown): Credentials {
   const credentials = readCredentials(value);
   if (credentials.password.length < 12) throw new HttpError(400, "INVALID_INPUT");
   return credentials;
-}
-
-export function readMerchantRegistration(value: unknown): MerchantRegistration {
-  const input = readObject(value);
-  if (Object.keys(input).some((key) => !["email", "password", "storeName", "slug"].includes(key))) {
-    throw new HttpError(400, "INVALID_INPUT");
-  }
-  const credentials = readRegistration({ email: input.email, password: input.password });
-  const storeName = typeof input.storeName === "string" ? input.storeName.trim() : "";
-  if (storeName.length < 1 || storeName.length > 191) throw new HttpError(400, "INVALID_INPUT");
-  const slug = input.slug !== undefined ? validateExplicitSlug(input.slug) : undefined;
-  return { ...credentials, storeName, ...(slug !== undefined ? { slug } : {}) };
 }
 
 export function readLogin(value: unknown): Credentials {

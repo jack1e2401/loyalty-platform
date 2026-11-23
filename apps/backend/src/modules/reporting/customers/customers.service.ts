@@ -178,7 +178,6 @@ export async function getMerchantCustomerDetail(
       include: {
         items: true,
         pointTransactions: true,
-        paymentAttempt: true,
         refund: true,
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],

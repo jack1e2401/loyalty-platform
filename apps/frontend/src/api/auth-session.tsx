@@ -4,8 +4,6 @@ import type {
   BackendUserDto,
   LoginResponse,
   MemberRegistrationResponse,
-  MerchantRegistrationResponse,
-  ApplicationStatusResponse,
 } from "./contracts/auth";
 import { createAuthClient } from "./auth-client";
 import {
@@ -25,13 +23,6 @@ interface AuthSessionValue {
   accessToken: string | null;
   login(input: { email: string; password: string }): Promise<LoginResponse>;
   registerMember(input: { email: string; password: string }): Promise<MemberRegistrationResponse>;
-  registerMerchant(input: {
-    email: string;
-    password: string;
-    storeName: string;
-    slug?: string;
-  }): Promise<MerchantRegistrationResponse>;
-  checkApplicationStatus(input: { email: string; password: string }): Promise<ApplicationStatusResponse>;
   logout(): void;
 }
 
@@ -58,8 +49,6 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
         return result;
       },
       registerMember: (input) => authApi.registerMember(input),
-      registerMerchant: (input) => authApi.registerMerchant(input),
-      checkApplicationStatus: (input) => authApi.checkApplicationStatus(input),
       logout() {
         clearStoredAuthSession();
         setSession(null);
@@ -82,7 +71,6 @@ export function useAuthSession() {
 }
 
 export function routeForRole(role: BackendRole) {
-  if (role === "ADMIN") return "/admin/applications";
   if (role === "MERCHANT") return "/merchant";
   return "/member";
 }
