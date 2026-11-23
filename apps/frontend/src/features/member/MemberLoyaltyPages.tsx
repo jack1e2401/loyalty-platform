@@ -3,22 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Gift } from "@phosphor-icons/react";
 import { useAuthSession } from "../../api/auth-session";
 import { translateApiError } from "../../api/commerce-http";
-import type { MemberVoucherDto, MemberVoucherStatus, VoucherDefinitionDto } from "../../api/commerce-types";
+import type { VoucherDefinitionDto } from "../../api/commerce-types";
 import { useResource } from "../../api/useResource";
-import {
-  StatusText,
-  Button,
-  BusyLabel,
-  Card,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "../../components/ui";
+import { Button, EmptyState, ErrorState, LoadingState, PageHeader } from "../../components/ui";
 import { MemberMascot } from "./MemberMascot";
 import { MemberLoyaltyPolicyDialog } from "./MemberLoyaltyPolicyDialog";
 import { LoyaltyWalletContent } from "./LoyaltyWalletContent";
-import { commerce, money, useMerchantContext } from "./member-context";
+import { commerce, useMerchantContext } from "./member-context";
+import { OwnedVoucherCard, VoucherDefinitionCard } from "./VoucherCards";
 
 export function MemberWallet() {
   const { merchantId, basePath } = useMerchantContext();
@@ -74,11 +66,17 @@ export function MemberVouchers() {
     [merchantId],
   );
   const owned = useResource(
-    () => isMember && accessToken ? commerce.listMemberVouchers(merchantId, accessToken).then((response) => response.vouchers) : Promise.resolve([]),
+    () =>
+      isMember && accessToken
+        ? commerce.listMemberVouchers(merchantId, accessToken).then((response) => response.vouchers)
+        : Promise.resolve([]),
     [merchantId, isMember, accessToken],
   );
   const wallet = useResource(
-    () => isMember && accessToken ? commerce.getMemberWallet(merchantId, accessToken).then((response) => response.wallet) : Promise.resolve(null),
+    () =>
+      isMember && accessToken
+        ? commerce.getMemberWallet(merchantId, accessToken).then((response) => response.wallet)
+        : Promise.resolve(null),
     [merchantId, isMember, accessToken],
   );
 
@@ -128,7 +126,7 @@ export function MemberVouchers() {
   if (catalog.error || (isMember && (owned.error || wallet.error)))
     return (
       <ErrorState
-          message={catalog.error ?? owned.error ?? wallet.error ?? "Không tải được voucher"}
+        message={catalog.error ?? owned.error ?? wallet.error ?? "Không tải được voucher"}
         retry={() => {
           catalog.reload();
           owned.reload();
@@ -198,32 +196,34 @@ export function MemberVouchers() {
           </div>
         )}
       </section>
-      {isMember && <section>
-        <h2 className="mb-3 text-lg font-extrabold">Voucher của bạn</h2>
-        {!owned.data?.length ? (
-          <EmptyState
-            title="Bạn chưa có voucher"
-            description="Voucher đã đổi tại cửa hàng này sẽ xuất hiện ở đây."
-            action={
-              catalog.data?.length ? (
-                <Button asChild variant="outline">
-                  <a href="#store-vouchers">Xem voucher có thể đổi</a>
-                </Button>
-              ) : (
-                <Button asChild variant="outline">
-                  <Link to={basePath}>Xem gian hàng</Link>
-                </Button>
-              )
-            }
-          />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {owned.data.map((voucher) => (
-              <OwnedVoucherCard key={voucher.id} voucher={voucher} />
-            ))}
-          </div>
-        )}
-      </section>}
+      {isMember && (
+        <section>
+          <h2 className="mb-3 text-lg font-extrabold">Voucher của bạn</h2>
+          {!owned.data?.length ? (
+            <EmptyState
+              title="Bạn chưa có voucher"
+              description="Voucher đã đổi tại cửa hàng này sẽ xuất hiện ở đây."
+              action={
+                catalog.data?.length ? (
+                  <Button asChild variant="outline">
+                    <a href="#store-vouchers">Xem voucher có thể đổi</a>
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline">
+                    <Link to={basePath}>Xem gian hàng</Link>
+                  </Button>
+                )
+              }
+            />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {owned.data.map((voucher) => (
+                <OwnedVoucherCard key={voucher.id} voucher={voucher} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }
@@ -235,9 +235,20 @@ export function MemberRewards() {
   const navigate = useNavigate();
   const isMember = user?.role === "MEMBER" && Boolean(accessToken);
   const resource = useResource(
-    async () => isMember && accessToken
-      ? { owned: (await commerce.listMemberVouchers(merchantId, accessToken)).vouchers.filter((voucher) => voucher.type === "REWARD"), catalog: [] as VoucherDefinitionDto[] }
-      : { owned: [], catalog: (await commerce.listPublicVoucherDefinitions(merchantId)).definitions.filter((voucher) => voucher.type === "REWARD") },
+    async () =>
+      isMember && accessToken
+        ? {
+            owned: (await commerce.listMemberVouchers(merchantId, accessToken)).vouchers.filter(
+              (voucher) => voucher.type === "REWARD",
+            ),
+            catalog: [] as VoucherDefinitionDto[],
+          }
+        : {
+            owned: [],
+            catalog: (await commerce.listPublicVoucherDefinitions(merchantId)).definitions.filter(
+              (voucher) => voucher.type === "REWARD",
+            ),
+          },
     [merchantId, isMember, accessToken],
   );
   return (
@@ -259,104 +270,24 @@ export function MemberRewards() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {isMember ? resource.data?.owned.map((voucher) => <OwnedVoucherCard key={voucher.id} voucher={voucher} />) : resource.data?.catalog.map((voucher) => <VoucherDefinitionCard key={voucher.id} voucher={voucher} busy={false} disabled={false} canRedeem={false} onRedeem={() => navigate(`/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`)} />)}
+          {isMember
+            ? resource.data?.owned.map((voucher) => <OwnedVoucherCard key={voucher.id} voucher={voucher} />)
+            : resource.data?.catalog.map((voucher) => (
+                <VoucherDefinitionCard
+                  key={voucher.id}
+                  voucher={voucher}
+                  busy={false}
+                  disabled={false}
+                  canRedeem={false}
+                  onRedeem={() =>
+                    navigate(
+                      `/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`,
+                    )
+                  }
+                />
+              ))}
         </div>
       )}
     </>
   );
-}
-
-function VoucherDefinitionCard({
-  voucher,
-  busy,
-  disabled,
-  canRedeem,
-  onRedeem,
-}: {
-  voucher: VoucherDefinitionDto;
-  busy: boolean;
-  disabled: boolean;
-  canRedeem: boolean;
-  onRedeem: () => void;
-}) {
-  const redeemLabel = voucher.type === "REWARD" ? "Đổi quà" : "Đổi voucher";
-  return (
-    <Card className="p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-extrabold break-words">{voucher.title}</h3>
-        <StatusText tone="green" className="shrink-0">
-          {voucher.type === "DISCOUNT" ? "Ưu đãi" : "Quà tặng"}
-        </StatusText>
-      </div>
-      <p className="mt-3 text-sm muted break-words">
-        {voucher.type === "DISCOUNT" && voucher.discountAmount
-          ? `Giảm ${money(voucher.discountAmount)}`
-          : voucher.rewardDescription}
-      </p>
-      <p className="mt-4 text-sm font-bold tabular-nums">{voucher.pointsCost.toLocaleString("vi-VN")} điểm</p>
-      <p className="mt-1 text-xs muted">
-        {voucher.availableQuantity === null ? "Có sẵn" : `${voucher.availableQuantity} còn lại`}
-      </p>
-      <Button
-        type="button"
-        className="mt-4 w-full"
-        disabled={disabled}
-        aria-label={`${redeemLabel} “${voucher.title}”`}
-        onClick={onRedeem}
-      >
-        {busy ? <BusyLabel>Đang đổi</BusyLabel> : redeemLabel}
-      </Button>
-      {voucher.availableQuantity !== null && voucher.availableQuantity <= 0 ? (
-        <p className="mt-1.5 text-center text-[11px] text-[#a4473a]">Đã hết hàng</p>
-      ) : !canRedeem ? (
-        <p className="mt-1.5 text-center text-[11px] text-[#97682a]">Chưa đủ điểm để đổi</p>
-      ) : null}
-    </Card>
-  );
-}
-
-function voucherStatusTone(status: MemberVoucherStatus): "neutral" | "green" | "amber" | "red" {
-  if (status === "FULFILLED" || status === "USED") return "neutral";
-  if (status === "CANCELLED") return "red";
-  if (status === "PENDING_FULFILLMENT" || status === "RESERVED") return "amber";
-  return "green";
-}
-
-function OwnedVoucherCard({ voucher }: { voucher: MemberVoucherDto }) {
-  return (
-    <Card className="p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-extrabold break-words">{voucher.title}</h3>
-        <StatusText tone={voucherStatusTone(voucher.status)} className="shrink-0">
-          {voucherStatusLabel(voucher)}
-        </StatusText>
-      </div>
-      <p className="mt-3 text-sm muted break-words">
-        {voucher.type === "DISCOUNT" && voucher.discountAmount
-          ? `Giảm ${money(voucher.discountAmount)}`
-          : voucher.rewardDescription}
-      </p>
-      <p className="mt-4 text-xs muted">
-        Đổi ngày {new Date(voucher.redeemedAt).toLocaleDateString("vi-VN")}
-      </p>
-      {voucher.usedAt && (
-        <p className="mt-1 text-xs muted">
-          Đã sử dụng: {new Date(voucher.usedAt).toLocaleDateString("vi-VN")}
-        </p>
-      )}
-    </Card>
-  );
-}
-
-function voucherStatusLabel(voucher: MemberVoucherDto) {
-  if (voucher.status === "PENDING_FULFILLMENT") return "Chờ cửa hàng trao";
-  if (voucher.status === "CANCELLED") return "Đã hủy";
-  if (voucher.status === "USED") return "Đã sử dụng";
-  if (voucher.status === "FULFILLED") return "Đã trao";
-  if (voucher.status === "RESERVED" || (voucher.status === "AVAILABLE" && voucher.reserved))
-    return "Đang giữ cho đơn chờ";
-  if (voucher.status === "AVAILABLE") {
-    return voucher.type === "REWARD" ? "Chờ cửa hàng trao" : "Còn hiệu lực";
-  }
-  return voucher.status;
 }

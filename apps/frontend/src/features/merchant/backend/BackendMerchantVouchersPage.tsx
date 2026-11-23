@@ -14,8 +14,8 @@ import {
   PageHeader,
   Select,
 } from "../../../components/ui";
-import { MerchantVoucherTableRow } from "../MerchantVoucherTableRow";
 import { api, message, useToken } from "../merchant-page-support";
+import { MerchantVouchersTable } from "../MerchantVouchersTable";
 
 export function MerchantVouchers() {
   const token = useToken();
@@ -253,55 +253,13 @@ export function MerchantVouchers() {
           description="Tạo voucher đầu tiên cho chương trình của cửa hàng."
         />
       ) : (
-        <div className="surface overflow-x-auto rounded-3xl">
-          <table
-            aria-label="Danh sách voucher"
-            className="w-full min-w-[760px] table-fixed border-collapse text-left"
-          >
-            <colgroup>
-              <col className="w-[28%]" />
-              <col className="w-[13%]" />
-              <col className="w-[12%]" />
-              <col className="w-[23%]" />
-              <col className="w-[16%]" />
-              <col className="w-[8%]" />
-            </colgroup>
-            <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
-              <tr>
-                <th scope="col" className="px-5 py-4">
-                  Voucher
-                </th>
-                <th scope="col" className="px-4 py-4">
-                  Loại
-                </th>
-                <th scope="col" className="px-4 py-4">
-                  Điểm đổi
-                </th>
-                <th scope="col" className="px-4 py-4">
-                  Số lượng
-                </th>
-                <th scope="col" className="px-4 py-4">
-                  Trạng thái
-                </th>
-                <th scope="col" className="px-4 py-4">
-                  <span className="sr-only">Thao tác</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {resource.data.map((definition) => (
-                <MerchantVoucherTableRow
-                  key={definition.id}
-                  definition={definition}
-                  token={token}
-                  statusBusy={busyId !== null}
-                  onToggle={() => toggle(definition)}
-                  onDefinitionChange={updateDefinition}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <MerchantVouchersTable
+          definitions={resource.data}
+          token={token}
+          busyId={busyId}
+          onToggle={toggle}
+          onDefinitionChange={updateDefinition}
+        />
       )}
     </>
   );

@@ -2,7 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Storefront } from "@phosphor-icons/react";
 import { useResource } from "../../api/useResource";
 import { Button, Card, EmptyState, ErrorState, LoadingState, PageHeader } from "../../components/ui";
-import { productStockDisplay } from "../storefront/storefront-stock";
+import { productStockDisplay } from "../storefront/shared/storefront-stock";
 import { commerce, money, useMerchantContext } from "./member-context";
 
 export function MemberStorefront() {

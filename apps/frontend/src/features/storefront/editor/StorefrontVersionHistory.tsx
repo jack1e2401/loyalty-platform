@@ -1,6 +1,6 @@
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
-import type { StorefrontVersionSummaryDto } from "../../api/storefront-types";
-import { BusyLabel, Button, Card, StatusText } from "../../components/ui";
+import type { StorefrontVersionSummaryDto } from "../../../api/storefront-types";
+import { BusyLabel, Button, Card, StatusText } from "../../../components/ui";
 
 function sourceLabel(source: StorefrontVersionSummaryDto["source"]): string {
   switch (source) {
@@ -32,7 +32,10 @@ export function StorefrontVersionHistory({
       ) : (
         <ul className="mt-4 divide-y divide-[#e8ece5]">
           {versions.map((version) => (
-            <li key={version.id} className="flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <li
+              key={version.id}
+              className="flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+            >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-extrabold text-[#24452f]">Phiên bản v{version.version}</span>
@@ -41,9 +44,7 @@ export function StorefrontVersionHistory({
                   </StatusText>
                 </div>
                 {version.note && <p className="mt-1 text-sm text-[#405b47] break-words">{version.note}</p>}
-                <p className="mt-1 text-xs muted">
-                  {new Date(version.publishedAt).toLocaleString("vi-VN")}
-                </p>
+                <p className="mt-1 text-xs muted">{new Date(version.publishedAt).toLocaleString("vi-VN")}</p>
               </div>
               {!version.isPublished && (
                 <Button

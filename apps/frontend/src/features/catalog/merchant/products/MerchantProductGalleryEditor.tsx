@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Plus, Trash } from "@phosphor-icons/react";
-import { Button, Input } from "../../components/ui";
+import { Button, Input } from "../../../../components/ui";
 
 export type GalleryDraft = { url: string; altText: string };
 
@@ -37,27 +37,16 @@ export function MerchantProductGalleryEditor({ images, onChange }: Props) {
         <span className="text-sm font-semibold text-[#294432]">
           Thư viện ảnh (tối đa 10, ảnh đầu tiên là ảnh chính)
         </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={images.length >= 10}
-          onClick={addRow}
-        >
+        <Button type="button" size="sm" variant="outline" disabled={images.length >= 10} onClick={addRow}>
           <Plus size={14} /> Thêm ảnh
         </Button>
       </div>
       {images.length === 0 ? (
-        <p className="text-xs muted">
-          Chưa có ảnh. Hỗ trợ https://, http://, /images/... hoặc /uploads/...
-        </p>
+        <p className="text-xs muted">Chưa có ảnh. Hỗ trợ https://, http://, /images/... hoặc /uploads/...</p>
       ) : (
         <div className="space-y-2">
           {images.map((img, index) => (
-            <div
-              key={index}
-              className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#f7f9f5] p-2.5"
-            >
+            <div key={index} className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#f7f9f5] p-2.5">
               <Input
                 type="text"
                 aria-label={`URL ảnh ${index + 1}`}

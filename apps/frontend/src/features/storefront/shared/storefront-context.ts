@@ -5,8 +5,8 @@ import type {
   StorefrontEventDto,
   StorefrontMerchantSummaryDto,
   StorefrontProductDto,
-} from "../../api/storefront-types";
-import type { useMemberCart } from "../member/useMemberCart";
+} from "../../../api/storefront-types";
+import type { useMemberCart } from "../../member/useMemberCart";
 
 export interface StorefrontShellData {
   merchant: StorefrontMerchantSummaryDto;

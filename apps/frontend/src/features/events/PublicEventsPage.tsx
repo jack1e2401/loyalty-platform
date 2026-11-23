@@ -7,7 +7,7 @@ import { resolveStorefrontAssetUrl } from "../../api/storefront-client";
 import { useResource } from "../../api/useResource";
 import { Button, Card, EmptyState, ErrorState, LoadingState } from "../../components/ui";
 import { useEnsureMembership } from "../customers/useEnsureMembership";
-import { useStorefrontShell } from "../storefront/storefront-context";
+import { useStorefrontShell } from "../storefront/shared/storefront-context";
 import { formatEventSchedule } from "./event-format";
 
 const eventsApi = createEventsClient();

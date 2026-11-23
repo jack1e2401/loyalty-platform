@@ -4,7 +4,7 @@ import type { ProductDto } from "../../api/commerce-types";
 import { resolveStorefrontAssetUrl } from "../../api/storefront-client";
 import type { StorefrontProductDto } from "../../api/storefront-types";
 import { money } from "../../lib/utils";
-import { productStockDisplay } from "./storefront-stock";
+import { productStockDisplay } from "./shared/storefront-stock";
 
 type CardProduct = StorefrontProductDto | ProductDto;
 
@@ -85,7 +85,10 @@ export function StorefrontProductCard({
 
         <div className="mt-auto pt-2.5">
           <div className="flex items-center justify-between gap-1.5">
-            <p className="min-w-0 truncate text-sm font-extrabold tabular-nums sm:text-base" style={{ color: accent }}>
+            <p
+              className="min-w-0 truncate text-sm font-extrabold tabular-nums sm:text-base"
+              style={{ color: accent }}
+            >
               {money(Number(product.price))}
             </p>
             <button
@@ -102,7 +105,9 @@ export function StorefrontProductCard({
               </span>
             </button>
           </div>
-          <p className={`mt-1 min-h-4 whitespace-nowrap text-[10px] font-medium leading-4 ${stockDisplay.textClass}`}>
+          <p
+            className={`mt-1 min-h-4 whitespace-nowrap text-[10px] font-medium leading-4 ${stockDisplay.textClass}`}
+          >
             {stockDisplay.label}
           </p>
         </div>

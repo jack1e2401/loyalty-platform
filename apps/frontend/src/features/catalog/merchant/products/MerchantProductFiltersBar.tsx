@@ -1,7 +1,12 @@
 import type { FormEvent } from "react";
 import { Button, Checkbox, Form, Input, Select } from "antd";
-import type { ProductCategoryDto, ProductKind, ProductSortOption, ProductStatus } from "../../api/commerce-types";
-import { CmsFilterBar } from "./cms";
+import type {
+  ProductCategoryDto,
+  ProductKind,
+  ProductSortOption,
+  ProductStatus,
+} from "../../../../api/commerce-types";
+import { CmsFilterBar } from "../../../merchant/cms";
 
 type Props = {
   qInput: string;
@@ -42,7 +47,10 @@ export function MerchantProductFiltersBar(props: Props) {
           className="w-full"
           value={props.categoryFilter}
           onChange={props.onCategoryFilterChange}
-          options={[{ value: "", label: "Tất cả danh mục" }, ...props.categories.map((category) => ({ value: String(category.id), label: category.name }))]}
+          options={[
+            { value: "", label: "Tất cả danh mục" },
+            ...props.categories.map((category) => ({ value: String(category.id), label: category.name })),
+          ]}
         />
       </label>
       <label className="min-w-40 text-xs text-[#59685e]">
@@ -52,7 +60,11 @@ export function MerchantProductFiltersBar(props: Props) {
           className="w-full"
           value={props.statusFilter}
           onChange={props.onStatusFilterChange}
-          options={[{ value: "", label: "Tất cả trạng thái" }, { value: "ACTIVE", label: "Đang hoạt động" }, { value: "HIDDEN", label: "Đã ẩn" }]}
+          options={[
+            { value: "", label: "Tất cả trạng thái" },
+            { value: "ACTIVE", label: "Đang hoạt động" },
+            { value: "HIDDEN", label: "Đã ẩn" },
+          ]}
         />
       </label>
       <label className="min-w-36 text-xs text-[#59685e]">
@@ -62,7 +74,11 @@ export function MerchantProductFiltersBar(props: Props) {
           className="w-full"
           value={props.kindFilter}
           onChange={props.onKindFilterChange}
-          options={[{ value: "", label: "Tất cả loại" }, { value: "SALE", label: "Bán" }, { value: "REWARD", label: "Đổi thưởng" }]}
+          options={[
+            { value: "", label: "Tất cả loại" },
+            { value: "SALE", label: "Bán" },
+            { value: "REWARD", label: "Đổi thưởng" },
+          ]}
         />
       </label>
       <label className="min-w-36 text-xs text-[#59685e]">
@@ -72,10 +88,18 @@ export function MerchantProductFiltersBar(props: Props) {
           className="w-full"
           value={props.sort}
           onChange={props.onSortChange}
-          options={[{ value: "newest", label: "Mới nhất" }, { value: "price_asc", label: "Giá tăng dần" }, { value: "price_desc", label: "Giá giảm dần" }, { value: "name_asc", label: "Tên A–Z" }]}
+          options={[
+            { value: "newest", label: "Mới nhất" },
+            { value: "price_asc", label: "Giá tăng dần" },
+            { value: "price_desc", label: "Giá giảm dần" },
+            { value: "name_asc", label: "Tên A–Z" },
+          ]}
         />
       </label>
-      <Checkbox checked={props.lowStockOnly} onChange={(event) => props.onLowStockOnlyChange(event.target.checked)}>
+      <Checkbox
+        checked={props.lowStockOnly}
+        onChange={(event) => props.onLowStockOnlyChange(event.target.checked)}
+      >
         Sắp hết hàng
       </Checkbox>
     </CmsFilterBar>

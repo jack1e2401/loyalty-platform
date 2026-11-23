@@ -38,7 +38,7 @@ import {
 } from "../features/merchant/BackendMerchantPages";
 import { MerchantCategoriesPage } from "../features/merchant/MerchantCategoriesPage";
 import { MerchantInventoryPage } from "../features/merchant/MerchantInventoryPage";
-import { MerchantProductEditorPage } from "../features/merchant/MerchantProductEditorPage";
+import { MerchantProductEditorPage } from "../features/catalog/merchant/products/MerchantProductEditorPage";
 import { MerchantCustomersPage } from "../features/customers/MerchantCustomersPage";
 import { MerchantCustomerDetailPage } from "../features/customers/MerchantCustomerDetailPage";
 import { MerchantAnalyticsPage } from "../features/analytics/MerchantAnalyticsPage";
@@ -77,7 +77,18 @@ import { RewardsHubLayout } from "../features/storefront/RewardsHubLayout";
 const useBackend = import.meta.env.VITE_API_MODE !== "mock";
 
 export function App() {
-  return <AuthSessionProvider>{useBackend ? <><ChallengeLimitAnnouncement /><BackendRoutes /></> : <DemoRoutes />}</AuthSessionProvider>;
+  return (
+    <AuthSessionProvider>
+      {useBackend ? (
+        <>
+          <ChallengeLimitAnnouncement />
+          <BackendRoutes />
+        </>
+      ) : (
+        <DemoRoutes />
+      )}
+    </AuthSessionProvider>
+  );
 }
 
 function BackendRoutes() {
@@ -230,13 +241,7 @@ function DemoWelcome() {
 
 function Welcome() {
   const { user } = useAuthSession();
-  if (user)
-    return (
-      <Navigate
-        to={user.role === "MERCHANT" ? "/merchant" : "/member"}
-        replace
-      />
-    );
+  if (user) return <Navigate to={user.role === "MERCHANT" ? "/merchant" : "/member"} replace />;
   return (
     <main className="min-h-dvh overflow-x-clip bg-[#f5f5ef] px-5 py-6 sm:px-9 sm:py-8">
       <div className="mx-auto max-w-7xl">
@@ -273,9 +278,7 @@ function LandingHeader({ demo = false }: { demo?: boolean }) {
         </span>
         loyalty<span className="text-[#89b461]">.</span>
       </Link>
-      {demo ? (
-        <span className="text-sm font-medium text-[#55705b]">Mua sắm thân quen</span>
-      ) : null}
+      {demo ? <span className="text-sm font-medium text-[#55705b]">Mua sắm thân quen</span> : null}
     </header>
   );
 }

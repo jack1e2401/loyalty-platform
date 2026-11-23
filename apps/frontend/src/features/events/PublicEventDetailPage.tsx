@@ -6,7 +6,7 @@ import { resolveStorefrontAssetUrl } from "../../api/storefront-client";
 import { useResource } from "../../api/useResource";
 import { Button, Card, ErrorState, LoadingState } from "../../components/ui";
 import { useEnsureMembership } from "../customers/useEnsureMembership";
-import { useStorefrontShell } from "../storefront/storefront-context";
+import { useStorefrontShell } from "../storefront/shared/storefront-context";
 import { formatEventSchedule } from "./event-format";
 
 const eventsApi = createEventsClient();
@@ -17,10 +17,7 @@ export function PublicEventDetailPage() {
   const shell = useStorefrontShell();
   useEnsureMembership({ slug, enabled: !shell });
 
-  const resource = useResource(
-    () => eventsApi.getPublicStoreEvent(slug, eventSlug),
-    [slug, eventSlug],
-  );
+  const resource = useResource(() => eventsApi.getPublicStoreEvent(slug, eventSlug), [slug, eventSlug]);
 
   const event = resource.data?.event;
   const content = (
@@ -70,9 +67,7 @@ export function PublicEventDetailPage() {
                 <CalendarBlank size={18} weight="light" className="mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
                   <p className="text-xs font-bold text-[#5d6f62]">Thời gian</p>
-                  <p className="mt-0.5 font-semibold">
-                    {formatEventSchedule(event.startAt, event.endAt)}
-                  </p>
+                  <p className="mt-0.5 font-semibold">{formatEventSchedule(event.startAt, event.endAt)}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
@@ -89,9 +84,7 @@ export function PublicEventDetailPage() {
 
             <div className="border-t border-[#e7ede6] pt-6">
               <h2 className="mb-3 text-base font-extrabold text-[#20392a]">Thông tin chi tiết</h2>
-              <p className="whitespace-pre-line text-base leading-7 text-[#34493b]">
-                {event.description}
-              </p>
+              <p className="whitespace-pre-line text-base leading-7 text-[#34493b]">{event.description}</p>
             </div>
           </div>
         </Card>
