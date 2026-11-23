@@ -1,0 +1,344 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - text: For the complete documentation index, see
+    - link "llms.txt" [ref=e3] [cursor=pointer]:
+      - /url: https://huongdan.cnvloyalty.com/llms.txt
+    - text: . Markdown versions of documentation pages are available by appending
+    - code [ref=e4]: .md
+    - text: to page URLs.
+  - link "Skip to content" [ref=e5] [cursor=pointer]:
+    - /url: "#gitbook-main-content"
+  - banner [ref=e6]:
+    - generic [ref=e9]:
+      - link "Tài liệu hướng dẫn sử dụng CNV Loyalty HUB" [ref=e11] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e14]:
+        - generic [ref=e16]:
+          - textbox "Search" [ref=e20]:
+            - /placeholder: Search…
+          - generic [ref=e22]:
+            - generic [ref=e23]: Ctrl
+            - generic [ref=e25]: k
+        - alert [ref=e26]
+  - generic [ref=e28]:
+    - complementary [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - list [ref=e33]:
+            - listitem [ref=e34]:
+              - button "Khái niệm về loyalty" [expanded] [ref=e36] [cursor=pointer]
+              - list [ref=e40]:
+                - listitem [ref=e41]:
+                  - link "Tổng quan về Loyalty" [ref=e42] [cursor=pointer]:
+                    - /url: /
+            - listitem [ref=e44]:
+              - button "Loyalty Success" [expanded] [ref=e46] [cursor=pointer]
+              - list [ref=e50]:
+                - listitem [ref=e51]:
+                  - link [ref=e52] [cursor=pointer]:
+                    - /url: /loyalty-success/loyalty-101-thiet-lap-chuong-trinh-loyalty-cho-thuong-hieu
+                    - button "Loyalty 101 - Thiết lập chương trình Loyalty cho thương hiệu" [ref=e54]
+                - listitem [ref=e57]:
+                  - link [ref=e58] [cursor=pointer]:
+                    - /url: /loyalty-success/chien-luoc-trien-khai-loyalty
+                    - button "Chiến lược triển khai Loyalty" [ref=e60]
+            - listitem [ref=e63]:
+              - button "Tính năng" [expanded] [ref=e65] [cursor=pointer]
+              - list [ref=e69]:
+                - listitem [ref=e70]:
+                  - link "Tổng quan" [ref=e71] [cursor=pointer]:
+                    - /url: /tinh-nang/tong-quan
+                - listitem [ref=e73]:
+                  - link [ref=e74] [cursor=pointer]:
+                    - /url: /tinh-nang/loyalty
+                    - button "Loyalty" [ref=e76]
+                - listitem [ref=e79]:
+                  - link [ref=e80] [cursor=pointer]:
+                    - /url: /tinh-nang/don-hang
+                    - button "Đơn hàng" [ref=e82]
+                - listitem [ref=e85]:
+                  - link [ref=e86] [cursor=pointer]:
+                    - /url: /tinh-nang/van-chuyen
+                    - button "Vận chuyển" [ref=e88]
+                - listitem [ref=e91]:
+                  - link [ref=e92] [cursor=pointer]:
+                    - /url: /tinh-nang/san-pham
+                    - button "Sản phẩm" [ref=e94]
+                - listitem [ref=e97]:
+                  - link [ref=e98] [cursor=pointer]:
+                    - /url: /tinh-nang/khach-hang
+                    - button "Khách hàng" [ref=e100]
+                - listitem [ref=e103]:
+                  - link [ref=e104] [cursor=pointer]:
+                    - /url: /tinh-nang/bao-cao
+                    - button "Báo cáo" [ref=e106]
+                - listitem [ref=e109]:
+                  - link [ref=e110] [cursor=pointer]:
+                    - /url: /tinh-nang/noi-dung
+                    - button "Nội dung" [ref=e112]
+                - listitem [ref=e115]:
+                  - link [ref=e116] [cursor=pointer]:
+                    - /url: /tinh-nang/automation-ver.-2
+                    - button "Automation Ver. 2" [ref=e118]
+                - listitem [ref=e121]:
+                  - link [ref=e122] [cursor=pointer]:
+                    - /url: /tinh-nang/gamification
+                    - button "Gamification" [ref=e124]
+                - listitem [ref=e127]:
+                  - link [ref=e128] [cursor=pointer]:
+                    - /url: /tinh-nang/apps-kho-ung-dung
+                    - button "Apps - Kho ứng dụng" [ref=e130]
+                - listitem [ref=e133]:
+                  - link [ref=e134] [cursor=pointer]:
+                    - /url: /tinh-nang/cau-hinh
+                    - button "Cấu hình" [ref=e136]
+                - listitem [ref=e139]:
+                  - link "App Loyalty HUB" [ref=e140] [cursor=pointer]:
+                    - /url: /tinh-nang/app-loyalty-hub
+            - listitem [ref=e142]:
+              - button "Kênh bán hàng" [expanded] [ref=e144] [cursor=pointer]
+              - list [ref=e148]:
+                - listitem [ref=e149]:
+                  - link [ref=e150] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/social-loyalty
+                    - button "Social Loyalty" [ref=e152]
+                - listitem [ref=e155]:
+                  - link [ref=e156] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/loyalty-app
+                    - button "Loyalty App" [ref=e158]
+                - listitem [ref=e161]:
+                  - link [ref=e162] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/order-loyalty
+                    - button "Order Loyalty" [ref=e164]
+                - listitem [ref=e167]:
+                  - link [ref=e168] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/web-loyalty
+                    - button "Web Loyalty" [ref=e170]
+            - listitem [ref=e173]:
+              - button "Kết nối" [expanded] [ref=e175] [cursor=pointer]
+              - list [ref=e179]:
+                - listitem [ref=e180]:
+                  - link [ref=e181] [cursor=pointer]:
+                    - /url: /ket-noi/tai-khoan-apple-developer-program
+                    - button "Tài khoản APPLE DEVELOPER PROGRAM" [ref=e183]
+                - listitem [ref=e186]:
+                  - link [ref=e187] [cursor=pointer]:
+                    - /url: /ket-noi/tai-khoan-google-play
+                    - button "Tài khoản GOOGLE PLAY" [ref=e189]
+            - listitem [ref=e192]:
+              - button "Ứng dụng hỗ trợ vận hành" [expanded] [ref=e194] [cursor=pointer]
+              - list [ref=e198]:
+                - listitem [ref=e199]:
+                  - link [ref=e200] [cursor=pointer]:
+                    - /url: /ung-dung-ho-tro-van-hanh/loyalty-hub-app
+                    - button "Loyalty HUB App" [ref=e202]
+          - button "Scroll back"
+          - button "Scroll further"
+        - link "Powered by GitBook" [ref=e205] [cursor=pointer]:
+          - /url: https://www.gitbook.com/powered-by?utm_source=content&utm_medium=trademark&utm_campaign=-MaSrApVr5L1rdZPZEAx&utm_content=site_c40tL
+    - generic [ref=e210]:
+      - complementary [ref=e211]:
+        - generic [ref=e212]:
+          - button "On this page" [ref=e214] [cursor=pointer]
+          - list [ref=e219]:
+            - listitem [ref=e220]:
+              - link "Loyalty là gì?" [ref=e221] [cursor=pointer]:
+                - /url: "#loyalty-la-gi"
+            - listitem [ref=e222]:
+              - link "3 lợi ích mà Khách hàng trung thành mang đến cho Doanh nghiệp" [ref=e223] [cursor=pointer]:
+                - /url: "#id-3-loi-ich-ma-khach-hang-trung-thanh-mang-den-cho-doanh-nghiep"
+            - listitem [ref=e224]:
+              - link "Gia tăng giá trị thương hiệu" [ref=e225] [cursor=pointer]:
+                - /url: "#gia-tang-gia-tri-thuong-hieu"
+            - listitem [ref=e226]:
+              - link "Thúc đẩy doanh số bán hàng vượt bậc" [ref=e227] [cursor=pointer]:
+                - /url: "#thuc-day-doanh-so-ban-hang-vuot-bac"
+            - listitem [ref=e228]:
+              - link "Mở rộng thị phần trong ngành" [ref=e229] [cursor=pointer]:
+                - /url: "#mo-rong-thi-phan-trong-nganh"
+            - listitem [ref=e230]:
+              - link "Tại sao Brand Loyalty lại quan trọng trong thời đại 4.0 hiện nay?" [ref=e231] [cursor=pointer]:
+                - /url: "#tai-sao-brand-loyalty-lai-quan-trong-trong-thoi-dai-4.0-hien-nay"
+            - listitem [ref=e232]:
+              - link "Giải pháp gia tăng tỷ lệ khách hàng quay trở lại - Loyalty Marketing" [ref=e233] [cursor=pointer]:
+                - /url: "#giai-phap-gia-tang-ty-le-khach-hang-quay-tro-lai-loyalty-marketing"
+            - listitem [ref=e234]:
+              - link "Top 4 chương trình khách hàng thân thiết đang được ưu chuộng nhất hiện nay" [ref=e235] [cursor=pointer]:
+                - /url: "#top-4-chuong-trinh-khach-hang-than-thiet-dang-duoc-uu-chuong-nhat-hien-nay"
+            - listitem [ref=e236]:
+              - link "Chương trình mua hàng tích điểm" [ref=e237] [cursor=pointer]:
+                - /url: "#chuong-trinh-mua-hang-tich-diem"
+            - listitem [ref=e238]:
+              - link "Chương trình mua sắm hoàn tiền" [ref=e239] [cursor=pointer]:
+                - /url: "#chuong-trinh-mua-sam-hoan-tien"
+            - listitem [ref=e240]:
+              - link "Chương trình cấp bậc hạng thành viên" [ref=e241] [cursor=pointer]:
+                - /url: "#chuong-trinh-cap-bac-hang-thanh-vien"
+            - listitem [ref=e242]:
+              - link "Chương trình khách hàng thu phí thường niên" [ref=e243] [cursor=pointer]:
+                - /url: "#chuong-trinh-khach-hang-thu-phi-thuong-nien"
+            - listitem [ref=e244]:
+              - link "Những công cụ hỗ trợ Doanh nghiệp xây dựng cộng đồng khách hàng trung thành" [ref=e245] [cursor=pointer]:
+                - /url: "#nhung-cong-cu-ho-tro-doanh-nghiep-xay-dung-cong-dong-khach-hang-trung-thanh"
+            - listitem [ref=e246]:
+              - link "CNV Loyalty - nền tảng kiến tạo khách hàng trung thành hiệu quả nhất Việt Nam" [ref=e247] [cursor=pointer]:
+                - /url: "#cnv-loyalty-nen-tang-kien-tao-khach-hang-trung-thanh-hieu-qua-nhat-viet-nam"
+      - main [ref=e248]:
+        - generic [ref=e249]:
+          - generic [ref=e250]:
+            - generic [ref=e252]:
+              - button "Copy" [ref=e253] [cursor=pointer]
+              - button "More" [ref=e257] [cursor=pointer]
+            - navigation "Breadcrumb" [ref=e260]:
+              - list [ref=e261]:
+                - listitem [ref=e262]:
+                  - link "Khái niệm về loyalty" [ref=e263] [cursor=pointer]:
+                    - /url: /
+            - heading "Tổng quan về Loyalty" [level=1] [ref=e264]
+          - generic [ref=e266]:
+            - heading [level=2] [ref=e267]:
+              - strong [ref=e269]: Loyalty là gì?
+              - link "Direct link to heading" [ref=e271] [cursor=pointer]:
+                - /url: "#loyalty-la-gi"
+            - paragraph [ref=e278]: Loyalty (Lòng trung thành của khách hàng) là sự mô tả mối quan hệ giữa Doanh nghiệp và khách hàng, thông qua qua mức độ tương tác, sự hài lòng và sẵn sàng sử dụng sản phẩm/ dịch vụ của Doanh nghiệp nhiều lần hơn so với đối thủ cạnh tranh. Loyalty chính là hệ quả của sự hài lòng, phối hợp nhịp nhàng của toàn thể doanh nghiệp trong các dịch vụ chăm sóc khách hàng.
+            - paragraph [ref=e279]: Mục tiêu cuối cùng mà doanh nghiệp muốn hướng đến trong việc sử dụng Loyalty đó chính là kiến tạo một cộng đồng khách hàng trung thành chất lượng nhất.
+            - paragraph [ref=e280]: Nếu như trước đây, sản phẩm là yếu tố quan trọng quyết định sự thành bại của một mô hình kinh doanh thì trong thời đại này, lòng trung thành của khách hàng chính là thước đo cho sự thành công, mức độ tăng trưởng và giá trị thương hiệu của một doanh nghiệp.
+            - paragraph [ref=e281]: "Loyalty là một chủ đề rộng lớn, trong đó gồm có các hoạt động/ chiến lược khác nhằm đạt được mục tiêu về kiến tạo khách hàng trung thành như:"
+            - list [ref=e282]:
+              - listitem [ref=e283]:
+                - generic [ref=e284]: "1."
+                - paragraph [ref=e287]: Loyalty Program (chương trình khách hàng thân thiết)
+              - listitem [ref=e288]:
+                - generic [ref=e289]: "2."
+                - paragraph [ref=e292]: Brand Loyalty (Lòng trung thành thương hiệu)
+              - listitem [ref=e293]:
+                - generic [ref=e294]: "3."
+                - paragraph [ref=e297]: Loyalty Marketing (Truyền thông lòng trung thành)
+            - heading [level=2] [ref=e298]:
+              - strong [ref=e300]: 3 lợi ích mà Khách hàng trung thành mang đến cho Doanh nghiệp
+              - link "Direct link to heading" [ref=e302] [cursor=pointer]:
+                - /url: "#id-3-loi-ich-ma-khach-hang-trung-thanh-mang-den-cho-doanh-nghiep"
+            - paragraph [ref=e305]: Trong phần này, CNV Loyalty sẽ liệt kê 3 lợi ích to lớn nhất mà Doanh nghiệp có thể nhận được nếu thực hiện tốt các hoạt động về Loyalty.
+            - heading [level=2] [ref=e310]:
+              - strong [ref=e312]: Gia tăng giá trị thương hiệu
+              - link "Direct link to heading" [ref=e314] [cursor=pointer]:
+                - /url: "#gia-tang-gia-tri-thuong-hieu"
+            - paragraph [ref=e317]: Có thể các doanh nghiệp chưa biết nhưng,
+            - paragraph [ref=e318]: Giá trị thương hiệu tăng tỷ lệ thuận với số lượng thành viên trong cộng đồng khách hàng trung thành của Doanh nghiệp.
+            - paragraph [ref=e319]: Ví dụ điển mình mà chúng ta có thể thấy rõ ràng nhất đó chính là Adiddas và Nike, đặc biệt hơn hết là Apple và Samsung. Tất cả những doanh nghiệp này đều sở hữu một lượng Fan cực kỳ trung thành và đông đảo hơn bất kỳ doanh nghiệp nào khác trong cùng phân khúc và thị trường của họ.
+            - paragraph [ref=e320]: Việc xây dựng cộng đồng khách hàng trung thành được ví như một cuộc đua Marathon bền bỉ và kiên định với con đường mình đã chọn nhưng thành quả mà Doanh nghiệp nhận được cũng rất tương xứng với những nỗ lực đã bỏ ra.
+            - heading [level=2] [ref=e321]:
+              - strong [ref=e323]: Thúc đẩy doanh số bán hàng vượt bậc
+              - link "Direct link to heading" [ref=e325] [cursor=pointer]:
+                - /url: "#thuc-day-doanh-so-ban-hang-vuot-bac"
+            - paragraph [ref=e328]: Như trong phần giải thích định nghĩa, lòng trung thành được thể hiện qua hành vi sử dụng sản phẩm/ dịch vụ của doanh nghiệp nhiều lần. Điều này đồng nghĩa với việc, doanh số bán hàng sẽ được duy trì ở một mức độ nhất định ở cả những sản phẩm cũ và sản phẩm mới tung ra thị trường.
+            - paragraph [ref=e329]: Hiệu quả thúc đẩy doanh số bán hàng cũng chính là kết quả đến từ hiệu ứng Marketing truyền miệng đến từ khách hàng trung thành, họ sẽ giúp doanh nghiệp truyền thông những lời hay ý đẹp về sản phẩm cũng như dịch vụ chăm sóc khách hàng đến với gia đình, bạn bè và cộng đồng riêng của họ.
+            - heading [level=2] [ref=e330]:
+              - strong [ref=e332]: Mở rộng thị phần trong ngành
+              - link "Direct link to heading" [ref=e334] [cursor=pointer]:
+                - /url: "#mo-rong-thi-phan-trong-nganh"
+            - paragraph [ref=e337]: Đây cũng chỉ là một hệ quả tất yếu đến từ lòng trung thành của khách hàng cũng như các hiệu ứng về mặt truyền thông mang đến cho thương hiệu.
+            - paragraph [ref=e338]: Một cộng đồng khách hàng trung thành đông đảo
+            - paragraph [ref=e339]: Cùng với một chiến lược truyền thông khách hàng mới hiệu quả
+            - paragraph [ref=e340]: Tất cả sẽ giúp doanh nghiệp nhanh chóng đạt được các mục tiêu về mở rộng thị phần trong ngành hiện nay và hỗ trợ nhiều hơn trong việc tăng trưởng thị phần của các sản phẩm mới chuẩn bị được tung ra thị trường.
+            - heading [level=2] [ref=e341]:
+              - strong [ref=e343]: Tại sao Brand Loyalty lại quan trọng trong thời đại 4.0 hiện nay?
+              - link "Direct link to heading" [ref=e345] [cursor=pointer]:
+                - /url: "#tai-sao-brand-loyalty-lai-quan-trong-trong-thoi-dai-4.0-hien-nay"
+            - paragraph [ref=e348]: Về mặt định nghĩa, Brand Loyalty là các quyết định dựa trên cảm xúc, một hành vi tiêu dùng cụ thể của người tiêu dùng nhằm sử dụng sản phẩm/dịch vụ của một thương hiệu nhiều lần. Người tiêu dùng cũng nhận thức được rằng, thương hiệu này có thể đáp ứng những kỳ vọng về mặt tính năng, lợi ích và hơn hết, giá trị cốt lõi giữa thương hiệu và người tiêu dùng cũng được đồng nhất với nhau.
+            - paragraph [ref=e353]: Các công ty có khách hàng trung thành với thương hiệu mạnh thì dù cho có bất kỳ sự thay đổi nào về mặt giá cả hay sự tiện lợi đều sẽ không ảnh hưởng quá nhiều đến hành vi mua sắm nhiều lần đối với các sản phẩm/ dịch vụ của thương hiệu đó. sẽ mua hàng nhiều lần các sản phẩm và dịch vụ của họ bất kể thực tế là có sự thay đổi về giá cả hoặc sự tiện lợi. Khách hàng trung thành của một thương hiệu.
+            - paragraph [ref=e354]: Bên cạnh đó, Brand Loyalty cũng sẽ giúp Doanh nghiệp cản trở các yếu tố ngoại vi đến từ các đối thủ cạnh tranh khác nhằm mục đích lôi kéo, thay đổi hành vi sử dụng sản phẩm/dịch vụ của người tiêu dùng.
+            - paragraph [ref=e355]: Một phương pháp đang được rất nhiều doanh nghiệp áp dụng nhằm nuôi dưỡng và duy trì lòng trung thành với thương hiệu của khách hàng thông qua các hoạt động tổ chức các chương trình khách hàng thân thiết tại các điểm bán offline và các kênh mua sắm Online.
+            - heading [level=2] [ref=e356]:
+              - strong [ref=e358]: Giải pháp gia tăng tỷ lệ khách hàng quay trở lại - Loyalty Marketing
+              - link "Direct link to heading" [ref=e360] [cursor=pointer]:
+                - /url: "#giai-phap-gia-tang-ty-le-khach-hang-quay-tro-lai-loyalty-marketing"
+            - paragraph [ref=e363]: Loyalty Marketing là một chiến lược truyền thông được xây dựng xung quanh việc phát triển và giữ chân khách hàng trung thành hiện tại thông qua các ưu đãi như mua hàng tích điểm, đổi quà tặng, tặng voucher giảm giá,... Các nỗ lực trong việc sử dụng chiến lược về Loyalty Marketing đều nhắm đến việc xây dựng lòng tin, sự tương tác để khách hàng tiếp tục gắn bó và trung thành với Doanh nghiệp.
+            - paragraph [ref=e368]: Loyalty Marketing còn hỗ trợ doanh nghiệp trong việc khiến khách hàng quay trở lại với Doanh nghiệp để chi tiêu nhiều hơn và gia tăng chỉ số về vòng đời khách hàng (CVL). Ở một số các mặt hàng về may mặc thì lần mua thứ 5 của một khách hàng trung thành thường sẽ lớn hơn 40% so với lần mua đầu tiên.
+            - paragraph [ref=e369]: Bên cạnh đó, các chương trình truyền thông lòng trung thành còn cho phép Doanh nghiệp thu thập, lưu trữ và phân tích dữ liệu đáng kể về hành vi, thói quen của người tiêu dùng. Cho phép doanh nghiệp mang đến trải nghiệm mua sắm cao cấp hơn, được cá nhân hóa hơn. Theo một số khảo sát, có đến 65% khách hàng cho biết họ có động lực mua hàng khi nhận được các ưu đãi được cá nhân hóa. Và 61% khác cũng nói như vậy về các đề xuất sản phẩm được cá nhân hóa.
+            - heading [level=2] [ref=e370]:
+              - strong [ref=e372]: Top 4 chương trình khách hàng thân thiết đang được ưu chuộng nhất hiện nay
+              - link "Direct link to heading" [ref=e374] [cursor=pointer]:
+                - /url: "#top-4-chuong-trinh-khach-hang-than-thiet-dang-duoc-uu-chuong-nhat-hien-nay"
+            - heading [level=2] [ref=e381]:
+              - strong [ref=e383]: Chương trình mua hàng tích điểm
+              - link "Direct link to heading" [ref=e385] [cursor=pointer]:
+                - /url: "#chuong-trinh-mua-hang-tich-diem"
+            - paragraph [ref=e388]: "Các chương trình tích điểm là một trong những chương trình đã và đang được rất nhiều doanh nghiệp sử dụng, không chỉ riêng Việt Nam mà toàn thể thế giới. Điều khiến cho chương trình này trở nên ưa chuộng bởi vì chúng đơn giản nhất trong tất cả. Chúng hoạt động dựa trên một nguyên tắc đơn giản: Chi tiêu nhiều hơn để nhận được nhiều hơn."
+            - paragraph [ref=e389]: Mỗi khi khách hàng mua hàng tại cửa hàng hoặc trên trang web của doanh nghiệp, họ sẽ nhận được một số điểm tích luỹ nhất định tùy thuộc vào quy định của chương trình. Số điểm này sẽ được quy đổi thành phần thưởng dưới dạng quà tặng, ưu đãi hoặc phiếu mua hàng. Lưu ý, để có thể đạt được hiệu quả cao nhất thì phần thưởng trong các chương trình phải thật sự hấp dẫn và thu hút.
+            - heading [level=2] [ref=e390]:
+              - strong [ref=e392]: Chương trình mua sắm hoàn tiền
+              - link "Direct link to heading" [ref=e394] [cursor=pointer]:
+                - /url: "#chuong-trinh-mua-sam-hoan-tien"
+            - paragraph [ref=e397]: "Chương trình này cũng có cơ chế hoạt động tương tự như chương trình mua hàng tích điểm. Nguyên tắc hoạt động: mua sắm nhiều hơn để được hoàn tiền nhiều hơn."
+            - paragraph [ref=e398]: "Ví dụ: Khi khách hàng mua bất kỳ loại sản phẩm nào trong danh mục sản phẩm hàng tiêu dùng đều sẽ được hoàn lại 5% số tiền trên tổng chi tiêu. Số tiền tích luỹ này có giá trị tương đương như tiền mặt nhưng chỉ được sử dụng tại cửa hàng và không có khả năng quy đổi thành tiền mặt."
+            - paragraph [ref=e399]: Tuỳ thuộc vào mục tiêu của doanh nghiệp mà quy định về % hoàn tiền cũng như cách thức sử dụng số tiền tích luỹ sẽ được thay đổi để phù hợp hơn.
+            - heading [level=2] [ref=e400]:
+              - strong [ref=e402]: Chương trình cấp bậc hạng thành viên
+              - link "Direct link to heading" [ref=e404] [cursor=pointer]:
+                - /url: "#chuong-trinh-cap-bac-hang-thanh-vien"
+            - paragraph [ref=e407]: Các chương trình khách hàng thân thiết theo cấp bậc sẽ cung cấp các phần thưởng khác nhau dựa trên các mốc mà các thành viên vượt qua. Thông thường, các mốc này sẽ được đo dựa vào số điểm tích điểm thông qua quá trình mua sắm tại cửa hàng và các kênh Online. Thành viên chi tiêu càng nhiều, cấp độ mà họ tham gia càng cao.
+            - paragraph [ref=e408]: Ở mỗi cấp bậc thành viên, doanh nghiệp sẽ phải đưa ra những quyền lợi khác nhau nhằm tạo sự kích thích, thúc đẩy chi tiêu của người tiêu dùng. Lưu ý rằng, sự khác nhau này nên được thể hiện một cách rõ ràng và cách xa nhau, tránh trường hợp khách hàng không có hứng thú thăng hạng vì quyền lợi không mang lại hữu ích gì cho họ.
+            - heading [level=2] [ref=e409]:
+              - strong [ref=e411]: Chương trình khách hàng thu phí thường niên
+              - link "Direct link to heading" [ref=e413] [cursor=pointer]:
+                - /url: "#chuong-trinh-khach-hang-thu-phi-thuong-nien"
+            - paragraph [ref=e416]: Điển hình nhất là Netflix, FPT hoặc các nền tảng về xem phim, nghe nhạc trực tuyến.
+            - paragraph [ref=e417]: Chương trình này sẽ mang đến cho khách hàng những quyền lợi đặc biệt, trải nghiệm khó quên nhất khi sử dụng sản phẩm/dịch vụ. Chương trình này như là một lời tuyên ngôn cho việc được trở thành một khách hàng VIP của doanh nghiệp.
+            - paragraph [ref=e418]: Việc bắt buộc phải trả phí thành viên có thể sẽ là một rào cản rất lớn đối với những khách hàng bình thường, nhưng đó chính là điểm mấu chốt. Việc mang đến những trải nghiệm tuyệt vời hơn nữa cho một nhóm khách hàng chủ chốt của doanh nghiệp. Theo như báo cáo của Loyaltylion thì 80% doanh số của doanh nghiệp đều đến từ 20% khách hàng trung thành.
+            - heading [level=2] [ref=e419]:
+              - strong [ref=e421]: Những công cụ hỗ trợ Doanh nghiệp xây dựng cộng đồng khách hàng trung thành
+              - link "Direct link to heading" [ref=e423] [cursor=pointer]:
+                - /url: "#nhung-cong-cu-ho-tro-doanh-nghiep-xay-dung-cong-dong-khach-hang-trung-thanh"
+            - paragraph [ref=e430]: "Để có thể hỗ trợ doanh nghiệp tốt hơn trong các chương trình chăm sóc khách hàng thì không thể không nhắc đến:"
+            - paragraph [ref=e431]: "Thẻ tích điểm: một loại thẻ cho phép người tiêu dùng lưu trữ số điểm tích luỹ trong quá trình tham gia chương trình. Hiện nay trên thị trường có hai loại hình thẻ là Thẻ tích điểm bằng giấy/ cứng và thẻ tích điểm Online."
+            - paragraph [ref=e432]: "CDP: Phần mềm thu thập, lữu trữ và phân tích dự liệu về hành vi và thói quen của người tiêu dùng, từ đó, cung caoas những cơ sở dữ liệu phục vụ cho việc đưa ra quyết định Marketing và kế hoạch kinh doanh cho những năm tiếp theo."
+            - heading [level=2] [ref=e433]:
+              - strong [ref=e435]: CNV Loyalty - nền tảng kiến tạo khách hàng trung thành hiệu quả nhất Việt Nam
+              - link "Direct link to heading" [ref=e437] [cursor=pointer]:
+                - /url: "#cnv-loyalty-nen-tang-kien-tao-khach-hang-trung-thanh-hieu-qua-nhat-viet-nam"
+            - paragraph [ref=e440]: "CNV Loyalty là nền tảng kiến tạo khách hàng trung thành hàng đầu Việt Nam. Mục đích chính của Loyalty App là mở rộng tệp khách hàng trung thành cho doanh nghiệp thông qua những trải nghiệm đáng giá về dịch vụ khách hàng. Tính đến thời điểm hiện nay, CNV Loyalty đã và đang mang đến cho thị trường 3 siêu phẩm công nghệ như:"
+            - list [ref=e441]:
+              - listitem [ref=e442]:
+                - generic [ref=e443]: "1."
+                - paragraph [ref=e446]:
+                  - link "Loyalty App" [ref=e448] [cursor=pointer]:
+                    - /url: https://thietkeapp.cnvloyalty.com/
+                  - text: "- Platform tạo app chăm sóc khách hàng"
+              - listitem [ref=e451]:
+                - generic [ref=e452]: "2."
+                - paragraph [ref=e455]:
+                  - link "Social Loyalty" [ref=e457] [cursor=pointer]:
+                    - /url: https://cnvloyalty.com/social-loyalty
+                  - text: "- Tích hợp các tính năng chăm sóc khách hàng lên Facebook và Zalo OA"
+              - listitem [ref=e460]:
+                - generic [ref=e461]: "3."
+                - paragraph [ref=e464]:
+                  - link "Order Loyalty" [ref=e466] [cursor=pointer]:
+                    - /url: https://orderloyalty.cnvloyalty.com/
+                  - text: "- Web Order tích hợp giải pháp Loyalty chuyên sâu"
+            - paragraph [ref=e469]: "Với nhiều năm kinh nghiệm trong lĩnh vực xây dựng và thiết kế app chăm sóc khách hàng thì CNV Loyalty đã được hơn 500 doanh nghiệp đồng hành và triển khai sử dụng 3 giải pháp trên, cùng với đó, CNV Loyalty còn mang trong mình những ưu điểm nổi bật như:"
+            - list [ref=e470]:
+              - listitem [ref=e471]:
+                - generic [ref=e472]: •
+                - paragraph [ref=e475]: Thời gian triển khai ngắn
+              - listitem [ref=e476]:
+                - generic [ref=e477]: •
+                - paragraph [ref=e480]: Chi phí cực kỳ thấp, phù hợp với các doanh nghiệp vừa - nhỏ lẫn các Shop Online
+              - listitem [ref=e481]:
+                - generic [ref=e482]: •
+                - paragraph [ref=e485]: Độc quyền tại Việt Nam
+              - listitem [ref=e486]:
+                - generic [ref=e487]: •
+                - paragraph [ref=e490]: CNV Loyalty sẽ luôn cập nhật và bổ sung tính năng mới
+              - listitem [ref=e491]:
+                - generic [ref=e492]: •
+                - paragraph [ref=e495]: Nhân sự tư vấn và triển khai là các chuyên gia đầu ngành về Loyalty với nhiều năm kinh nghiệm
+        - link "Next Loyalty 101 - Thiết lập chương trình Loyalty cho thương hiệu" [ref=e497] [cursor=pointer]:
+          - /url: /loyalty-success/loyalty-101-thiet-lap-chuong-trinh-loyalty-cho-thuong-hieu
+          - generic [ref=e500]:
+            - generic [ref=e501]: Next
+            - generic [ref=e502]: Loyalty 101 - Thiết lập chương trình Loyalty cho thương hiệu
+        - paragraph [ref=e504]:
+          - text: Last updated
+          - time [ref=e505]: 1 year ago

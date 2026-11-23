@@ -1,0 +1,252 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - text: For the complete documentation index, see
+    - link "llms.txt" [ref=f1e3] [cursor=pointer]:
+      - /url: https://huongdan.cnvloyalty.com/llms.txt
+    - text: . Markdown versions of documentation pages are available by appending
+    - code [ref=f1e4]: .md
+    - text: to page URLs.
+  - link "Skip to content" [ref=f1e5] [cursor=pointer]:
+    - /url: "#gitbook-main-content"
+  - banner [ref=f1e6]:
+    - generic [ref=f1e9]:
+      - link "Tài liệu hướng dẫn sử dụng CNV Loyalty HUB" [ref=f1e11] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f1e14]:
+        - generic [ref=f1e16]:
+          - textbox "Search" [ref=f1e20]:
+            - /placeholder: Search…
+          - generic [ref=f1e22]:
+            - generic [ref=f1e23]: Ctrl
+            - generic [ref=f1e25]: k
+        - alert [ref=f1e26]
+  - generic [ref=f1e28]:
+    - complementary [ref=f1e29]:
+      - generic [ref=f1e30]:
+        - generic [ref=f1e31]:
+          - list [ref=f1e33]:
+            - listitem [ref=f1e34]:
+              - button "Khái niệm về loyalty" [expanded] [ref=f1e36] [cursor=pointer]
+              - list [ref=f1e40]:
+                - listitem [ref=f1e41]:
+                  - link "Tổng quan về Loyalty" [ref=f1e42] [cursor=pointer]:
+                    - /url: /
+            - listitem [ref=f1e44]:
+              - button "Loyalty Success" [expanded] [ref=f1e46] [cursor=pointer]
+              - list [ref=f1e50]:
+                - listitem [ref=f1e51]:
+                  - link [ref=f1e52] [cursor=pointer]:
+                    - /url: /loyalty-success/loyalty-101-thiet-lap-chuong-trinh-loyalty-cho-thuong-hieu
+                    - button "Loyalty 101 - Thiết lập chương trình Loyalty cho thương hiệu" [ref=f1e54]
+                - listitem [ref=f1e57]:
+                  - link [ref=f1e58] [cursor=pointer]:
+                    - /url: /loyalty-success/chien-luoc-trien-khai-loyalty
+                    - button "Chiến lược triển khai Loyalty" [ref=f1e60]
+            - listitem [ref=f1e63]:
+              - button "Tính năng" [expanded] [ref=f1e65] [cursor=pointer]
+              - list [ref=f1e69]:
+                - listitem [ref=f1e70]:
+                  - link "Tổng quan" [ref=f1e71] [cursor=pointer]:
+                    - /url: /tinh-nang/tong-quan
+                - listitem [ref=f1e73]:
+                  - link [ref=f1e74] [cursor=pointer]:
+                    - /url: /tinh-nang/loyalty
+                    - button "Loyalty" [ref=f1e76]
+                - listitem [ref=f1e79]:
+                  - link [ref=f1e80] [cursor=pointer]:
+                    - /url: /tinh-nang/don-hang
+                    - button "Đơn hàng" [ref=f1e82]
+                - listitem [ref=f1e85]:
+                  - link [ref=f1e86] [cursor=pointer]:
+                    - /url: /tinh-nang/van-chuyen
+                    - button "Vận chuyển" [ref=f1e88]
+                - listitem [ref=f1e91]:
+                  - link [ref=f1e92] [cursor=pointer]:
+                    - /url: /tinh-nang/san-pham
+                    - button "Sản phẩm" [ref=f1e94]
+                - listitem [ref=f1e97]:
+                  - link [ref=f1e98] [cursor=pointer]:
+                    - /url: /tinh-nang/khach-hang
+                    - button "Khách hàng" [ref=f1e100]
+                - listitem [ref=f1e103]:
+                  - link [ref=f1e104] [cursor=pointer]:
+                    - /url: /tinh-nang/bao-cao
+                    - button "Báo cáo" [ref=f1e106]
+                - listitem [ref=f1e109]:
+                  - link [ref=f1e110] [cursor=pointer]:
+                    - /url: /tinh-nang/noi-dung
+                    - button "Nội dung" [ref=f1e112]
+                - listitem [ref=f1e115]:
+                  - link [ref=f1e116] [cursor=pointer]:
+                    - /url: /tinh-nang/automation-ver.-2
+                    - button "Automation Ver. 2" [ref=f1e118]
+                - listitem [ref=f1e121]:
+                  - link [ref=f1e122] [cursor=pointer]:
+                    - /url: /tinh-nang/gamification
+                    - button "Gamification" [ref=f1e124]
+                - listitem [ref=f1e127]:
+                  - link [ref=f1e128] [cursor=pointer]:
+                    - /url: /tinh-nang/apps-kho-ung-dung
+                    - button "Apps - Kho ứng dụng" [ref=f1e130]
+                - listitem [ref=f1e133]:
+                  - link [ref=f1e134] [cursor=pointer]:
+                    - /url: /tinh-nang/cau-hinh
+                    - button "Cấu hình" [ref=f1e136]
+                - listitem [ref=f1e139]:
+                  - link "App Loyalty HUB" [ref=f1e140] [cursor=pointer]:
+                    - /url: /tinh-nang/app-loyalty-hub
+            - listitem [ref=f1e142]:
+              - button "Kênh bán hàng" [expanded] [ref=f1e144] [cursor=pointer]
+              - list [ref=f1e148]:
+                - listitem [ref=f1e149]:
+                  - link [ref=f1e150] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/social-loyalty
+                    - button "Social Loyalty" [ref=f1e152]
+                - listitem [ref=f1e155]:
+                  - link [ref=f1e156] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/loyalty-app
+                    - button "Loyalty App" [ref=f1e158]
+                - listitem [ref=f1e161]:
+                  - link [ref=f1e162] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/order-loyalty
+                    - button "Order Loyalty" [ref=f1e164]
+                - listitem [ref=f1e167]:
+                  - link [ref=f1e168] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/web-loyalty
+                    - button "Web Loyalty" [ref=f1e170]
+            - listitem [ref=f1e173]:
+              - button "Kết nối" [expanded] [ref=f1e175] [cursor=pointer]
+              - list [ref=f1e179]:
+                - listitem [ref=f1e180]:
+                  - link [ref=f1e181] [cursor=pointer]:
+                    - /url: /ket-noi/tai-khoan-apple-developer-program
+                    - button "Tài khoản APPLE DEVELOPER PROGRAM" [ref=f1e183]
+                - listitem [ref=f1e186]:
+                  - link [ref=f1e187] [cursor=pointer]:
+                    - /url: /ket-noi/tai-khoan-google-play
+                    - button "Tài khoản GOOGLE PLAY" [ref=f1e189]
+            - listitem [ref=f1e192]:
+              - button "Ứng dụng hỗ trợ vận hành" [expanded] [ref=f1e194] [cursor=pointer]
+              - list [ref=f1e198]:
+                - listitem [ref=f1e199]:
+                  - link [ref=f1e200] [cursor=pointer]:
+                    - /url: /ung-dung-ho-tro-van-hanh/loyalty-hub-app
+                    - button "Loyalty HUB App" [ref=f1e202]
+          - button "Scroll back"
+          - button "Scroll further"
+        - link "Powered by GitBook" [ref=f1e205] [cursor=pointer]:
+          - /url: https://www.gitbook.com/powered-by?utm_source=content&utm_medium=trademark&utm_campaign=-MaSrApVr5L1rdZPZEAx&utm_content=site_c40tL
+    - generic [ref=f1e210]:
+      - complementary [ref=f1e211]:
+        - generic [ref=f1e212]:
+          - button "On this page" [ref=f1e214] [cursor=pointer]
+          - list [ref=f1e219]:
+            - listitem [ref=f1e220]:
+              - link "Xem Tổng quan" [ref=f1e221] [cursor=pointer]:
+                - /url: "#xem-tong-quan"
+            - listitem [ref=f1e222]:
+              - link "Thông tin Tổng quan" [ref=f1e223] [cursor=pointer]:
+                - /url: "#thong-tin-tong-quan"
+            - listitem [ref=f1e224]:
+              - link "Để Xem báo cáo -> Chọn Xem báo cáo" [ref=f1e225] [cursor=pointer]:
+                - /url: "#de-xem-bao-cao-greater-than-chon-xem-bao-cao"
+            - listitem [ref=f1e226]:
+              - link "Thông tin tham khảo" [ref=f1e227] [cursor=pointer]:
+                - /url: "#thong-tin-tham-khao"
+      - main [ref=f1e228]:
+        - generic [ref=f1e229]:
+          - generic [ref=f1e230]:
+            - generic [ref=f1e232]:
+              - button "Copy" [ref=f1e233] [cursor=pointer]
+              - button "More" [ref=f1e237] [cursor=pointer]
+            - navigation "Breadcrumb" [ref=f1e240]:
+              - list [ref=f1e241]:
+                - listitem [ref=f1e242]:
+                  - link "Tính năng" [ref=f1e243] [cursor=pointer]:
+                    - /url: /tinh-nang/tong-quan
+            - heading "Tổng quan" [level=1] [ref=f1e244]
+            - paragraph [ref=f1e245]: Thống kê số lượng các hoạt động giao dịch của đơn hàng và sản phẩm, tổng doanh thu trên các ứng dụng và kênh bán hàng, giúp doanh nghiệp có cái nhìn tổng quan về doanh số bán hàng trong ngày
+          - generic [ref=f1e247]:
+            - heading "Xem Tổng quan Direct link to heading" [level=2] [ref=f1e248]:
+              - generic [ref=f1e249]: Xem Tổng quan
+              - link "Direct link to heading" [ref=f1e251] [cursor=pointer]:
+                - /url: "#xem-tong-quan"
+            - note "Information" [ref=f1e258]:
+              - paragraph [ref=f1e263]:
+                - text: Trang Tổng quản hiển thị doanh số bán hàng trong
+                - strong [ref=f1e264]: ngày hiện tại
+                - text: (hôm nay)
+            - heading "Thông tin Tổng quan Direct link to heading" [level=3] [ref=f1e265]:
+              - generic [ref=f1e266]: Thông tin Tổng quan
+              - link "Direct link to heading" [ref=f1e268] [cursor=pointer]:
+                - /url: "#thong-tin-tong-quan"
+            - list [ref=f1e271]:
+              - listitem [ref=f1e272]:
+                - generic [ref=f1e273]: •
+                - paragraph [ref=f1e276]: "Lợi nhuận: khoản lợi thu được từ hoạt động kinh doanh"
+              - listitem [ref=f1e277]:
+                - generic [ref=f1e278]: •
+                - paragraph [ref=f1e281]: "Tổng đơn hàng: tổng số đơn hàng đã giao dịch"
+              - listitem [ref=f1e282]:
+                - generic [ref=f1e283]: •
+                - paragraph [ref=f1e286]: "Giá vốn: tổng giá vốn từ các sản phẩm mà khách hàng đã đặt mua"
+              - listitem [ref=f1e287]:
+                - generic [ref=f1e288]: •
+                - paragraph [ref=f1e291]: "Lượng hàng đã bán: số lượng sản phẩm đã giao dịch"
+              - listitem [ref=f1e292]:
+                - generic [ref=f1e293]: •
+                - generic [ref=f1e295]:
+                  - paragraph [ref=f1e296]: "Tổng doanh thu - tất cả: tổng tiền hàng từ tất cả đơn hàng đã giao dịch"
+                  - list [ref=f1e297]:
+                    - listitem [ref=f1e298]:
+                      - generic [ref=f1e299]: ◦
+                      - paragraph [ref=f1e302]: "Đỉnh điểm: doanh thu cao nhất ở một thời điểm so với toàn bộ thời gian"
+              - listitem [ref=f1e303]:
+                - generic [ref=f1e304]: •
+                - paragraph [ref=f1e307]: "Sản phẩm bán chạy: danh sách sản phẩm đã bán ra"
+              - listitem [ref=f1e308]:
+                - generic [ref=f1e309]: •
+                - generic [ref=f1e311]:
+                  - paragraph [ref=f1e312]: "Biểu đồ thống kê doanh thu:"
+                  - list [ref=f1e313]:
+                    - listitem [ref=f1e314]:
+                      - generic [ref=f1e315]: ◦
+                      - paragraph [ref=f1e318]: "Thời gian: thời gian phát sinh đơn hàng, tính theo giờ"
+                    - listitem [ref=f1e319]:
+                      - generic [ref=f1e320]: ◦
+                      - paragraph [ref=f1e323]: "Số lượng đơn hàng: tổng số đơn hàng trong phạm vi thời gian"
+                    - listitem [ref=f1e324]:
+                      - generic [ref=f1e325]: ◦
+                      - paragraph [ref=f1e328]: "Doanh thu: tổng số tiền phải thanh toán của các đơn hàng trong phạm vi thời gian"
+            - heading "Để Xem báo cáo -> Chọn Xem báo cáo Direct link to heading" [level=2] [ref=f1e329]:
+              - generic [ref=f1e330]: Để Xem báo cáo -> Chọn Xem báo cáo
+              - link "Direct link to heading" [ref=f1e332] [cursor=pointer]:
+                - /url: "#de-xem-bao-cao-greater-than-chon-xem-bao-cao"
+            - list [ref=f1e335]:
+              - listitem [ref=f1e336]:
+                - generic [ref=f1e337]: •
+                - paragraph [ref=f1e340]: Hiển thị ra Báo cáo theo doanh thu
+            - generic [ref=f1e342]:
+              - generic [ref=f1e343]: Báo cáo theo doanh thu
+              - generic [ref=f1e347]: Bấm Xem báo cáo
+            - link "Theo doanh thu" [ref=f1e351] [cursor=pointer]:
+              - /url: /tinh-nang/bao-cao/theo-doanh-thu
+            - heading "Thông tin tham khảo Direct link to heading" [level=2] [ref=f1e356]:
+              - generic [ref=f1e357]: Thông tin tham khảo
+              - link "Direct link to heading" [ref=f1e359] [cursor=pointer]:
+                - /url: "#thong-tin-tham-khao"
+        - generic [ref=f1e366]:
+          - link "Previous Beauty Care" [ref=f1e367] [cursor=pointer]:
+            - /url: /loyalty-success/chien-luoc-trien-khai-loyalty/beauty-care
+            - generic [ref=f1e370]:
+              - generic [ref=f1e371]: Previous
+              - generic [ref=f1e372]: Beauty Care
+          - link "Next Loyalty" [ref=f1e373] [cursor=pointer]:
+            - /url: /tinh-nang/loyalty
+            - generic [ref=f1e376]:
+              - generic [ref=f1e377]: Next
+              - generic [ref=f1e378]: Loyalty
+        - paragraph [ref=f1e380]:
+          - text: Last updated
+          - time [ref=f1e381]: 3 years ago
+  - alert [ref=f1e382]

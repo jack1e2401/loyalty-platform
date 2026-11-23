@@ -1,0 +1,318 @@
+- generic [active] [ref=f18e1]:
+  - generic [ref=f18e2]:
+    - text: For the complete documentation index, see
+    - link "llms.txt" [ref=f18e3] [cursor=pointer]:
+      - /url: https://huongdan.cnvloyalty.com/llms.txt
+    - text: . Markdown versions of documentation pages are available by appending
+    - code [ref=f18e4]: .md
+    - text: to page URLs.
+  - link "Skip to content" [ref=f18e5] [cursor=pointer]:
+    - /url: "#gitbook-main-content"
+  - banner [ref=f18e6]:
+    - generic [ref=f18e9]:
+      - link "Tài liệu hướng dẫn sử dụng CNV Loyalty HUB" [ref=f18e11] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f18e14]:
+        - generic [ref=f18e16]:
+          - textbox "Search" [ref=f18e20]:
+            - /placeholder: Search…
+          - generic [ref=f18e22]:
+            - generic [ref=f18e23]: Ctrl
+            - generic [ref=f18e25]: k
+        - alert [ref=f18e26]
+  - generic [ref=f18e28]:
+    - complementary [ref=f18e29]:
+      - generic [ref=f18e30]:
+        - generic [ref=f18e31]:
+          - list [ref=f18e33]:
+            - listitem [ref=f18e34]:
+              - button "Khái niệm về loyalty" [expanded] [ref=f18e36] [cursor=pointer]
+              - list [ref=f18e40]:
+                - listitem [ref=f18e41]:
+                  - link "Tổng quan về Loyalty" [ref=f18e42] [cursor=pointer]:
+                    - /url: /
+            - listitem [ref=f18e44]:
+              - button "Loyalty Success" [expanded] [ref=f18e46] [cursor=pointer]
+              - list [ref=f18e50]:
+                - listitem [ref=f18e51]:
+                  - link [ref=f18e52] [cursor=pointer]:
+                    - /url: /loyalty-success/loyalty-101-thiet-lap-chuong-trinh-loyalty-cho-thuong-hieu
+                    - button "Loyalty 101 - Thiết lập chương trình Loyalty cho thương hiệu" [ref=f18e54]
+                - listitem [ref=f18e57]:
+                  - link [ref=f18e58] [cursor=pointer]:
+                    - /url: /loyalty-success/chien-luoc-trien-khai-loyalty
+                    - button "Chiến lược triển khai Loyalty" [ref=f18e60]
+            - listitem [ref=f18e63]:
+              - button "Tính năng" [expanded] [ref=f18e65] [cursor=pointer]
+              - list [ref=f18e69]:
+                - listitem [ref=f18e70]:
+                  - link "Tổng quan" [ref=f18e71] [cursor=pointer]:
+                    - /url: /tinh-nang/tong-quan
+                - listitem [ref=f18e73]:
+                  - link [ref=f18e74] [cursor=pointer]:
+                    - /url: /tinh-nang/loyalty
+                    - button "Loyalty" [expanded] [ref=f18e76]
+                  - list [ref=f18e79]:
+                    - listitem [ref=f18e80]:
+                      - link [ref=f18e81] [cursor=pointer]:
+                        - /url: /tinh-nang/loyalty/uu-dai
+                        - button "Ưu đãi" [ref=f18e83]
+                    - listitem [ref=f18e86]:
+                      - link "Danh Mục Ưu Đãi" [ref=f18e87] [cursor=pointer]:
+                        - /url: /tinh-nang/loyalty/danh-muc-uu-dai
+                    - listitem [ref=f18e89]:
+                      - link "Thương Hiệu" [ref=f18e90] [cursor=pointer]:
+                        - /url: /tinh-nang/loyalty/thuong-hieu
+                    - listitem [ref=f18e92]:
+                      - link [ref=f18e93] [cursor=pointer]:
+                        - /url: /tinh-nang/loyalty/hang-thanh-vien
+                        - button "Hạng Thành Viên" [ref=f18e95]
+                    - listitem [ref=f18e98]:
+                      - link "Điểm Thưởng" [ref=f18e99] [cursor=pointer]:
+                        - /url: /tinh-nang/loyalty/diem-thuong
+                    - listitem [ref=f18e101]:
+                      - link [ref=f18e102] [cursor=pointer]:
+                        - /url: /tinh-nang/loyalty/khuyen-mai
+                        - button "Khuyến mãi" [ref=f18e104]
+                - listitem [ref=f18e107]:
+                  - link [ref=f18e108] [cursor=pointer]:
+                    - /url: /tinh-nang/don-hang
+                    - button "Đơn hàng" [ref=f18e110]
+                - listitem [ref=f18e113]:
+                  - link [ref=f18e114] [cursor=pointer]:
+                    - /url: /tinh-nang/van-chuyen
+                    - button "Vận chuyển" [ref=f18e116]
+                - listitem [ref=f18e119]:
+                  - link [ref=f18e120] [cursor=pointer]:
+                    - /url: /tinh-nang/san-pham
+                    - button "Sản phẩm" [ref=f18e122]
+                - listitem [ref=f18e125]:
+                  - link [ref=f18e126] [cursor=pointer]:
+                    - /url: /tinh-nang/khach-hang
+                    - button "Khách hàng" [ref=f18e128]
+                - listitem [ref=f18e131]:
+                  - link [ref=f18e132] [cursor=pointer]:
+                    - /url: /tinh-nang/bao-cao
+                    - button "Báo cáo" [ref=f18e134]
+                - listitem [ref=f18e137]:
+                  - link [ref=f18e138] [cursor=pointer]:
+                    - /url: /tinh-nang/noi-dung
+                    - button "Nội dung" [ref=f18e140]
+                - listitem [ref=f18e143]:
+                  - link [ref=f18e144] [cursor=pointer]:
+                    - /url: /tinh-nang/automation-ver.-2
+                    - button "Automation Ver. 2" [ref=f18e146]
+                - listitem [ref=f18e149]:
+                  - link [ref=f18e150] [cursor=pointer]:
+                    - /url: /tinh-nang/gamification
+                    - button "Gamification" [ref=f18e152]
+                - listitem [ref=f18e155]:
+                  - link [ref=f18e156] [cursor=pointer]:
+                    - /url: /tinh-nang/apps-kho-ung-dung
+                    - button "Apps - Kho ứng dụng" [ref=f18e158]
+                - listitem [ref=f18e161]:
+                  - link [ref=f18e162] [cursor=pointer]:
+                    - /url: /tinh-nang/cau-hinh
+                    - button "Cấu hình" [ref=f18e164]
+                - listitem [ref=f18e167]:
+                  - link "App Loyalty HUB" [ref=f18e168] [cursor=pointer]:
+                    - /url: /tinh-nang/app-loyalty-hub
+            - listitem [ref=f18e170]:
+              - button "Kênh bán hàng" [expanded] [ref=f18e172] [cursor=pointer]
+              - list [ref=f18e176]:
+                - listitem [ref=f18e177]:
+                  - link [ref=f18e178] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/social-loyalty
+                    - button "Social Loyalty" [ref=f18e180]
+                - listitem [ref=f18e183]:
+                  - link [ref=f18e184] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/loyalty-app
+                    - button "Loyalty App" [ref=f18e186]
+                - listitem [ref=f18e189]:
+                  - link [ref=f18e190] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/order-loyalty
+                    - button "Order Loyalty" [ref=f18e192]
+                - listitem [ref=f18e195]:
+                  - link [ref=f18e196] [cursor=pointer]:
+                    - /url: /kenh-ban-hang/web-loyalty
+                    - button "Web Loyalty" [ref=f18e198]
+            - listitem [ref=f18e201]:
+              - button "Kết nối" [expanded] [ref=f18e203] [cursor=pointer]
+              - list [ref=f18e207]:
+                - listitem [ref=f18e208]:
+                  - link [ref=f18e209] [cursor=pointer]:
+                    - /url: /ket-noi/tai-khoan-apple-developer-program
+                    - button "Tài khoản APPLE DEVELOPER PROGRAM" [ref=f18e211]
+                - listitem [ref=f18e214]:
+                  - link [ref=f18e215] [cursor=pointer]:
+                    - /url: /ket-noi/tai-khoan-google-play
+                    - button "Tài khoản GOOGLE PLAY" [ref=f18e217]
+            - listitem [ref=f18e220]:
+              - button "Ứng dụng hỗ trợ vận hành" [expanded] [ref=f18e222] [cursor=pointer]
+              - list [ref=f18e226]:
+                - listitem [ref=f18e227]:
+                  - link [ref=f18e228] [cursor=pointer]:
+                    - /url: /ung-dung-ho-tro-van-hanh/loyalty-hub-app
+                    - button "Loyalty HUB App" [ref=f18e230]
+          - button "Scroll back"
+          - button "Scroll further"
+        - link "Powered by GitBook" [ref=f18e233] [cursor=pointer]:
+          - /url: https://www.gitbook.com/powered-by?utm_source=content&utm_medium=trademark&utm_campaign=-MaSrApVr5L1rdZPZEAx&utm_content=site_c40tL
+    - generic [ref=f18e238]:
+      - complementary [ref=f18e239]:
+        - generic [ref=f18e240]:
+          - button "On this page" [ref=f18e242] [cursor=pointer]
+          - list [ref=f18e247]:
+            - listitem [ref=f18e248]:
+              - link "Trước khi bắt đầu" [ref=f18e249] [cursor=pointer]:
+                - /url: "#truoc-khi-bat-dau"
+            - listitem [ref=f18e250]:
+              - link "Loyalty bao gồm" [ref=f18e251] [cursor=pointer]:
+                - /url: "#loyalty-bao-gom"
+            - listitem [ref=f18e252]:
+              - link "1. Ưu đãi" [ref=f18e253] [cursor=pointer]:
+                - /url: "#id-1.-uu-dai"
+            - listitem [ref=f18e254]:
+              - link "2. Danh mục ưu đãi" [ref=f18e255] [cursor=pointer]:
+                - /url: "#id-2.-danh-muc-uu-dai"
+            - listitem [ref=f18e256]:
+              - link "3. Thương hiệu" [ref=f18e257] [cursor=pointer]:
+                - /url: "#id-3.-thuong-hieu"
+            - listitem [ref=f18e258]:
+              - link "4. Hạng Thành Viên" [ref=f18e259] [cursor=pointer]:
+                - /url: "#id-4.-hang-thanh-vien"
+            - listitem [ref=f18e260]:
+              - link "5. Điểm Thưởng" [ref=f18e261] [cursor=pointer]:
+                - /url: "#id-5.-diem-thuong"
+            - listitem [ref=f18e262]:
+              - link "6. Khuyến mãi" [ref=f18e263] [cursor=pointer]:
+                - /url: "#id-6.-khuyen-mai"
+      - main [ref=f18e264]:
+        - generic [ref=f18e265]:
+          - generic [ref=f18e266]:
+            - generic [ref=f18e268]:
+              - button "Copy" [ref=f18e269] [cursor=pointer]
+              - button "More" [ref=f18e273] [cursor=pointer]
+            - navigation "Breadcrumb" [ref=f18e276]:
+              - list [ref=f18e277]:
+                - listitem [ref=f18e278]:
+                  - link "Tính năng" [ref=f18e279] [cursor=pointer]:
+                    - /url: /tinh-nang/tong-quan
+            - heading "Loyalty" [level=1] [ref=f18e280]
+            - paragraph [ref=f18e281]: Loyalty là module dùng để thiết lập các chương trình chăm sóc khách hàng như Ưu đãi, Hạng thành viên và Điểm thưởng
+          - generic [ref=f18e283]:
+            - paragraph [ref=f18e284]: Chăm sóc khách hàng là một công việc quan trọng trong quy trình kinh doanh của công ty nhằm đưa khách hàng quay lại quá trình mua sắm và trải nghiệm sản phẩm, dịch vụ
+            - list [ref=f18e285]:
+              - listitem [ref=f18e286]:
+                - generic [ref=f18e287]: •
+                - generic [ref=f18e289]:
+                  - paragraph [ref=f18e290]: "Chăm sóc khách hàng hiệu quả giúp:"
+                  - list [ref=f18e291]:
+                    - listitem [ref=f18e292]:
+                      - generic [ref=f18e293]: ◦
+                      - paragraph [ref=f18e296]: Tạo ra hiệu quả kinh doanh và tăng doanh thu
+                    - listitem [ref=f18e297]:
+                      - generic [ref=f18e298]: ◦
+                      - paragraph [ref=f18e301]: Cải thiện chất lượng hàng hóa, dịch vụ
+                    - listitem [ref=f18e302]:
+                      - generic [ref=f18e303]: ◦
+                      - paragraph [ref=f18e306]: Tạo lợi thế cạnh tranh cho doanh nghiệp
+                    - listitem [ref=f18e307]:
+                      - generic [ref=f18e308]: ◦
+                      - paragraph [ref=f18e311]: Xây dựng nhóm khách hàng trung thành
+                    - listitem [ref=f18e312]:
+                      - generic [ref=f18e313]: ◦
+                      - paragraph [ref=f18e316]: Thu thập nguồn thông tin để nghiên cứu thị trường
+            - heading "Trước khi bắt đầu Direct link to heading" [level=2] [ref=f18e317]:
+              - generic [ref=f18e318]: Trước khi bắt đầu
+              - link "Direct link to heading" [ref=f18e320] [cursor=pointer]:
+                - /url: "#truoc-khi-bat-dau"
+            - paragraph [ref=f18e323]: Dữ liệu Loyalty cần đáp ứng một số cài đặt khác của trang quản lý. Hãy cấu hình các yêu cầu trước khi bắt đầu
+            - generic [ref=f18e324]:
+              - tablist [ref=f18e325]:
+                - tab "Mã khuyến mãi" [selected] [ref=f18e327] [cursor=pointer]
+              - tabpanel "Mã khuyến mãi" [ref=f18e329]:
+                - generic [ref=f18e331]:
+                  - paragraph [ref=f18e332]:
+                    - text: Thiết lập mã khuyến mãi giảm giá cho đơn hàng hoặc sản phẩm trên các ứng dụng và kênh bán hàng để cấu hình mã khuyến mãi trong
+                    - strong [ref=f18e333]: Ưu đãi
+                  - link "Tạo mã khuyến mãi" [ref=f18e334] [cursor=pointer]:
+                    - /url: /tinh-nang/loyalty/khuyen-mai/tao-ma-khuyen-mai
+            - heading [level=2] [ref=f18e339]:
+              - strong [ref=f18e341]: Loyalty bao gồm
+              - link "Direct link to heading" [ref=f18e343] [cursor=pointer]:
+                - /url: "#loyalty-bao-gom"
+            - heading "1. Ưu đãi Direct link to heading" [level=3] [ref=f18e346]:
+              - generic [ref=f18e347]: 1. Ưu đãi
+              - link "Direct link to heading" [ref=f18e349] [cursor=pointer]:
+                - /url: "#id-1.-uu-dai"
+            - list [ref=f18e352]:
+              - listitem [ref=f18e353]:
+                - generic [ref=f18e354]: •
+                - paragraph [ref=f18e357]: Các ưu đãi kích cầu tiêu dùng và sử dụng ứng dụng
+            - link "Ưu đãi" [ref=f18e358] [cursor=pointer]:
+              - /url: /tinh-nang/loyalty/uu-dai
+            - heading "2. Danh mục ưu đãi Direct link to heading" [level=3] [ref=f18e363]:
+              - generic [ref=f18e364]: 2. Danh mục ưu đãi
+              - link "Direct link to heading" [ref=f18e366] [cursor=pointer]:
+                - /url: "#id-2.-danh-muc-uu-dai"
+            - list [ref=f18e369]:
+              - listitem [ref=f18e370]:
+                - generic [ref=f18e371]: •
+                - paragraph [ref=f18e374]: Gom nhóm các ưu đãi vào danh mục ưu đãi phù hợp
+            - link "Danh Mục Ưu Đãi" [ref=f18e375] [cursor=pointer]:
+              - /url: /tinh-nang/loyalty/danh-muc-uu-dai
+            - heading "3. Thương hiệu Direct link to heading" [level=3] [ref=f18e380]:
+              - generic [ref=f18e381]: 3. Thương hiệu
+              - link "Direct link to heading" [ref=f18e383] [cursor=pointer]:
+                - /url: "#id-3.-thuong-hieu"
+            - list [ref=f18e386]:
+              - listitem [ref=f18e387]:
+                - generic [ref=f18e388]: •
+                - paragraph [ref=f18e391]: Thiết lập thương hiệu đại diện cho các ưu đãi
+            - link "Thương Hiệu" [ref=f18e392] [cursor=pointer]:
+              - /url: /tinh-nang/loyalty/thuong-hieu
+            - heading "4. Hạng Thành Viên Direct link to heading" [level=3] [ref=f18e397]:
+              - generic [ref=f18e398]: 4. Hạng Thành Viên
+              - link "Direct link to heading" [ref=f18e400] [cursor=pointer]:
+                - /url: "#id-4.-hang-thanh-vien"
+            - list [ref=f18e403]:
+              - listitem [ref=f18e404]:
+                - generic [ref=f18e405]: •
+                - paragraph [ref=f18e408]: Phân loại nhóm khách hàng theo số điểm/số tiền chi tiêu của khách hàng. Từ đó, xây dựng quyền lợi riêng cho từng hạng thành viên
+            - link "Hạng Thành Viên" [ref=f18e409] [cursor=pointer]:
+              - /url: /tinh-nang/loyalty/hang-thanh-vien
+            - heading "5. Điểm Thưởng Direct link to heading" [level=3] [ref=f18e414]:
+              - generic [ref=f18e415]: 5. Điểm Thưởng
+              - link "Direct link to heading" [ref=f18e417] [cursor=pointer]:
+                - /url: "#id-5.-diem-thuong"
+            - list [ref=f18e420]:
+              - listitem [ref=f18e421]:
+                - generic [ref=f18e422]: •
+                - paragraph [ref=f18e425]: Các tiêu chí cộng điểm tích lũy cho khách trong một số hành động như mua hàng, hoàn thành hồ sơ khách hàng, giới thiệu bạn bè,...
+            - link "Điểm Thưởng" [ref=f18e426] [cursor=pointer]:
+              - /url: /tinh-nang/loyalty/diem-thuong
+            - heading "6. Khuyến mãi Direct link to heading" [level=3] [ref=f18e431]:
+              - generic [ref=f18e432]: 6. Khuyến mãi
+              - link "Direct link to heading" [ref=f18e434] [cursor=pointer]:
+                - /url: "#id-6.-khuyen-mai"
+            - list [ref=f18e437]:
+              - listitem [ref=f18e438]:
+                - generic [ref=f18e439]: •
+                - paragraph [ref=f18e442]: Thiết lập các chương trình khuyến mãi và mã khuyến mãi đến khách hàng
+            - link "Khuyến mãi" [ref=f18e443] [cursor=pointer]:
+              - /url: /tinh-nang/loyalty/khuyen-mai
+        - generic [ref=f18e448]:
+          - link "Previous Tổng quan" [ref=f18e449] [cursor=pointer]:
+            - /url: /tinh-nang/tong-quan
+            - generic [ref=f18e452]:
+              - generic [ref=f18e453]: Previous
+              - generic [ref=f18e454]: Tổng quan
+          - link "Next Ưu đãi" [ref=f18e455] [cursor=pointer]:
+            - /url: /tinh-nang/loyalty/uu-dai
+            - generic [ref=f18e458]:
+              - generic [ref=f18e459]: Next
+              - generic [ref=f18e460]: Ưu đãi
+        - paragraph [ref=f18e462]:
+          - text: Last updated
+          - time [ref=f18e463]: 3 years ago
