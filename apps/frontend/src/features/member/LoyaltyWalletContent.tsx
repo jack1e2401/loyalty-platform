@@ -53,6 +53,12 @@ export function LoyaltyWalletContent({
   orderLink?: (id: number) => string;
   voucherLink?: string;
 }) {
+  const currentTier = wallet.policy?.tiers.find((tier) => tier.level === wallet.tier);
+  const tierColor = currentTier?.color && /^#[0-9A-Fa-f]{6}$/.test(currentTier.color) ? currentTier.color : "#2f583a";
+  const red = Number.parseInt(tierColor.slice(1, 3), 16);
+  const green = Number.parseInt(tierColor.slice(3, 5), 16);
+  const blue = Number.parseInt(tierColor.slice(5, 7), 16);
+  const tierForeground = (red * 299 + green * 587 + blue * 114) / 1000 > 155 ? "#20392a" : "#ffffff";
   return (
     <>
       <div className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
@@ -84,13 +90,14 @@ export function LoyaltyWalletContent({
             <Wallet aria-hidden="true" size={24} weight="light" className="shrink-0 text-[#c5e89b]" />
           </div>
         </Card>
-        <Card className="member-gradient relative min-h-48 overflow-hidden p-5 sm:min-h-56 sm:p-8">
+        <Card className="relative min-h-48 overflow-hidden border-0 p-5 sm:min-h-56 sm:p-8" style={{ backgroundColor: tierColor, color: tierForeground }}>
+          <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full opacity-[0.08]" viewBox="0 0 160 100" preserveAspectRatio="none"><defs><pattern id="member-tier-texture" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.7" fill="currentColor" /><circle cx="8" cy="8" r="0.7" fill="currentColor" /></pattern></defs><rect width="160" height="100" fill="url(#member-tier-texture)" /></svg>
           <div className={tierArtwork ? "relative z-1 max-w-[68%] sm:max-w-[65%]" : undefined}>
-            <p className="text-sm font-semibold text-[#6c8168]">Hạng thành viên</p>
-            <h2 className="serif mt-2 break-words text-2xl leading-tight text-[#294a32] sm:mt-3 sm:text-3xl">
-              {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : wallet.tier}
+            <p className="text-sm font-semibold opacity-75">Hạng thành viên</p>
+            <h2 className="mt-2 break-words text-2xl font-semibold leading-tight sm:mt-3 sm:text-3xl" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+              {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : currentTier?.name ?? wallet.tier}
             </h2>
-            <p className="mt-2 break-words text-xs leading-5 text-[#647a68] sm:mt-3 sm:text-sm sm:leading-6">
+            <p className="mt-2 break-words text-xs leading-5 opacity-80 sm:mt-3 sm:text-sm sm:leading-6">
               {wallet.tier === "UNRANKED"
                 ? "Đơn đã thanh toán đầu tiên sẽ xác lập hạng theo tổng điểm tích lũy."
                 : "Hạng dựa trên tổng điểm đã tích lũy; tiêu điểm không làm giảm hạng."}

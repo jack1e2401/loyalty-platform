@@ -16,16 +16,14 @@ const merchantGroups = [
   { label: "Sản phẩm", icon: Package, links: [["/merchant/products", "Sản phẩm"], ["/merchant/categories", "Danh mục"]] },
   { label: "Cửa hàng", icon: Storefront, links: [["/merchant/store", "Thông tin cửa hàng"], ["/merchant/storefront", "Giao diện cửa hàng"]] },
   {
-    label: "Khách hàng & Loyalty",
+    label: "Khách hàng",
     icon: UsersThree,
-    links: [
-      ["/merchant/customers", "Khách hàng"],
-      ["/merchant/loyalty/config", "Cấu hình điểm"],
-      ["/merchant/loyalty/transactions", "Giao dịch điểm"],
-      ["/merchant/loyalty/history", "Lịch sử chính sách"],
-      ["/merchant/loyalty/members", "Thành viên"],
-      ["/merchant/vouchers", "Voucher"],
-    ],
+    links: [["/merchant/customers", "Danh sách khách hàng"]],
+  },
+  {
+    label: "Loyalty",
+    icon: UsersThree,
+    links: [["/merchant/loyalty/config", "Điểm thưởng"], ["/merchant/vouchers", "Voucher"]],
   },
   { label: "Marketing", icon: Megaphone, links: [["/merchant/events", "Sự kiện"], ["/merchant/challenges", "Nhiệm vụ"]] },
   { label: "Báo cáo", icon: ChartBar, links: [["/merchant/analytics", "Phân tích"]] },
@@ -33,15 +31,22 @@ const merchantGroups = [
 
 export function BackendConsoleLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loyaltyConfigDirty, setLoyaltyConfigDirty] = useState(false);
   const { user, logout } = useAuthSession();
   const navigate = useNavigate();
   const location = useLocation();
+  useEffect(() => {
+    const updateDirty = (event: Event) => setLoyaltyConfigDirty(Boolean((event as CustomEvent<boolean>).detail));
+    window.addEventListener("loyalty-config-dirty", updateDirty);
+    return () => window.removeEventListener("loyalty-config-dirty", updateDirty);
+  }, []);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(merchantGroups.map((group) => [
       group.label,
       group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))),
     ])),
   );
+  const [pointsExpanded, setPointsExpanded] = useState(() => location.pathname.startsWith("/merchant/loyalty/"));
   useEffect(() => {
     const active = merchantGroups.find((group) => group.links.some(([to]) => location.pathname === to || (to !== "/merchant" && location.pathname.startsWith(`${to}/`))));
     if (active) setExpandedGroups((current) => ({ ...current, [active.label]: true }));
@@ -74,7 +79,7 @@ export function BackendConsoleLayout() {
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-[17rem] flex-col border-r border-white/10 bg-[#203d2c] px-4 py-5 text-white shadow-2xl transition-transform duration-200 lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-30 flex w-[17rem] flex-col border-r border-white/10 bg-[#203d2c] px-3 py-4 text-white shadow-2xl transition-transform duration-200 lg:translate-x-0 lg:shadow-none",
           menuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -86,7 +91,7 @@ export function BackendConsoleLayout() {
             <X size={19} />
           </button>
         </div>
-        <div className="mt-7 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3">
+        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#c7ec9f] text-[#203d2c]">
             <Storefront size={20} weight="duotone" />
           </span>
@@ -95,38 +100,71 @@ export function BackendConsoleLayout() {
             <span className="mt-0.5 block text-xs text-white/55">Quản lý hoạt động</span>
           </span>
         </div>
-        <nav aria-label="Điều hướng chính" className="merchant-sidebar-scroll mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto pb-3 pr-1">
+        <nav aria-label="Điều hướng chính" className="merchant-sidebar-scroll mt-3 min-h-0 flex-1 space-y-0 overflow-y-auto pb-2 pr-1">
           {merchantGroups.map((group, index) => {
             const GroupIcon = group.icon;
             const groupId = `merchant-nav-group-${index}`;
-            return <section key={group.label} className="pt-1">
+            return <section key={group.label} className="pt-0">
               <button
                 type="button"
                 aria-expanded={expandedGroups[group.label] ?? false}
                 aria-controls={groupId}
                 onClick={() => setExpandedGroups((current) => ({ ...current, [group.label]: !current[group.label] }))}
-                className="flex w-full items-center justify-between rounded-xl px-2.5 py-2.5 text-left text-[13px] font-semibold text-white/65 transition hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7ec9f]"
+                className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[12px] leading-5 font-normal text-white/65 transition hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7ec9f]"
               >
                 <span className="flex min-w-0 items-center gap-3">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.07] text-white/70"><GroupIcon size={17} weight="regular" /></span>
+                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-white/[0.07] text-white/70"><GroupIcon size={15} weight="regular" /></span>
                   <span className="truncate">{group.label}</span>
                 </span>
                 <CaretDown size={15} aria-hidden="true" className={cn("shrink-0 text-white/45 transition-transform duration-200", expandedGroups[group.label] && "rotate-180")} />
               </button>
-              <div id={groupId} hidden={!expandedGroups[group.label]} className="ml-[1.35rem] space-y-0.5 border-l border-white/10 py-1 pl-3">
+              <div id={groupId} hidden={!expandedGroups[group.label]} className="ml-[1.35rem] space-y-0.5 border-l border-white/10 py-0.5 pl-3">
                   {group.links.map(([to, label]) => (
-                    <NavLink
-                      key={to}
+                    <div key={to}>
+                    {to === "/merchant/loyalty/config" ? (
+                    <button
+                      type="button"
+                      aria-expanded={pointsExpanded}
+                      onClick={() => setPointsExpanded((expanded) => !expanded)}
+                      className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[12px] leading-5 font-normal text-white/75 hover:bg-white/[0.07]"
+                    >
+                      <span className="flex items-center gap-2.5 text-[12px] leading-5 font-normal"><span className="size-1.5 rounded-full bg-white/35" />{label}</span>
+                      <CaretDown size={13} className={cn("transition-transform", pointsExpanded && "rotate-180")} />
+                    </button>
+                    ) : <NavLink
                       to={to}
                       end={to === "/merchant"}
                       onClick={() => setMenuOpen(false)}
+                      onClickCapture={(event) => {
+                        if (loyaltyConfigDirty && to !== location.pathname) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          window.alert("Vui lòng lưu cấu hình trước khi rời trang.");
+                        }
+                      }}
                       className={({ isActive }) => cn(
-                        "group flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium text-white/65 transition duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7ec9f]",
-                        isActive && "bg-white/[0.12] font-semibold text-white shadow-[inset_3px_0_0_#c7ec9f] hover:bg-white/[0.12] hover:text-white",
+                        "group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] leading-5 font-normal text-white/65 transition duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7ec9f]",
+                        isActive && "bg-white/[0.12] text-white shadow-[inset_3px_0_0_#c7ec9f] hover:bg-white/[0.12] hover:text-white",
                       )}
                     >
                       {({ isActive }) => <><span className={cn("size-1.5 shrink-0 rounded-full bg-white/25 transition", isActive && "bg-[#c7ec9f]")} />{label}</>}
-                    </NavLink>
+                    </NavLink>}
+                    {to === "/merchant/loyalty/config" && pointsExpanded && (
+                      <div className="ml-2 space-y-0 border-l border-white/10 py-0 pl-1.5">
+                        {[
+                          ["/merchant/loyalty/config", "Cấu hình điểm"],
+                          ["/merchant/loyalty/transactions", "Lịch sử điểm"],
+                          ["/merchant/loyalty/history", "Chính sách điểm"],
+                          ["/merchant/loyalty/members", "Điểm của thành viên"],
+                        ].map(([childTo, childLabel]) => (
+                          <NavLink key={childTo} to={childTo} end className={({ isActive }) => cn(
+                            "block rounded-md px-2 py-1 text-[12px] leading-5 font-normal text-white/60 transition hover:bg-white/[0.07] hover:text-white",
+                            isActive && "bg-white/[0.12] text-white shadow-[inset_2px_0_0_#c7ec9f]",
+                          )}>{childLabel}</NavLink>
+                        ))}
+                      </div>
+                    )}
+                    </div>
                   ))}
               </div>
             </section>;
@@ -162,7 +200,7 @@ export function BackendConsoleLayout() {
           <SignOut size={18} /> Đăng xuất
         </button>
       </header>
-      <main className="mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-8 lg:pt-10">
+      <main className="mx-auto max-w-7xl px-5 pb-12 pt-6 sm:px-7 lg:pt-7">
         <MerchantAccess />
       </main>
     </div>

@@ -8,16 +8,10 @@ const left = 58;
 const right = 132;
 const top = 18;
 const bottom = 44;
-const tierColors: Record<string, string> = {
-  BRONZE: "#a8733d",
-  SILVER: "#7e8b98",
-  GOLD: "#c29a27",
-  PLATINUM: "#438f98",
-};
 const numberFormat = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 });
 
-function tierColor(level: string) {
-  return tierColors[level] ?? "#738078";
+function tierColor(tier: LoyaltyTierDto) {
+  return tier.color && /^#[0-9A-Fa-f]{6}$/.test(tier.color) ? tier.color : "#738078";
 }
 
 function eventLabel(type: LifetimeTierHistoryPoint["type"]) {
@@ -48,7 +42,7 @@ export function MemberLifetimeTierChart({ wallet }: { wallet: WalletDto }) {
           </p>
         </div>
         <p className="rounded-full bg-[#f0f5ed] px-3 py-1 text-xs font-bold text-[#31563a]">
-          Hạng hiện tại: {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : wallet.tier}
+          Hạng hiện tại: {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : wallet.policy?.tiers.find((tier) => tier.level === wallet.tier)?.name ?? wallet.tier}
         </p>
       </div>
 
@@ -115,7 +109,7 @@ function LifetimeChart({
             <span
               aria-hidden="true"
               className="h-3 w-3 rounded-sm border border-black/10"
-              style={{ backgroundColor: tierColor(tier.level), opacity: 0.62 }}
+              style={{ backgroundColor: tierColor(tier), opacity: 0.85 }}
             />
             {tier.name ?? tier.level} · {numberFormat.format(tier.minLifetimePoints ?? 0)} điểm
           </span>
@@ -152,7 +146,7 @@ function LifetimeChart({
                 y={yFor(bandEnd)}
                 width={chartWidth}
                 height={yFor(bandStart) - yFor(bandEnd)}
-                fill={tierColor(tier.level)}
+                fill={tierColor(tier)}
                 fillOpacity="0.16"
               />
             );
@@ -180,7 +174,7 @@ function LifetimeChart({
                     y1={y}
                     x2={width - right}
                     y2={y}
-                    stroke={tierColor(tier.level)}
+                    stroke={tierColor(tier)}
                     strokeDasharray="4 5"
                   />
                 </g>

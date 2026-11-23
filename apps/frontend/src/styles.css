@@ -5,6 +5,7 @@
 @import "@fontsource/plus-jakarta-sans/700.css";
 @import "@fontsource/plus-jakarta-sans/800.css";
 @import "@fontsource/fraunces/600.css";
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&subset=vietnamese&display=swap");
 
 :root {
   font-family: "Plus Jakarta Sans", sans-serif;

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import type {
   LoyaltyConfigInput,
@@ -16,7 +16,6 @@ import {
   Field,
   Input,
   LoadingState,
-  PageHeader,
   Select,
 } from "../../../components/ui";
 import { MerchantLoyaltyTransactions } from "../MerchantLoyaltyTransactions";
@@ -55,6 +54,10 @@ export function MerchantLoyalty() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [resetBusy, setResetBusy] = useState(false);
+  const [configSection, setConfigSection] = useState<"program" | "tiers" | "reset">("program");
+  const [showOptional, setShowOptional] = useState<Record<string, boolean>>({});
+  const [expandedTiers, setExpandedTiers] = useState<Record<string, boolean>>({});
+  const [editingPolicy, setEditingPolicy] = useState(false);
 
   // Formula preview state
   const [previewAmount, setPreviewAmount] = useState("");
@@ -75,6 +78,18 @@ export function MerchantLoyalty() {
           tiers: config.tiers.map((tier) => ({ ...tier })),
         }
       : null);
+  const isDirty = Boolean(config && form && JSON.stringify(form) !== JSON.stringify({
+    vndPerPoint: config.vndPerPoint,
+    isActive: config.isActive,
+    qualificationMode: config.qualificationMode,
+    reset: config.reset,
+    tiers: config.tiers,
+  }));
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("loyalty-config-dirty", { detail: isDirty }));
+    return () => { window.dispatchEvent(new CustomEvent("loyalty-config-dirty", { detail: false })); };
+  }, [isDirty]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,18 +148,8 @@ export function MerchantLoyalty() {
 
   return (
     <>
-      <PageHeader
-        title={
-          activeTab === "ledger"
-            ? "Giao dịch điểm"
-            : activeTab === "history"
-              ? "Lịch sử chính sách"
-              : activeTab === "members"
-                ? "Thành viên"
-                : "Cấu hình điểm"
-        }
-      />
-
+      <div className="space-y-2">
+      {(activeTab === "config" || activeTab === "ledger" || activeTab === "history" || activeTab === "members") && <>
       {activeTab === "config" ? (
         resource.loading ? (
           <LoadingState cards={2} />
@@ -153,8 +158,8 @@ export function MerchantLoyalty() {
         ) : !config || !form ? (
           <EmptyState title="Chưa có cấu hình" description="Cấu hình chưa khả dụng." />
         ) : (
-          <div className="mx-auto w-full max-w-4xl space-y-6">
-            <div className="rounded-2xl bg-[#fff8eb] p-4 text-xs leading-5 text-[#97682a]">
+          <div className="mx-auto w-full max-w-5xl space-y-2">
+            <div className="rounded-lg bg-[#fff8eb] px-3 py-2 text-xs leading-4 text-[#97682a]">
               <p className="font-bold">
                 Lưu ý: Thay đổi tỷ lệ hoặc hạng tích điểm chỉ áp dụng cho các đơn hàng phát sinh sau này.
               </p>
@@ -163,10 +168,23 @@ export function MerchantLoyalty() {
               </p>
             </div>
 
-            <Card className="p-6 sm:p-8">
-              <LoyaltyFormula config={config} />
-              <form onSubmit={save} className="mt-6 space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2">
+            <Card className="p-3 pb-20 sm:p-4">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[#e5ece3]">
+                <div className="flex gap-1">
+                {([["program", "Chương trình"], ["tiers", "Các hạng"], ["reset", "Reset hạng"]] as const).map(([key, label]) => (
+                  <button key={key} type="button" onClick={() => setConfigSection(key)} className={`border-b-2 px-3 py-2 text-sm ${configSection === key ? "border-[#416b48] font-semibold text-[#294833]" : "border-transparent text-[#718075]"}`}>{label}</button>
+                ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs text-[#53645a]"><input type="checkbox" checked={editingPolicy} onChange={(event) => setEditingPolicy(event.target.checked)} />Chỉnh sửa chính sách</label>
+                  {isDirty && <Button type="submit" form="loyalty-config-form" disabled={busy || !editingPolicy} size="sm">{busy ? <BusyLabel>Đang lưu</BusyLabel> : "Lưu cấu hình"}</Button>}
+                </div>
+              </div>
+              <form id="loyalty-config-form" onSubmit={save} className="space-y-3">
+                <fieldset disabled={!editingPolicy} className="space-y-3 disabled:opacity-70">
+                {configSection === "program" && <>
+                <LoyaltyFormula config={config} />
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="VND cho mỗi điểm">
                     <Input
                       required
@@ -193,7 +211,19 @@ export function MerchantLoyalty() {
                     <option value="SPEND">Chi tiêu</option>
                   </Select>
                 </Field>
-                <section aria-label="Cấu hình hạng" className="space-y-3">
+                <details className="rounded-lg border border-[#e5ece3] p-3">
+                  <summary className="cursor-pointer text-sm font-medium">Xem trước công thức (tùy chọn)</summary>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <Field label="Số tiền đơn hàng thử nghiệm (VND)"><Input type="number" min={1} value={previewAmount} onChange={(event) => setPreviewAmount(event.target.value)} placeholder="50000" /></Field>
+                    <Field label="Hạng thành viên"><Select value={previewTier} onChange={(event) => setPreviewTier(event.target.value as TierLevel | "")}><option value="">Theo cấu hình</option>{config.tiers.map((tier) => <option key={tier.level} value={tier.level}>{tier.name ?? tier.level}</option>)}</Select></Field>
+                    <div className="flex items-end"><Button type="button" disabled={previewBusy || !previewAmount} onClick={() => void runFormulaPreview()}>{previewBusy ? <BusyLabel>Đang tính</BusyLabel> : "Tính thử điểm"}</Button></div>
+                  </div>
+                  {previewError && <p role="alert" className="mt-2 text-xs text-[#a4473a]">{previewError}</p>}
+                  {previewResult && <p className="mt-2 text-sm">Điểm ước tính: <b>{previewResult.estimatedPointsExact}</b></p>}
+                </details>
+                </>}
+                {configSection === "tiers" && <>
+                <section aria-label="Cấu hình hạng" className="space-y-2">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div><h2 className="font-extrabold">Các hạng</h2><p className="mt-1 text-xs muted">Hạng mặc định không thể xóa. Ngưỡng phải tăng dần.</p></div>
                     <Button type="button" variant="outline" onClick={() => {
@@ -205,20 +235,33 @@ export function MerchantLoyalty() {
                     }}>Thêm hạng</Button>
                   </div>
                   {form.tiers.map((tier, index) => (
-                    <div key={tier.level} className="grid items-end gap-3 rounded-xl bg-[#f7f9f5] p-4 sm:grid-cols-2">
+                    <div key={tier.level} className="grid items-end gap-2 rounded-lg border border-[#e5ece3] bg-[#f7f9f5] p-3 sm:grid-cols-2">
+                      <div className="flex items-center justify-between sm:col-span-2">
+                        <button type="button" aria-expanded={expandedTiers[tier.level] ?? false} onClick={() => setExpandedTiers((old) => ({ ...old, [tier.level]: !old[tier.level] }))} className="flex items-center gap-2 text-sm font-semibold text-[#294833]"><span aria-hidden="true">{expandedTiers[tier.level] ? "▾" : "▸"}</span>{tier.name || `Hạng ${index + 1}`}</button>
+                        {index > 0 && <button type="button" className="rounded-md px-2 py-1 text-xs font-medium text-[#a4473a] hover:bg-[#f9e9e6]" onClick={() => setDraft({ ...form, tiers: form.tiers.filter((_, i) => i !== index).map((item, i) => ({ ...item, sortOrder: i })) })}>Xóa hạng</button>}
+                      </div>
+                      {expandedTiers[tier.level] && <>
                       <Field label="Tên hạng"><Input required maxLength={80} value={tier.name ?? tier.level} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, name: event.target.value } : item) })} /></Field>
                       <Field label={form.qualificationMode === "POINTS" ? "Điểm tối thiểu" : "Chi tiêu tối thiểu (VND)"}>
                         <Input required type="number" min={index === 0 ? 0 : 1} step={1} disabled={index === 0} value={form.qualificationMode === "POINTS" ? tier.minLifetimePoints ?? (index === 0 ? 0 : "") : tier.minSpendVnd ?? (index === 0 ? "0" : "")} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? form.qualificationMode === "POINTS" ? { ...item, minLifetimePoints: event.target.value === "" ? undefined : Number(event.target.value), minSpendVnd: undefined } : { ...item, minSpendVnd: event.target.value, minLifetimePoints: undefined } : item) })} />
                       </Field>
                       <Field label="Hệ số"><Input required pattern="[0-9]{1,3}\.[0-9]{2}" value={tier.multiplier} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, multiplier: event.target.value } : item) })} /></Field>
-                      <Field label="Lợi ích (mỗi dòng một lợi ích)"><Input value={(tier.benefits ?? []).join("\n")} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, benefits: event.target.value.split("\n").filter(Boolean) } : item) })} /></Field>
-                      <Field label="Chi tiêu duy trì hạng (VND, tùy chọn)"><Input type="number" min={0} value={tier.maintenanceSpendVnd ?? ""} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, maintenanceSpendVnd: event.target.value || null } : item) })} /></Field>
-                      <Field label="Màu hạng"><Input type="color" value={tier.color ?? "#6B7280"} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, color: event.target.value } : item) })} /></Field>
-                      {index > 0 && <Button type="button" variant="outline" onClick={() => setDraft({ ...form, tiers: form.tiers.filter((_, i) => i !== index).map((item, i) => ({ ...item, sortOrder: i })) })}>Xóa hạng</Button>}
+                      <Field label="Màu hạng"><div className="flex items-center gap-2"><Input aria-label={`Mã HEX màu ${tier.name || `hạng ${index + 1}`}`} value={tier.color ?? "#6B7280"} pattern="^#[0-9A-Fa-f]{6}$" maxLength={7} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, color: event.target.value } : item) })} /><label className="relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-md border border-[#d5ded3] shadow-sm" style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(tier.color ?? "") ? tier.color! : "#ffffff" }} title="Chọn màu"><span className="sr-only">Mở bảng chọn màu</span><input aria-label={`Chọn màu cho ${tier.name || `hạng ${index + 1}`}`} type="color" value={/^#[0-9A-Fa-f]{6}$/.test(tier.color ?? "") ? tier.color! : "#6B7280"} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, color: event.target.value.toUpperCase() } : item) })} className="absolute inset-0 size-full cursor-pointer opacity-0" /></label></div></Field>
+                      <div className="sm:col-span-2 flex flex-wrap items-center gap-2 border-t border-[#e5ece3] pt-2">
+                        <button type="button" className="text-xs font-medium text-[#416b48]" onClick={() => setShowOptional((old) => ({ ...old, [tier.level]: !old[tier.level] }))}>{showOptional[tier.level] ? "Ẩn tùy chọn" : "Tùy chọn"}</button>
+                        {!showOptional[tier.level] && <span className="text-xs text-[#89958b]">Quyền lợi: chưa triển khai</span>}
+                      </div>
+                      {showOptional[tier.level] && <>
+                        <Field label="Lợi ích"><Input disabled placeholder="Chưa triển khai" value="" /></Field>
+                        <Field label="Chi tiêu duy trì hạng (VND)"><Input type="number" min={0} value={tier.maintenanceSpendVnd ?? ""} onChange={(event) => setDraft({ ...form, tiers: form.tiers.map((item, i) => i === index ? { ...item, maintenanceSpendVnd: event.target.value || null } : item) })} /></Field>
+                      </>}
+                      </>}
                     </div>
                   ))}
                 </section>
-                <section aria-label="Thiết lập reset hạng" className="space-y-4 rounded-xl border border-[#e5ece3] p-4">
+                </>}
+                {configSection === "reset" && <>
+                <section aria-label="Thiết lập reset hạng" className="space-y-3 rounded-lg border border-[#e5ece3] p-3">
                   <h2 className="font-extrabold">Reset hạng hằng năm</h2>
                   <Field label="Lịch reset"><Select value={form.reset.enabled ? "true" : "false"} onChange={(event) => setDraft({ ...form, reset: { ...form.reset, enabled: event.target.value === "true" } })}><option value="false">Tắt</option><option value="true">Bật</option></Select></Field>
                   {form.reset.enabled && <div className="grid gap-4 sm:grid-cols-3">
@@ -228,8 +271,13 @@ export function MerchantLoyalty() {
                     {form.reset.strategy === "SELECTED" && <Field label="Hạng đích"><Select value={form.reset.targetLevel ?? ""} onChange={(event) => setDraft({ ...form, reset: { ...form.reset, targetLevel: event.target.value } })}>{form.tiers.map((tier) => <option key={tier.level} value={tier.level}>{tier.name ?? tier.level}</option>)}</Select></Field>}
                     <p className="text-xs muted sm:col-span-3">Reset đặt lại tiến trình về ngưỡng của hạng đích nhưng giữ nguyên điểm có thể đổi. Đủ chi tiêu duy trì sẽ giữ nguyên hạng hiện tại.</p>
                   </div>}
-                  <Button type="button" variant="outline" disabled={!form.reset.enabled || resetBusy} onClick={() => void runTierReset()}>{resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Chạy reset đến hạn"}</Button>
                 </section>
+                <section aria-label="Thực hiện reset" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#ead8d4] bg-[#fcf8f7] p-3">
+                  <div><h3 className="text-sm font-semibold text-[#7a4038]">Thực hiện reset</h3><p className="mt-1 text-xs muted">Thao tác này cập nhật hạng và tiến trình xét hạng của hội viên khi đến lịch đã cấu hình.</p></div>
+                  <Button type="button" variant="outline" disabled={!form.reset.enabled || resetBusy || !editingPolicy} onClick={() => { if (window.confirm("Bạn muốn chạy reset hạng đến hạn cho hội viên?")) void runTierReset(); }}>{resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Chạy reset đến hạn"}</Button>
+                </section>
+                </>}
+                </fieldset>
                 {error && (
                   <p role="alert" className="text-sm text-[#a4473a]">
                     {error}
@@ -240,11 +288,10 @@ export function MerchantLoyalty() {
                     {notice}
                   </p>
                 )}
-                <Button disabled={busy}>{busy ? <BusyLabel>Đang lưu</BusyLabel> : "Lưu cấu hình"}</Button>
               </form>
             </Card>
 
-            <Card className="p-6 sm:p-8">
+            {config && previewResult && <Card className="p-6 sm:p-8">
               <h2 className="text-lg font-extrabold">Xem trước công thức tích điểm</h2>
               <p className="mt-1 text-xs muted">
                 Thử tính toán điểm số cho đơn hàng dựa trên công thức hiện tại mà không thay đổi dữ liệu.
@@ -312,7 +359,7 @@ export function MerchantLoyalty() {
                   </p>
                 </div>
               )}
-            </Card>
+            </Card>}
           </div>
         )
       ) : activeTab === "ledger" ? (
@@ -324,10 +371,12 @@ export function MerchantLoyalty() {
       ) : history.error ? (
         <ErrorState message={history.error} retry={history.reload} />
       ) : (
-        <Card className="mx-auto w-full max-w-4xl p-5 sm:p-7">
+        <Card className="mx-auto w-full max-w-5xl p-3 sm:p-4">
           <MerchantLoyaltyHistory versions={history.data?.versions ?? []} />
         </Card>
       )}
+      </>}
+      </div>
     </>
   );
 }
