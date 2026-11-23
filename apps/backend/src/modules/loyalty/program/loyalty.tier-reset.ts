@@ -1,6 +1,7 @@
 import { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
 import { HttpError } from "../../../lib/http-error.js";
+import { points, selectQualifiedTier } from "./loyalty.calculation.js";
 import { resolveResetTier } from "./loyalty.tier-reset.domain.js";
 
 const zone = "Asia/Ho_Chi_Minh";
@@ -61,9 +62,25 @@ export async function runAnnualTierReset(merchantId: number, now = new Date()) {
           cycleSpendVnd: spend._sum.total ?? new Prisma.Decimal(0),
           maintenanceEnabled: tiers.some((tier) => tier.maintenanceSpendVnd !== null),
         });
+        const postBoundaryOrders = await tx.order.aggregate({
+          where: { merchantId, memberId: membership.memberId, status: { in: ["PAID", "REFUND_PENDING"] }, paidAt: { gte: spendTo } },
+          _sum: { total: true, earnedPointsExact: true },
+        });
+        const postBoundaryChallengeRewards = rule.qualificationMode === "POINTS"
+          ? await tx.challengeRewardGrant.aggregate({
+            where: { status: "GRANTED", grantedAt: { gte: spendTo }, progress: { membershipId: membership.id } },
+            _sum: { pointsGranted: true },
+          })
+          : null;
+        const postBoundaryContribution = rule.qualificationMode === "SPEND"
+          ? postBoundaryOrders._sum.total ?? new Prisma.Decimal(0)
+          : (postBoundaryOrders._sum.earnedPointsExact ?? new Prisma.Decimal(0)).plus(postBoundaryChallengeRewards?._sum.pointsGranted ?? new Prisma.Decimal(0));
+        const qualificationProgress = points(result.progress).plus(postBoundaryContribution);
+        const qualifiedLevel = selectQualifiedTier(qualificationProgress, tiers, rule.qualificationMode) ?? tiers[0]!.level;
+        const qualifiedTier = tiers.find((tier) => tier.level === qualifiedLevel)!;
         await tx.merchantMembership.update({
           where: { id: membership.id },
-          data: { tierId: result.tierId, qualificationProgress: result.progress, lastResetCycleYear: cycleYear, lastResetAt: spendTo },
+          data: { tierId: qualifiedTier.id, qualificationProgress, lastResetCycleYear: cycleYear, lastResetAt: spendTo },
         });
       }
       await tx.tierResetRun.update({ where: { id: run.id }, data: { processedCount: memberships.length } });
