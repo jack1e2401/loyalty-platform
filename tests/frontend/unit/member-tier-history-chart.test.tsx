@@ -87,7 +87,7 @@ describe("Member lifetime tier history", () => {
     expect(screen.getByLabelText("Lịch sử điểm lifetime").textContent).toContain("1.2");
   });
 
-  it("uses muted tier-name colors for current-policy bands and keeps the plot swipeable", () => {
+  it("uses merchant-configured tier colors for current-policy bands and keeps the plot swipeable", () => {
     const report = wallet(
       [
         transaction(2, "EARN", "52.5", "2026-11-12T11:00:00.000Z"),
@@ -96,10 +96,10 @@ describe("Member lifetime tier history", () => {
       "172.5",
     );
     report.policy!.tiers = [
-      { level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" },
-      { level: "SILVER", minLifetimePoints: 30, multiplier: "1.10" },
-      { level: "GOLD", minLifetimePoints: 100, multiplier: "1.25" },
-      { level: "PLATINUM", minLifetimePoints: 250, multiplier: "1.50" },
+      { level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00", color: "#647A69" },
+      { level: "SILVER", minLifetimePoints: 30, multiplier: "1.10", color: "#8A949D" },
+      { level: "GOLD", minLifetimePoints: 100, multiplier: "1.25", color: "#C6912D" },
+      { level: "PLATINUM", minLifetimePoints: 250, multiplier: "1.50", color: "#5B6F8D" },
     ];
 
     render(<MemberLifetimeTierChart wallet={report} />);

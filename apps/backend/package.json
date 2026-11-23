@@ -13,6 +13,7 @@
     "test:milestone2": "npm run db:generate && tsx --test ../../tests/backend/integration/milestone-2.integration.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:demo": "tsx prisma/demo-seed.ts",
     "db:studio": "prisma studio"

@@ -109,6 +109,9 @@ async function syncImagesOnUpdate(
 
 export const productsRepository = {
   ...productReadRepository,
+  async findProductMerchants(productIds: number[]) {
+    return prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, merchantId: true } });
+  },
   async create(
     merchantId: number,
     actorId: number,

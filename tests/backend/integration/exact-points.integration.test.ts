@@ -15,6 +15,7 @@ test("checkout idempotency replays the same order and rejects a changed payload"
   const key = randomUUID();
   const body = { productId: shop.productId, quantity: 1 };
   const first = await request<{ order: { id: number } }>("/api/orders", "POST", member.token, body, { "Idempotency-Key": key });
+  await prisma.product.update({ where: { id: shop.productId }, data: { status: "HIDDEN" } });
   const replay = await request<{ order: { id: number } }>("/api/orders", "POST", member.token, body, { "Idempotency-Key": key });
   assert.equal(first.status, 201);
   assert.equal(replay.status, 200);
@@ -23,6 +24,7 @@ test("checkout idempotency replays the same order and rejects a changed payload"
   assert.equal(conflict.status, 409);
   assert.equal(conflict.json.error, "IDEMPOTENCY_KEY_CONFLICT");
   assert.equal(await prisma.order.count({ where: { memberId: member.id } }), 1);
+  await prisma.product.update({ where: { id: shop.productId }, data: { status: "ACTIVE" } });
   const inventory = await prisma.inventoryBalance.findFirstOrThrow({ where: { merchantId: shop.id, productId: shop.productId, ownerType: "SALE_PRODUCT" } });
   assert.equal(inventory.reservedQuantity, 1);
 });

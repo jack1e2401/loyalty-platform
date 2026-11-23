@@ -7,6 +7,7 @@ export interface ResetTierCandidate {
   minLifetimePoints: number | null;
   minSpendVnd: Prisma.Decimal | string | null;
   maintenanceSpendVnd: Prisma.Decimal | string | null;
+  sortOrder: number;
 }
 
 export interface ResolveTierResetInput {
@@ -29,7 +30,7 @@ function threshold(tier: ResetTierCandidate, mode: TierQualificationMode): strin
 }
 
 export function resolveResetTier(input: ResolveTierResetInput): { tierId: number; progress: string } {
-  const tiers = [...input.tiers].sort((left, right) => left.id - right.id);
+  const tiers = [...input.tiers].sort((left, right) => left.sortOrder - right.sortOrder || left.id - right.id);
   if (tiers.length === 0) throw new RangeError("At least one tier is required");
   const currentIndex = Math.max(0, tiers.findIndex((tier) => tier.id === input.currentTierId));
   const current = tiers[currentIndex]!;

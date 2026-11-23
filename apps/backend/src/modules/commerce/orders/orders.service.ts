@@ -36,6 +36,17 @@ export const ordersService = {
   },
 
   async createOrder(memberId: number, input: CreateOrderInput, idempotencyKey: string): Promise<{ order: OrderDto; replayed: boolean }> {
+    const payloadHash = createHash("sha256").update(JSON.stringify({
+      items: input.items.map(({ productId, quantity }) => ({ productId, quantity })).sort((left, right) => left.productId - right.productId),
+      voucherId: input.voucherId ?? null,
+    })).digest("hex");
+    const productReferences = await productsRepository.findProductMerchants(input.items.map(({ productId }) => productId));
+    const referencedMerchantIds = new Set(productReferences.map(({ merchantId }) => merchantId));
+    if (productReferences.length === input.items.length && referencedMerchantIds.size === 1) {
+      const replay = await ordersRepository.findIdempotentOrder(memberId, productReferences[0]!.merchantId, idempotencyKey, payloadHash);
+      if (replay) return replay;
+    }
+
     const products = await productsRepository.findSellableProducts(input.items.map(({ productId }) => productId));
     const merchantId = products[0]?.merchantId;
     if (merchantId === undefined || products.length !== input.items.length) {
@@ -59,10 +70,6 @@ export const ordersService = {
     const subtotal = items.reduce((sum, item) => sum.plus(item.lineTotal), new Prisma.Decimal(0));
     if (subtotal.greaterThan(maxOrderTotal)) throw new HttpError(400, "INVALID_INPUT");
 
-    const payloadHash = createHash("sha256").update(JSON.stringify({
-      items: items.map(({ productId, quantity }) => ({ productId, quantity })).sort((left, right) => left.productId - right.productId),
-      voucherId: input.voucherId ?? null,
-    })).digest("hex");
     return ordersRepository.createPendingOrder({
       memberId,
       merchantId,

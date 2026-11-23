@@ -118,7 +118,7 @@ async function main(): Promise<void> {
 
   await prisma.$transaction(async (tx) => {
     await tx.merchant.update({ where: { id: merchant.id }, data: { name: SHOP_NAME, isActive: true } });
-    await tx.user.update({ where: { id: owner.id }, data: { name: "Hikari Coffee — Chủ cửa hàng demo" } });
+    await tx.user.update({ where: { id: owner.id }, data: { name: "Hikari Coffee — Chủ cửa hàng demo", passwordHash } });
 
     const categories = new Map<string, number>();
     for (const category of categorySeeds) {

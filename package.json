@@ -16,7 +16,8 @@
     "test:frontend": "npm test --workspace apps/frontend",
     "test:backend": "npm test --workspace apps/backend",
     "test:db": "node scripts/test-backend-db.mjs",
-    "test:e2e": "playwright test --config tests/frontend/playwright.config.ts"
+    "test:e2e": "playwright test --config tests/frontend/playwright.config.ts",
+    "seed": "npm run db:migrate:deploy --workspace apps/backend && npm run db:seed --workspace apps/backend && npm run db:seed:demo --workspace apps/backend"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",

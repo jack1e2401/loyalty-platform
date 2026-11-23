@@ -25,6 +25,16 @@ import { orderReadRepository } from "./orders.read.repository.js";
 export const ordersRepository = {
   ...orderReadRepository,
 
+  async findIdempotentOrder(memberId: number, merchantId: number, idempotencyKey: string, payloadHash: string) {
+    const request = await prisma.orderRequest.findUnique({
+      where: { merchantId_memberId_idempotencyKey: { merchantId, memberId, idempotencyKey } },
+      include: { order: { include: { items: { orderBy: { id: "asc" } }, refund: true, pointTransactions: true } } },
+    });
+    if (!request) return null;
+    if (request.payloadHash !== payloadHash) throw new HttpError(409, "IDEMPOTENCY_KEY_CONFLICT");
+    return { order: toOrderDto(request.order), replayed: true as const };
+  },
+
   async createPendingOrder(input: CreatePendingOrderInput): Promise<{ order: OrderDto; replayed: boolean }> {
     let order: Prisma.OrderGetPayload<{
       include: {
