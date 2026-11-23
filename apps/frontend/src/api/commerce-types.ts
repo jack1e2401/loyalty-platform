@@ -58,6 +58,7 @@ export type {
 export type {
   OrderStatus,
   RefundStatus,
+  PaymentProvider,
   OrderItemDto,
   OrderActionsDto,
   OrderDto,

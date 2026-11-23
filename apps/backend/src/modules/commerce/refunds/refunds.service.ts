@@ -5,7 +5,9 @@ import { prisma } from "../../../lib/prisma.js";
 import { merchantService } from "../../merchants/profile/merchant.service.js";
 import { ordersRepository } from "../orders/orders.repository.js";
 import { toOrderDto } from "../orders/orders.serialization.js";
-import { completeMockRefund } from "./refunds.complete.js";
+import { completeMockRefund, completeReconciledRefund } from "./refunds.complete.js";
+import { refundSettlementRoute } from "./refunds.payment-routing.js";
+import { merchantReconcileRefund, reconciliationAttemptDto } from "./refunds.reconciliation.service.js";
 import { reasonInput } from "./refunds.validation.js";
 
 function statusFilter(status: unknown) {
@@ -94,17 +96,29 @@ export const refundsService = {
         order: { include: { items: true, refund: true, refundRequest: true, pointTransactions: true } },
         merchant: { select: { id: true, name: true, slug: true } },
         member: { select: { id: true, email: true } },
+        reconciliationAttempts: {
+          select: { id: true, recordedById: true, providerReference: true, providerTransactionNo: true, outcome: true, failureReason: true, createdAt: true },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
     if (!request) throw new HttpError(404, "REFUND_REQUEST_NOT_FOUND");
     const preview = await ordersRepository.getRefundPreview(request.merchantId, request.orderId);
-    const { order, merchant, member, ...refundRequest } = request;
+    const { order, merchant, member, reconciliationAttempts, ...refundRequest } = request;
     const settlement = order.refund ? {
       status: order.refund.status,
       amountVnd: order.refund.amountVnd.toFixed(0),
       completedAt: order.refund.completedAt?.toISOString() ?? null,
     } : null;
-    return { refundRequest, order: toOrderDto(order), merchant, member, preview, settlement };
+    return {
+      refundRequest,
+      order: toOrderDto(order),
+      merchant,
+      member,
+      preview,
+      settlement,
+      reconciliationAttempts: reconciliationAttempts.map(reconciliationAttemptDto),
+    };
   },
 
   async merchantApprove(ownerId: number, id: number, noteValue?: unknown) {
@@ -113,29 +127,122 @@ export const refundsService = {
     return withTransactionRetry(() => prisma.$transaction(async (tx) => {
       const request = await tx.refundRequest.findFirst({ where: { id, merchantId: merchant.id } });
       if (!request) throw new HttpError(404, "REFUND_REQUEST_NOT_FOUND");
-      const replay = request.status === "COMPLETED";
-      if (!replay) {
+      const order = await tx.order.findFirst({
+        where: { id: request.orderId, merchantId: merchant.id },
+        select: {
+          id: true,
+          status: true,
+          paymentProvider: true,
+          paymentProviderReference: true,
+          paymentProviderTransactionNo: true,
+          refund: { select: { id: true } },
+        },
+      });
+      if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
+      if (request.status === "COMPLETED") {
+        if (refundSettlementRoute(order.paymentProvider) === "MANUAL_RECONCILIATION") {
+          const settledAttempt = await tx.refundReconciliationAttempt.findFirst({
+            where: { refundRequestId: id, outcome: "SETTLED" },
+            orderBy: { createdAt: "asc" },
+          });
+          if (settledAttempt) {
+            const result = await completeReconciledRefund(tx, {
+              merchantId: merchant.id,
+              ownerId,
+              orderId: request.orderId,
+              reason: request.reason,
+              providerReference: settledAttempt.providerReference,
+              replay: true,
+            });
+            return {
+              ...result,
+              refundRequest: request,
+              reconciliationAttempt: reconciliationAttemptDto(settledAttempt),
+              manualReconciliationRequired: false as const,
+            };
+          }
+          return {
+            refundRequest: request,
+            manualReconciliationRequired: true as const,
+            paymentProvenance: {
+              provider: order.paymentProvider,
+              providerReference: order.paymentProviderReference,
+              providerTransactionNo: order.paymentProviderTransactionNo,
+            },
+          };
+        }
+        const result = await completeMockRefund(tx, {
+          merchantId: merchant.id,
+          ownerId,
+          orderId: request.orderId,
+          reason: request.reason,
+          replay: true,
+        });
+        return { ...result, refundRequest: request, manualReconciliationRequired: false as const };
+      }
+      if (refundSettlementRoute(order.paymentProvider) === "MANUAL_RECONCILIATION") {
+        if (order.status !== "PAID" || order.refund) throw new HttpError(409, "ORDER_NOT_REFUNDABLE");
+        if (request.status === "PROCESSING") {
+          return {
+            refundRequest: request,
+            manualReconciliationRequired: true as const,
+            paymentProvenance: {
+              provider: order.paymentProvider,
+              providerReference: order.paymentProviderReference,
+              providerTransactionNo: order.paymentProviderTransactionNo,
+            },
+          };
+        }
+        if (request.status !== "PENDING_MERCHANT") throw new HttpError(409, "REFUND_REQUEST_NOT_PENDING");
+        const reconciliationNote = [
+          note,
+          `Manual reconciliation required for ${order.paymentProvider} payment; no refund or loyalty reversal was completed.`,
+        ].filter(Boolean).join(" ").slice(0, 255);
         const updated = await tx.refundRequest.updateMany({
           where: { id, merchantId: merchant.id, status: "PENDING_MERCHANT" },
           data: {
-            status: "COMPLETED",
+            status: "PROCESSING",
             merchantReviewedById: ownerId,
             merchantReviewedAt: new Date(),
-            merchantDecisionReason: note,
+            merchantDecisionReason: reconciliationNote,
           },
         });
         if (!updated.count) throw new HttpError(409, "REFUND_REQUEST_NOT_PENDING");
+        return {
+          refundRequest: await tx.refundRequest.findUniqueOrThrow({ where: { id } }),
+          manualReconciliationRequired: true as const,
+          paymentProvenance: {
+            provider: order.paymentProvider,
+            providerReference: order.paymentProviderReference,
+            providerTransactionNo: order.paymentProviderTransactionNo,
+          },
+        };
       }
+      if (request.status !== "PENDING_MERCHANT") throw new HttpError(409, "REFUND_REQUEST_NOT_PENDING");
+      const updated = await tx.refundRequest.updateMany({
+        where: { id, merchantId: merchant.id, status: "PENDING_MERCHANT" },
+        data: {
+          status: "COMPLETED",
+          merchantReviewedById: ownerId,
+          merchantReviewedAt: new Date(),
+          merchantDecisionReason: note,
+        },
+      });
+      if (!updated.count) throw new HttpError(409, "REFUND_REQUEST_NOT_PENDING");
       const result = await completeMockRefund(tx, {
         merchantId: merchant.id,
         ownerId,
         orderId: request.orderId,
         reason: request.reason,
-        replay,
+        replay: false,
       });
-      const refundRequest = replay ? request : await tx.refundRequest.findUniqueOrThrow({ where: { id } });
-      return { ...result, refundRequest };
+      const refundRequest = await tx.refundRequest.findUniqueOrThrow({ where: { id } });
+      return { ...result, refundRequest, manualReconciliationRequired: false as const };
     }, { isolationLevel: "Serializable" }));
+  },
+
+  async merchantReconcile(ownerId: number, id: number, evidenceValue: unknown) {
+    return merchantReconcileRefund(ownerId, id, evidenceValue);
   },
 
   async merchantReject(ownerId: number, id: number, reasonValue: unknown) {

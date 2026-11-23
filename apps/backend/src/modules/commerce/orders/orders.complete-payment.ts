@@ -10,7 +10,7 @@ export async function completePaidOrder(
   tx: Prisma.TransactionClient, orderId: number, memberId: number,
 ): Promise<OrderDto | "missing" | "already_paid"> {
   const changed = await tx.order.updateMany({
-    where: { id: orderId, memberId, status: "PENDING" }, data: { status: "PAID", paidAt: new Date() },
+    where: { id: orderId, memberId, status: "PENDING" }, data: { status: "PAID", paymentProvider: "MOCK", paidAt: new Date() },
   });
   if (changed.count === 0) {
     const existing = await tx.order.findFirst({ where: { id: orderId, memberId }, select: { id: true } });

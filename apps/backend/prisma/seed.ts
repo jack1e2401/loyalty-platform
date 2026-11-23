@@ -3,7 +3,7 @@ import { Prisma } from "../src/generated/prisma/client.js";
 import { hashPassword } from "../src/lib/password.js";
 import { prisma } from "../src/lib/prisma.js";
 import { initializeDefaultStorefrontTx } from "../src/modules/merchants/storefront/storefront.persistence.js";
-import { isValidStoreSlug } from "../src/modules/merchants/storefront/storefront.slug.js";
+import { readBootstrapConfig } from "./bootstrap-config.js";
 
 const baselineTiers = [
   { level: "default", name: "Default", minLifetimePoints: 0, minSpendVnd: null, sortOrder: 0, multiplier: "1.00", benefits: [], iconUrl: null, color: "#6B7280", maintenanceSpendVnd: null, isActive: true },
@@ -12,24 +12,8 @@ const baselineTiers = [
   { level: "platinum", name: "Platinum", minLifetimePoints: 10_000, minSpendVnd: null, sortOrder: 3, multiplier: "2.00", benefits: [], iconUrl: null, color: "#5B6F8D", maintenanceSpendVnd: null, isActive: true },
 ];
 
-function readBootstrapConfig() {
-  const email = process.env.MERCHANT_OWNER_EMAIL?.trim().toLowerCase();
-  const password = process.env.MERCHANT_OWNER_PASSWORD;
-  const name = process.env.MERCHANT_NAME?.trim();
-  const slug = process.env.MERCHANT_SLUG?.trim();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error("MERCHANT_OWNER_EMAIL must be a valid email address");
-  }
-  if (!password || password.length < 12) {
-    throw new Error("MERCHANT_OWNER_PASSWORD must have at least 12 characters");
-  }
-  if (!name || name.length > 191) throw new Error("MERCHANT_NAME must contain 1 to 191 characters");
-  if (!slug || !isValidStoreSlug(slug)) throw new Error("MERCHANT_SLUG must be a valid store slug");
-  return { email, password, name, slug };
-}
-
 async function main(): Promise<void> {
-  const config = readBootstrapConfig();
+  const config = readBootstrapConfig(process.env);
   const passwordHash = await hashPassword(config.password);
 
   await prisma.$transaction(async (tx) => {

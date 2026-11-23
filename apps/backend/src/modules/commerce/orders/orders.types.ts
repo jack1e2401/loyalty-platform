@@ -1,5 +1,6 @@
 import type {
   OrderStatus,
+  PaymentProvider,
   PointTransactionSource,
   PointTransactionType,
   RefundStatus,
@@ -87,6 +88,9 @@ export type OrderDto = {
   merchantId: number;
   memberId: number;
   status: OrderStatus;
+  paymentProvider: PaymentProvider;
+  paymentProviderReference: string | null;
+  paymentProviderTransactionNo: string | null;
   subtotal: string;
   discountAmount: string;
   total: string;

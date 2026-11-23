@@ -13,17 +13,17 @@ import {
 } from "antd";
 import { createRefundsClient, translateRefundRequestError } from "../../../api/refunds-client";
 import type {
-  ExtendedRefundPreviewDto,
+  ManualRefundEvidenceInput,
   RefundRequestDetailResponse,
   RefundRequestStatus,
 } from "../../../api/refunds-types";
 import { CmsDataTable, CmsDetailLayout, CmsStatusTag } from "../cms";
 import { isRefundAwaitingMerchant, refundRequestStatusLabel } from "../../refunds/refund-status";
-import { challengeRewardStateLabel } from "../challenges/challenge-labels";
+import { MerchantRefundReconciliationPanel } from "./MerchantRefundReconciliationPanel";
+import { MerchantRefundPreview } from "./MerchantRefundPreview";
 
 const api = createRefundsClient();
 const money = (value: string) => `${Number(value).toLocaleString("vi-VN")} ₫`;
-const formatPts = (value: string) => Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 4 });
 
 type Props = {
   requestId: number;
@@ -31,53 +31,6 @@ type Props = {
   onClose(): void;
   onUpdated(status: RefundRequestStatus): void;
 };
-
-type PreviewRow = { key: string; metric: string; before: string; after: string };
-
-function RefundPreview({ preview }: { preview: ExtendedRefundPreviewDto }) {
-  const rows: PreviewRow[] = [
-    { key: "amount", metric: "Số tiền hoàn", before: "0 ₫", after: money(preview.refundAmountVnd) },
-    {
-      key: "available",
-      metric: "Điểm khả dụng",
-      before: String(preview.walletBefore.availablePoints ?? "—"),
-      after: `${preview.walletAfter.availablePoints ?? "—"} (nợ ${preview.walletAfter.pointDebt ?? "—"}, dư ${preview.walletAfter.fractionalCarry ?? "—"})`,
-    },
-    {
-      key: "lifetime",
-      metric: "Điểm tích lũy trọn đời",
-      before: String(preview.walletBefore.netLifetimeEarned ?? "—"),
-      after: String(preview.walletAfter.netLifetimeEarned ?? "—"),
-    },
-    { key: "tier", metric: "Hạng thành viên", before: preview.tierBefore, after: preview.tierAfter },
-    {
-      key: "voucher",
-      metric: "Voucher giảm giá",
-      before: "—",
-      after: preview.discountVoucherRestorable ? "Khôi phục" : "Không thay đổi",
-    },
-  ];
-  const columns: TableColumnsType<PreviewRow> = [
-    { title: "Chỉ số", dataIndex: "metric", key: "metric" },
-    { title: "Hiện tại", dataIndex: "before", key: "before" },
-    { title: "Dự kiến sau hoàn tiền", dataIndex: "after", key: "after" },
-  ];
-  const challengeRows = (preview.challenges ?? []).map((challenge) => ({
-    key: String(challenge.challengeId),
-    metric: `Nhiệm vụ: ${challenge.title}`,
-    before: `${challenge.currentValueBefore} · ${challengeRewardStateLabel(challenge.rewardStateBefore)} · ${formatPts(challenge.budgetSpentBefore)} điểm`,
-    after: `${challenge.currentValueAfter} · ${challengeRewardStateLabel(challenge.rewardStateAfter)} · ${formatPts(challenge.budgetSpentAfter)} điểm`,
-  }));
-
-  return (
-    <Space orientation="vertical" size={12} className="w-full">
-      <CmsDataTable label="Tác động dự kiến" rows={rows} columns={columns} rowKey="key" />
-      {challengeRows.length > 0 ? (
-        <CmsDataTable label="Tác động đến nhiệm vụ" rows={challengeRows} columns={columns} rowKey="key" />
-      ) : null}
-    </Space>
-  );
-}
 
 export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdated }: Props) {
   const [data, setData] = useState<RefundRequestDetailResponse | null>(null);
@@ -121,6 +74,20 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
     }
   }
 
+  async function recordReconciliationOutcome(evidence: ManualRefundEvidenceInput) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await api.reconcileMerchantRefundRequest(requestId, evidence, token);
+      onUpdated(response.refundRequest.status);
+    } catch (cause) {
+      setError(translateRefundRequestError(cause instanceof Error ? cause.message : "INVALID_INPUT"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!data && !error)
     return (
       <Flex justify="center" className="py-12">
@@ -140,6 +107,13 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
   if (!data) return null;
 
   const pending = isRefundAwaitingMerchant(data.refundRequest.status);
+  const requiresManualReconciliation = data.order.paymentProvider !== "MOCK";
+  const awaitingReconciliation = data.refundRequest.status === "PROCESSING" && requiresManualReconciliation;
+  const paymentProviderLabel = data.order.paymentProvider === "VNPAY"
+    ? "VNPay (lịch sử)"
+    : data.order.paymentProvider === "MOCK"
+      ? "Mock"
+      : "Chưa xác định";
   const statusTone =
     data.refundRequest.status === "COMPLETED"
       ? "success"
@@ -182,6 +156,9 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
             {data.member?.email ?? `#${data.order.memberId}`}
           </Descriptions.Item>
           <Descriptions.Item label="Tổng tiền">{money(data.order.total)}</Descriptions.Item>
+          <Descriptions.Item label="Nguồn thanh toán">{paymentProviderLabel}</Descriptions.Item>
+          {data.order.paymentProviderReference ? <Descriptions.Item label="Mã thanh toán">{data.order.paymentProviderReference}</Descriptions.Item> : null}
+          {data.order.paymentProviderTransactionNo ? <Descriptions.Item label="Mã giao dịch nhà cung cấp">{data.order.paymentProviderTransactionNo}</Descriptions.Item> : null}
           <Descriptions.Item label="Gửi lúc">
             {new Date(data.refundRequest.requestedAt).toLocaleString("vi-VN")}
           </Descriptions.Item>
@@ -200,10 +177,21 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       </Card>
       {pending ? (
         <Card title="Tác động dự kiến khi hoàn tiền" size="small">
-          <Typography.Paragraph type="secondary" className="!mb-3">
-            Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
-          </Typography.Paragraph>
-          <RefundPreview preview={data.preview} />
+          {requiresManualReconciliation ? (
+            <Alert
+              type="warning"
+              showIcon
+              title="Cần đối soát hoàn tiền thủ công"
+              description="Duyệt yêu cầu chỉ chuyển sang đối soát. Hệ thống không xác nhận hoàn tiền, hoàn điểm hoặc khôi phục voucher trước khi nhà cung cấp xác nhận."
+            />
+          ) : (
+            <>
+              <Typography.Paragraph type="secondary" className="!mb-3">
+                Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
+              </Typography.Paragraph>
+              <MerchantRefundPreview preview={data.preview} />
+            </>
+          )}
         </Card>
       ) : (
         <Card title="Kết quả xử lý" size="small">
@@ -214,6 +202,13 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
           </Typography.Paragraph>
         </Card>
       )}
+      {awaitingReconciliation ? (
+        <MerchantRefundReconciliationPanel
+          attempts={data.reconciliationAttempts ?? []}
+          busy={busy}
+          onSubmit={(evidence) => void recordReconciliationOutcome(evidence)}
+        />
+      ) : null}
       {pending ? (
         <Card title="Quyết định" size="small">
           <Space orientation="vertical" size={12} className="w-full">
@@ -232,12 +227,16 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                 showIcon
                 title={
                   confirming === "approve"
-                    ? `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
+                    ? requiresManualReconciliation
+                      ? `Chuyển yêu cầu của đơn #${data.order.id} sang đối soát thủ công?`
+                      : `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
                     : "Xác nhận từ chối yêu cầu hoàn tiền?"
                 }
                 description={
                   confirming === "approve"
-                    ? "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
+                    ? requiresManualReconciliation
+                      ? "Yêu cầu sẽ chuyển sang trạng thái đối soát. Hệ thống chưa xác nhận hoàn tiền hoặc điều chỉnh điểm, voucher."
+                      : "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
                     : `Yêu cầu sẽ bị từ chối với lý do: “${note.trim()}”.`
                 }
                 action={
@@ -251,7 +250,9 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                       loading={busy}
                       onClick={() => void decide(confirming)}
                     >
-                      {confirming === "approve" ? "Xác nhận hoàn tiền" : "Xác nhận từ chối"}
+                      {confirming === "approve"
+                        ? requiresManualReconciliation ? "Xác nhận đối soát" : "Xác nhận hoàn tiền"
+                        : "Xác nhận từ chối"}
                     </Button>
                   </Flex>
                 }
@@ -266,7 +267,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                   disabled={busy}
                   onClick={() => setConfirming("approve")}
                 >
-                  Duyệt hoàn tiền
+                  {requiresManualReconciliation ? "Chuyển đối soát" : "Duyệt hoàn tiền"}
                 </Button>
               </Flex>
             )}
