@@ -241,7 +241,7 @@ describe("Workstream B — Product Catalog V2 UI", () => {
       expect(screen.getByText("Cà phê muối")).toBeInTheDocument();
       expect(screen.getByText("SKU: CF-MUOI-01")).toBeInTheDocument();
       expect(screen.getByText("Sắp hết hàng (≤ 5)")).toBeInTheDocument();
-      expect(screen.getByText("Trang 1 / 2 · 25 sản phẩm")).toBeInTheDocument();
+      expect(screen.getByText("1–20 / 25")).toBeInTheDocument();
     });
 
     // Toggle Category Manager and create + delete a category

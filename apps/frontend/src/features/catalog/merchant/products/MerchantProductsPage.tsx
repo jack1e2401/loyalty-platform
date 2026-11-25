@@ -30,8 +30,9 @@ function buildProductQuery(filters: {
   lowStock: boolean;
   sort: ProductSortOption;
   page: number;
+  limit: number;
 }): ProductListQuery {
-  const query: ProductListQuery = {};
+  const query: ProductListQuery = { limit: filters.limit };
   if (filters.q.trim()) query.q = filters.q.trim();
   if (filters.categoryId) query.categoryId = Number(filters.categoryId);
   if (filters.status) query.status = filters.status;
@@ -55,6 +56,7 @@ export function MerchantProducts() {
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [sort, setSort] = useState<ProductSortOption>("newest");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [categories, setCategories] = useState<ProductCategoryDto[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +86,7 @@ export function MerchantProducts() {
     lowStock: lowStockOnly,
     sort,
     page,
+    limit,
   });
   const resource = useResource(() => api.listOwnProducts(token, query), [token, JSON.stringify(query)]);
   const hasActiveFilters = Boolean(
@@ -226,9 +229,8 @@ export function MerchantProducts() {
             page={pagination.page}
             pageSize={pagination.limit}
             totalItems={pagination.totalItems}
-            totalPages={pagination.totalPages}
             busy={busy}
-            onPageChange={setPage}
+            onPageChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }}
             onStatusChange={(product) => {
               setStatusError("");
               setPendingStatusProduct(product);

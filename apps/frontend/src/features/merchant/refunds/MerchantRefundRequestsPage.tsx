@@ -4,13 +4,13 @@ import { Button, Empty, Select, type TableColumnsType } from "antd";
 import { createRefundsClient } from "../../../api/refunds-client";
 import type { RefundRequestListItemDto, RefundRequestStatus } from "../../../api/refunds-types";
 import { useResource } from "../../../api/useResource";
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable, CmsFilterBar, CmsPageHeader, CmsStatusTag } from "../cms";
 import { isRefundAwaitingMerchant, refundRequestStatusLabel } from "../../refunds/refund-status";
 import { useToken } from "../merchant-page-support";
 import { MerchantRefundReviewDetail } from "./MerchantRefundReviewDetail";
 
 const api = createRefundsClient();
-const limit = 20;
 const states: (RefundRequestStatus | "ALL")[] = ["ALL", "PENDING_MERCHANT", "APPROVED", "PROCESSING", "COMPLETED", "FAILED", "REJECTED"];
 
 function statusTone(status: RefundRequestStatus) {
@@ -30,6 +30,7 @@ export function MerchantRefundRequestsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState<RefundRequestStatus | "ALL">("PENDING_MERCHANT");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [decision, setDecision] = useState<RefundRequestStatus | null>(null);
   const requestIdParam = searchParams.get("requestId");
   const parsedRequestId = Number(requestIdParam);
@@ -40,7 +41,7 @@ export function MerchantRefundRequestsPage() {
     () => requestId !== null || invalidRequestId
       ? Promise.resolve(null)
       : api.listMerchantRefundRequests({ status: status === "ALL" ? "" : status, page, limit }, token),
-    [status, page, token, requestId, invalidRequestId],
+    [status, page, limit, token, requestId, invalidRequestId],
   );
   const items = resource.data?.items ?? [];
   const pagination = resource.data?.pagination;
@@ -156,6 +157,7 @@ export function MerchantRefundRequestsPage() {
       {resource.error ? (
         <p role="alert" className="text-sm text-red-700">{resource.error}</p>
       ) : (
+        <>
         <CmsDataTable
           label="Yêu cầu hoàn tiền"
           rows={items}
@@ -163,14 +165,12 @@ export function MerchantRefundRequestsPage() {
           rowKey="id"
           loading={resource.loading}
           emptyText={<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có yêu cầu hoàn tiền ở trạng thái này" />}
-          pagination={pagination && pagination.totalPages > 1 ? {
-            current: page,
-            pageSize: pagination.limit,
-            total: pagination.totalItems,
-            showSizeChanger: false,
-            onChange: (nextPage) => setPage(nextPage),
-          } : false}
+          pagination={false}
         />
+        {pagination && <MerchantPagination page={pagination.page} limit={pagination.limit}
+          totalItems={pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
+        </>
+
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { Button, Dropdown, Flex, Typography, type TableColumnsType } from "antd"
 import type { ProductDto, ProductKind, ProductStatus } from "../../../../api/commerce-types";
 import { Button as UiButton } from "../../../../components/ui";
 import { money } from "../../../../lib/utils";
+import { MerchantPagination } from "../../../merchant/cms/MerchantPagination";
 import { CmsDataTable, CmsStatusTag } from "../../../merchant/cms";
 
 type MerchantProductsTableProps = {
@@ -9,9 +10,8 @@ type MerchantProductsTableProps = {
   page: number;
   pageSize: number;
   totalItems: number;
-  totalPages: number;
   busy: boolean;
-  onPageChange: (page: number) => void;
+  onPageChange: (page: number, limit: number) => void;
   onStatusChange: (product: ProductDto) => void;
   onNavigate: (path: string) => void;
 };
@@ -21,7 +21,6 @@ export function MerchantProductsTable({
   page,
   pageSize,
   totalItems,
-  totalPages,
   busy,
   onPageChange,
   onStatusChange,
@@ -137,22 +136,14 @@ export function MerchantProductsTable({
 
   return (
     <>
-      <Typography.Text type="secondary" className="mb-2 block">
-        Trang {page} / {Math.max(1, totalPages)} · {totalItems} sản phẩm
-      </Typography.Text>
       <CmsDataTable
         label="Sản phẩm"
         rows={items}
         columns={columns}
         rowKey="id"
-        pagination={{
-          current: page,
-          pageSize,
-          total: totalItems,
-          showSizeChanger: false,
-          onChange: onPageChange,
-        }}
+        pagination={false}
       />
+      <MerchantPagination page={page} limit={pageSize} totalItems={totalItems} onChange={onPageChange} />
     </>
   );
 }
