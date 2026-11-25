@@ -110,12 +110,21 @@ export function createAnalyticsClient(baseUrl: string, fetcher: FetchLike = fetc
       );
     },
 
-    getMerchantAnalytics(query: MerchantAnalyticsQuery, token: string, summaryOnly = false) {
+    getMerchantAnalyticsSummary(query: MerchantAnalyticsQuery, token: string) {
+      const params = new URLSearchParams({ summary: "1" });
+      if (query.from) params.set("from", query.from);
+      if (query.to) params.set("to", query.to);
+      if (query.granularity) params.set("granularity", query.granularity);
+      return requestAnalyticsJson<Pick<MerchantAnalyticsResponse, "range" | "kpis" | "revenueSeries">>(
+        fetcher, baseUrl, `/api/merchant/analytics?${params}`, { token },
+      );
+    },
+
+    getMerchantAnalytics(query: MerchantAnalyticsQuery, token: string) {
       const params = new URLSearchParams();
       if (query.from) params.set("from", query.from);
       if (query.to) params.set("to", query.to);
       if (query.granularity) params.set("granularity", query.granularity);
-      if (summaryOnly) params.set("summary", "1");
       const qs = params.toString();
       return requestAnalyticsJson<MerchantAnalyticsResponse>(
         fetcher,

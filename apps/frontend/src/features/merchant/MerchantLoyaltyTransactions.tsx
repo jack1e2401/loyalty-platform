@@ -198,11 +198,11 @@ export function MerchantLoyaltyTransactions() {
               </tbody>
             </table>
           </Card>
-          {pagination && <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
-            onChange={(page, limit) => setFilters((current) => ({ ...current, page, limit }))} />}
 
         </div>
       )}
+      {pagination && <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
+        onChange={(page, limit) => setFilters((current) => ({ ...current, page, limit }))} />}
     </div>
   );
 }

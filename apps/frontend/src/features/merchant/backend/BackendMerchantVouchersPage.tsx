@@ -262,10 +262,10 @@ export function MerchantVouchers() {
           onToggle={toggle}
           onDefinitionChange={updateDefinition}
         />
-        {resource.data.pagination && <MerchantPagination page={resource.data.pagination.page} limit={resource.data.pagination.limit}
-          totalItems={resource.data.pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
         </>
       )}
+      {resource.data?.pagination && <MerchantPagination page={resource.data.pagination.page} limit={resource.data.pagination.limit}
+        totalItems={resource.data.pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
     </>
   );
 }

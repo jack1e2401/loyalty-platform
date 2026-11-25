@@ -51,7 +51,7 @@ export function MerchantAnalyticsPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const resource = useResource(
-    () => analyticsApi.getMerchantAnalytics(applied, accessToken!, true),
+    () => analyticsApi.getMerchantAnalyticsSummary(applied, accessToken!),
     [accessToken, applied.from, applied.to, applied.granularity],
   );
 

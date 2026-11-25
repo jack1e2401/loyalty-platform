@@ -9,8 +9,9 @@ type Props = {
 
 export function MerchantPagination({ page, limit, totalItems, onChange }: Props) {
   const totalPages = Math.ceil(totalItems / limit);
-  const first = totalItems ? (page - 1) * limit + 1 : 0;
-  const last = Math.min(page * limit, totalItems);
+  const hasRows = (page - 1) * limit < totalItems;
+  const first = hasRows ? (page - 1) * limit + 1 : 0;
+  const last = hasRows ? Math.min(page * limit, totalItems) : 0;
   const pages = [...new Set([1, page - 1, page, page + 1, totalPages])]
     .filter((value) => value >= 1 && value <= totalPages)
     .sort((left, right) => left - right);

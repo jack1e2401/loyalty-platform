@@ -216,11 +216,11 @@ export function MerchantCustomersPage() {
             </table>
           </div>
 
-          <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
-            onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />
 
         </>
       )}
+      {resource.data && <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
+        onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
     </div>
   );
 }
