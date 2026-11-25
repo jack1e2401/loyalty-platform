@@ -167,6 +167,7 @@ export async function listMerchantCustomers(
 export async function getMerchantCustomerDetail(
   merchantId: number,
   memberId: number,
+  paging?: Record<"orders" | "pointLedger" | "vouchers", { page: number; limit: number }>,
 ): Promise<{ customer: CustomerDetailDto }> {
   const membership = await prisma.merchantMembership.findUnique({
     where: { memberId_merchantId: { memberId, merchantId } },
@@ -176,7 +177,8 @@ export async function getMerchantCustomerDetail(
         include: {
           transactions: {
             orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-            take: 50,
+            take: paging?.pointLedger.limit ?? 50,
+            ...(paging ? { skip: (paging.pointLedger.page - 1) * paging.pointLedger.limit } : {}),
           },
           _count: { select: { transactions: { where: { type: "EARN" } } } },
         },
@@ -195,6 +197,7 @@ export async function getMerchantCustomerDetail(
       where: { membershipId: membership.id },
       include: { membership: true, activeReservation: true },
       orderBy: [{ redeemedAt: "desc" }, { id: "desc" }],
+      ...(paging ? { skip: (paging.vouchers.page - 1) * paging.vouchers.limit, take: paging.vouchers.limit } : {}),
     }),
     prisma.order.findMany({
       where: { merchantId, memberId },
@@ -204,8 +207,38 @@ export async function getMerchantCustomerDetail(
         refund: true,
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      ...(paging ? { skip: (paging.orders.page - 1) * paging.orders.limit, take: paging.orders.limit } : {}),
     }),
   ]);
+
+  const counts = paging ? await Promise.all([
+    prisma.order.count({ where: { merchantId, memberId } }),
+    prisma.pointTransaction.count({ where: { wallet: { membershipId: membership.id } } }),
+    prisma.memberVoucher.count({ where: { membershipId: membership.id } }),
+    prisma.order.groupBy({ by: ["status"], where: { merchantId, memberId }, _count: { _all: true }, _sum: { total: true }, _max: { paidAt: true } }),
+  ]) : null;
+  const groups = counts?.[3] ?? [];
+  const group = (status: string) => groups.find((entry) => entry.status === status);
+  const paid = group("PAID");
+  const pending = group("REFUND_PENDING");
+  const refunded = group("REFUNDED");
+  const netSpend = (paid?._sum.total ?? new Prisma.Decimal(0)).plus(pending?._sum.total ?? 0);
+  const qualifyingCount = (paid?._count._all ?? 0) + (pending?._count._all ?? 0);
+  const paidDates = [paid?._max.paidAt, pending?._max.paidAt].filter((date): date is Date => Boolean(date));
+  const stats = counts ? {
+    totalOrders: counts[0],
+    paidOrderCount: paid?._count._all ?? 0,
+    refundPendingOrderCount: pending?._count._all ?? 0,
+    refundedOrderCount: refunded?._count._all ?? 0,
+    netSpendVnd: netSpend.toFixed(0),
+    refundPendingSpendVnd: (pending?._sum.total ?? new Prisma.Decimal(0)).toFixed(0),
+    averageOrderValueVnd: qualifyingCount ? netSpend.div(qualifyingCount).toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP).toFixed(0) : "0",
+    lastPurchaseAt: paidDates.length ? new Date(Math.max(...paidDates.map((date) => date.getTime()))).toISOString() : null,
+  } : computeCustomerStats(orders);
+  const pageInfo = (name: "orders" | "pointLedger" | "vouchers", totalItems: number) => {
+    const { page, limit } = paging![name];
+    return { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) };
+  };
 
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
   const walletInfo = describeWallet(membership.wallet);
@@ -230,7 +263,12 @@ export async function getMerchantCustomerDetail(
         joinedAt: membership.createdAt.toISOString(),
       },
       tags: Array.isArray(membership.tags) ? membership.tags.filter((tag): tag is string => typeof tag === "string") : [],
-      stats: computeCustomerStats(orders),
+      stats,
+      ...(counts ? { pagination: {
+        orders: pageInfo("orders", counts[0]),
+        pointLedger: pageInfo("pointLedger", counts[1]),
+        vouchers: pageInfo("vouchers", counts[2]),
+      } } : {}),
       wallet: {
         merchantId,
         policy: {

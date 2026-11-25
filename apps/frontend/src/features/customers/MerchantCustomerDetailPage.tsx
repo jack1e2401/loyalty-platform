@@ -14,9 +14,14 @@ const analyticsApi = createAnalyticsClient(import.meta.env.VITE_API_BASE_URL ?? 
 export function MerchantCustomerDetailPage() {
   const { memberId } = useParams();
   const { accessToken } = useAuthSession();
+  const [paging, setPaging] = useState({
+    orders: { page: 1, limit: 20 },
+    pointLedger: { page: 1, limit: 20 },
+    vouchers: { page: 1, limit: 20 },
+  });
   const resource = useResource(
-    () => analyticsApi.getMerchantCustomerDetail(memberId ?? "", accessToken!),
-    [memberId, accessToken],
+    () => analyticsApi.getMerchantCustomerDetail(memberId ?? "", accessToken!, paging),
+    [memberId, accessToken, paging],
   );
 
   const customer = resource.data?.customer;
@@ -183,7 +188,8 @@ export function MerchantCustomerDetailPage() {
               </dl>
             </Card>
 
-            <CustomerHistorySections customer={customer} />
+            <CustomerHistorySections customer={customer} onPageChange={(key, page, limit) =>
+              setPaging((current) => ({ ...current, [key]: { page, limit } }))} />
           </>
         )
       )}

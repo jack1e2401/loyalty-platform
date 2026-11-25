@@ -1,3 +1,4 @@
+import { MerchantPagination } from "../merchant/cms/MerchantPagination";
 import type { CustomerDetailDto } from "../../api/analytics-types";
 import type { MemberVoucherStatus } from "../../api/commerce-types";
 import { EmptyState, StatusText } from "../../components/ui";
@@ -25,8 +26,10 @@ function voucherStatusLabel(status: MemberVoucherStatus): string {
 
 export function CustomerHistorySections({
   customer,
+  onPageChange,
 }: {
-  customer: Pick<CustomerDetailDto, "orders" | "pointLedger" | "vouchers">;
+  customer: Pick<CustomerDetailDto, "orders" | "pointLedger" | "vouchers" | "pagination">;
+  onPageChange: (key: "orders" | "pointLedger" | "vouchers", page: number, limit: number) => void;
 }) {
   return (
     <>
@@ -86,6 +89,8 @@ export function CustomerHistorySections({
             </table>
           </div>
         )}
+        {customer.pagination?.orders && <MerchantPagination {...customer.pagination.orders}
+          onChange={(page, limit) => onPageChange("orders", page, limit)} />}
       </section>
 
       <section aria-label="Sổ biến động điểm" className="space-y-3">
@@ -136,6 +141,8 @@ export function CustomerHistorySections({
             </table>
           </div>
         )}
+        {customer.pagination?.pointLedger && <MerchantPagination {...customer.pagination.pointLedger}
+          onChange={(page, limit) => onPageChange("pointLedger", page, limit)} />}
       </section>
 
       <section aria-label="Lịch sử voucher" className="space-y-3">
@@ -184,6 +191,8 @@ export function CustomerHistorySections({
             </table>
           </div>
         )}
+        {customer.pagination?.vouchers && <MerchantPagination {...customer.pagination.vouchers}
+          onChange={(page, limit) => onPageChange("vouchers", page, limit)} />}
       </section>
     </>
   );

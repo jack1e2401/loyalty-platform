@@ -84,6 +84,7 @@ export interface CustomerVoucherItemDto {
 }
 
 export interface CustomerDetailDto {
+  pagination?: Record<"orders" | "pointLedger" | "vouchers", PaginationDto>;
   member: {
     id: number;
     email: string;

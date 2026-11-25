@@ -73,11 +73,19 @@ export function createAnalyticsClient(baseUrl: string, fetcher: FetchLike = fetc
       );
     },
 
-    getMerchantCustomerDetail(memberId: number | string, token: string) {
+    getMerchantCustomerDetail(memberId: number | string, token: string, paging?: Record<"orders" | "pointLedger" | "vouchers", { page: number; limit: number }>) {
+      const params = new URLSearchParams();
+      if (paging) {
+        params.set("paged", "1");
+        for (const [key, value] of Object.entries(paging)) {
+          params.set(`${key}Page`, String(value.page));
+          params.set(`${key}Limit`, String(value.limit));
+        }
+      }
       return requestAnalyticsJson<CustomerDetailResponse>(
         fetcher,
         baseUrl,
-        `/api/merchant/customers/${memberId}`,
+        `/api/merchant/customers/${memberId}${paging ? `?${params}` : ""}`,
         { token },
       );
     },

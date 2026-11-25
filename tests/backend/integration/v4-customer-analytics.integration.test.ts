@@ -274,6 +274,19 @@ test("Customer 360 lists 0-order members, handles REFUND_PENDING/REFUNDED, and e
     [zeroOrderMember.id],
   );
 
+  const pagedDetail = await request<{
+    customer: {
+      orders: { id: number }[];
+      stats: { totalOrders: number; netSpendVnd: string };
+      pagination: { orders: { totalItems: number }; pointLedger: { totalItems: number }; vouchers: { totalItems: number } };
+    };
+  }>(`/api/merchant/customers/${buyerMember.id}?paged=1&ordersPage=1&ordersLimit=1&pointLedgerPage=1&pointLedgerLimit=1&vouchersPage=1&vouchersLimit=1`, "GET", storeA.ownerToken);
+  assert.equal(pagedDetail.status, 200);
+  assert.equal(pagedDetail.json.customer.orders.length, 1);
+  assert.equal(pagedDetail.json.customer.pagination.orders.totalItems, 3);
+  assert.equal(pagedDetail.json.customer.stats.totalOrders, 3);
+  assert.equal(pagedDetail.json.customer.stats.netSpendVnd, "150000");
+
   // Detail for buyerMember
   const detail = await request<{
     customer: {
