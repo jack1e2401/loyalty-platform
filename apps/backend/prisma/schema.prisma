@@ -416,6 +416,7 @@ model MerchantMembership {
   qualificationProgress Decimal             @default(0) @db.Decimal(38, 12)
   tags                  Json                @default("[]")
   lastResetCycleYear    Int?
+  lastResetAt           DateTime?           @db.DateTime(3)
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   merchant              Merchant            @relation(fields: [merchantId], references: [id])
@@ -472,6 +473,7 @@ model TierResetRun {
   id             Int      @id @default(autoincrement())
   merchantId     Int
   cycleYear      Int
+  effectiveAt    DateTime @db.DateTime(3)
   processedCount Int      @default(0)
   completedAt    DateTime @default(now())
   merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)

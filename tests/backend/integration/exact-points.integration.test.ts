@@ -5,6 +5,7 @@ import {
   assertLedger, cleanup, createMember, createOrder, createShop,
   pay, prisma, Prisma, request, savePolicy, start, wallet, type Wallet,
 } from "./exact-points.fixtures.js";
+import { runAnnualTierReset } from "../../../apps/backend/src/modules/loyalty/program/loyalty.tier-reset.js";
 
 before(start);
 after(cleanup);
@@ -27,6 +28,46 @@ test("checkout idempotency replays the same order and rejects a changed payload"
   await prisma.product.update({ where: { id: shop.productId }, data: { status: "ACTIVE" } });
   const inventory = await prisma.inventoryBalance.findFirstOrThrow({ where: { merchantId: shop.id, productId: shop.productId, ownerType: "SALE_PRODUCT" } });
   assert.equal(inventory.reservedQuantity, 1);
+});
+
+test("annual tier reset persists the effective clamped boundary independently of later config", async () => {
+  const shop = await createShop();
+  const member = await createMember();
+  const membership = await prisma.merchantMembership.create({ data: { memberId: member.id, merchantId: shop.id, qualificationProgress: "250" } });
+  const localDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const part = (type: string) => Number(localDate.find((entry) => entry.type === type)?.value);
+  const year = part("year");
+  const month = part("month");
+  const day = part("day");
+  await savePolicy(shop, { reset: { enabled: true, month, day, strategy: "ONE_DOWN", targetLevel: null } });
+  const now = new Date(Date.UTC(year, month - 1, day, 12));
+  const result = await runAnnualTierReset(shop.id, now);
+  assert.equal(result.processedCount, 1);
+  const expectedBoundary = new Date(Date.UTC(year, month - 1, day) - 7 * 60 * 60 * 1000);
+  const run = await prisma.tierResetRun.findUniqueOrThrow({ where: { merchantId_cycleYear: { merchantId: shop.id, cycleYear: year } } });
+  assert.equal(run.effectiveAt.toISOString(), expectedBoundary.toISOString());
+  const updatedMembership = await prisma.merchantMembership.findUniqueOrThrow({ where: { id: membership.id } });
+  assert.equal(updatedMembership.lastResetAt?.toISOString(), expectedBoundary.toISOString());
+});
+
+test("delayed annual reset preserves qualification earned after its effective boundary", async () => {
+  const shop = await createShop("6000");
+  const member = await createMember();
+  const membership = await prisma.merchantMembership.create({ data: { memberId: member.id, merchantId: shop.id, qualificationProgress: "250" } });
+  const localDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const part = (type: string) => Number(localDate.find((entry) => entry.type === type)?.value);
+  const year = part("year");
+  const month = part("month");
+  const day = part("day");
+  await savePolicy(shop, { reset: { enabled: true, month, day, strategy: "ONE_DOWN", targetLevel: null } });
+  const boundary = new Date(Date.UTC(year, month - 1, day) - 7 * 60 * 60 * 1000);
+  const order = await pay(shop, member);
+  await prisma.order.update({ where: { id: order.id }, data: { paidAt: new Date(boundary.getTime() + 60_000) } });
+
+  await runAnnualTierReset(shop.id, new Date(Date.UTC(year, month - 1, day, 12)));
+
+  const updatedMembership = await prisma.merchantMembership.findUniqueOrThrow({ where: { id: membership.id } });
+  assert.equal(updatedMembership.qualificationProgress.toString(), order.earnedPointsExact);
 });
 
 test("member profile persists private contact fields and merchant tags stay membership scoped", async () => {

@@ -1,26 +1,7 @@
 import type { Order, Prisma } from "../../../generated/prisma/client.js";
 import { points, selectQualifiedTier } from "./loyalty.calculation.js";
 import { loadEarningPolicy } from "./loyalty.config.js";
-
-export function isInResetQualificationCycle(
-  paidAt: Date | null,
-  lastResetCycleYear: number | null,
-  resetMonth: number | null,
-  resetDay: number | null,
-): boolean {
-  if (!paidAt || lastResetCycleYear === null) return true;
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(paidAt);
-  const part = (type: string) => Number(parts.find((entry) => entry.type === type)?.value);
-  const year = part("year");
-  const month = part("month");
-  const day = part("day");
-  const boundaryMonth = resetMonth ?? 1;
-  const boundaryDay = resetDay ?? 1;
-  const orderCycleYear = month < boundaryMonth || (month === boundaryMonth && day < boundaryDay) ? year - 1 : year;
-  return orderCycleYear >= lastResetCycleYear;
-}
+import { isQualificationContributionInCurrentCycle } from "./loyalty.cycle.js";
 
 export async function reverseOrderPoints(
   tx: Prisma.TransactionClient,
@@ -79,8 +60,7 @@ export async function reverseOrderPoints(
   const membership = await tx.merchantMembership.findUniqueOrThrow({
     where: { memberId_merchantId: { memberId: order.memberId, merchantId } },
   });
-  const resetRule = await tx.loyaltyRule.findUnique({ where: { merchantId }, select: { resetMonth: true, resetDay: true } });
-  if (!isInResetQualificationCycle(order.paidAt, membership.lastResetCycleYear, resetRule?.resetMonth ?? null, resetRule?.resetDay ?? null)) return;
+  if (!isQualificationContributionInCurrentCycle(order.paidAt, membership.lastResetAt)) return;
   const policy = await loadEarningPolicy(tx, merchantId);
   const progressReversal = policy.qualificationMode === "SPEND" ? points(order.total) : originalEarned;
   const progressAfterRaw = points(membership.qualificationProgress).minus(progressReversal);

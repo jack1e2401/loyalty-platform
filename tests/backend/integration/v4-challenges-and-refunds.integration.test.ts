@@ -213,6 +213,8 @@ test("refund approval gates mock refunds and blocks merchant bypass", async () =
   const paid = await req(`/api/orders/${orderId}/pay`, "POST", memberToken);
   assert.equal(paid.status, 200);
   const membership = await prisma.merchantMembership.findUniqueOrThrow({ where: { memberId_merchantId: { memberId, merchantId } } });
+  const resetAt = new Date(Date.now() + 60_000);
+  await prisma.merchantMembership.update({ where: { id: membership.id }, data: { qualificationProgress: "250", lastResetCycleYear: new Date().getUTCFullYear() + 1, lastResetAt: resetAt } });
   const progress = await prisma.challengeProgress.findUniqueOrThrow({ where: { challengeId_membershipId: { challengeId: orderChallengeId, membershipId: membership.id } } });
   assert.equal(progress.currentValue.toFixed(0), "1");
   assert.equal(progress.rewardState, "REWARDED");
@@ -231,6 +233,7 @@ test("refund approval gates mock refunds and blocks merchant bypass", async () =
   const wallet = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { membershipId: membership.id } });
   assert.ok(wallet.exactBalance.isZero());
   assert.ok(wallet.netLifetimeEarned.isZero());
+  assert.equal((await prisma.merchantMembership.findUniqueOrThrow({ where: { id: membership.id } })).qualificationProgress.toFixed(0), "250");
   assert.equal(Number((approved.json.walletImpact as { exactBalance: string }).exactBalance), 0);
   const retried = await req(`/api/merchant/refund-requests/${requestId}/approve`, "POST", merchantToken);
   assert.equal(retried.status, 200);
