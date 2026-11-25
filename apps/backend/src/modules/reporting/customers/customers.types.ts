@@ -94,7 +94,6 @@ export interface CustomerDetailDto {
     birthDate: string | null;
     joinedAt: string;
   };
-  tags: string[];
   stats: CustomerStatsDto;
   wallet: {
     merchantId: number;

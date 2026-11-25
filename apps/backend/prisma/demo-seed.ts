@@ -314,7 +314,7 @@ async function main(): Promise<void> {
       });
       const membership = await tx.merchantMembership.upsert({
         where: { memberId_merchantId: { memberId: user.id, merchantId: merchant.id } },
-        create: { memberId: user.id, merchantId: merchant.id, tierId: seed.tier.id, qualificationProgress: 0, tags: ["UI demo"] },
+        create: { memberId: user.id, merchantId: merchant.id, tierId: seed.tier.id, qualificationProgress: 0 },
         update: {},
         select: { id: true, wallet: { select: { id: true } } },
       });

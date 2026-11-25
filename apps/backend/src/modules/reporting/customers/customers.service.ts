@@ -262,7 +262,6 @@ export async function getMerchantCustomerDetail(
         birthDate: membership.member.birthDate?.toISOString().slice(0, 10) ?? null,
         joinedAt: membership.createdAt.toISOString(),
       },
-      tags: Array.isArray(membership.tags) ? membership.tags.filter((tag): tag is string => typeof tag === "string") : [],
       stats,
       ...(counts ? { pagination: {
         orders: pageInfo("orders", counts[0]),

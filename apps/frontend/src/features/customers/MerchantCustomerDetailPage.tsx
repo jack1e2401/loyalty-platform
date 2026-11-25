@@ -25,35 +25,6 @@ export function MerchantCustomerDetailPage() {
   );
 
   const customer = resource.data?.customer;
-  const [tagsDraft, setTagsDraft] = useState<string | null>(null);
-  const [tagsBusy, setTagsBusy] = useState(false);
-  const [tagsError, setTagsError] = useState("");
-  const [tagsNotice, setTagsNotice] = useState("");
-
-  async function saveTags() {
-    if (!customer || !accessToken || tagsBusy) return;
-    setTagsBusy(true);
-    setTagsError("");
-    setTagsNotice("");
-    try {
-      await analyticsApi.updateMerchantCustomerTags(
-        customer.member.id,
-        (tagsDraft ?? customer.tags.join(","))
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        accessToken,
-      );
-      setTagsDraft(null);
-      setTagsNotice("Đã lưu nhãn khách hàng.");
-      resource.reload();
-    } catch (error) {
-      setTagsError(error instanceof Error ? error.message : "Không thể lưu nhãn.");
-    } finally {
-      setTagsBusy(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <Button asChild variant="outline" size="sm">
@@ -95,32 +66,7 @@ export function MerchantCustomerDetailPage() {
                   <dd className="mt-1 text-sm">{customer.member.address || "Chưa cập nhật"}</dd>
                 </div>
               </dl>
-              <div className="mt-5 max-w-xl space-y-2">
-                <label htmlFor="customer-tags" className="text-xs font-bold muted">
-                  Nhãn riêng của cửa hàng (phân tách bằng dấu phẩy)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    id="customer-tags"
-                    className="min-h-10 min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm"
-                    value={tagsDraft ?? (customer.tags ?? []).join(", ")}
-                    onChange={(event) => setTagsDraft(event.target.value)}
-                  />
-                  <Button type="button" disabled={tagsBusy} onClick={() => void saveTags()}>
-                    {tagsBusy ? "Đang lưu" : "Lưu nhãn"}
-                  </Button>
-                </div>
-                {tagsError && (
-                  <p role="alert" className="text-sm text-[#a4473a]">
-                    {tagsError}
-                  </p>
-                )}
-                {tagsNotice && (
-                  <p role="status" className="text-sm text-[#357044]">
-                    {tagsNotice}
-                  </p>
-                )}
-              </div>
+
             </Card>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -373,7 +373,6 @@ model MerchantMembership {
   memberId              Int
   tierId                Int?
   qualificationProgress Decimal             @default(0) @db.Decimal(38, 12)
-  tags                  Json                @default("[]")
   lastResetCycleYear    Int?
   lastResetAt           DateTime?           @db.DateTime(3)
   createdAt             DateTime            @default(now())

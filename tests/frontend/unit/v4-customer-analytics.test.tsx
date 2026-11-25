@@ -229,6 +229,7 @@ describe("V4 Workstreams D & E UI", () => {
       expect(screen.getByText("Giảm 20k")).toBeInTheDocument();
       expect(screen.getByText("Matcha ×1")).toBeInTheDocument();
       expect(screen.getByText("0.25")).toBeInTheDocument();
+      expect(screen.queryByLabelText(/Nhãn riêng của cửa hàng/)).not.toBeInTheDocument();
     });
   });
 

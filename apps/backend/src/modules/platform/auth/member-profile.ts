@@ -45,22 +45,3 @@ memberProfileRoutes.patch("/profile", async (request, response) => {
   });
   response.json({ profile: { ...user, birthDate: user.birthDate?.toISOString().slice(0, 10) ?? null } });
 });
-
-export const merchantMemberTagRoutes = Router();
-merchantMemberTagRoutes.use(authenticate, requireRole("MERCHANT"));
-merchantMemberTagRoutes.patch("/:memberId/tags", async (request, response) => {
-  const memberId = Number(request.params.memberId);
-  const body = request.body as { tags?: unknown };
-  if (!Number.isSafeInteger(memberId) || memberId < 1 || !Array.isArray(body?.tags) || body.tags.length > 50 || body.tags.some((tag) => typeof tag !== "string" || !tag.trim() || tag.length > 64)) {
-    throw new HttpError(400, "INVALID_MEMBER_TAGS");
-  }
-  const merchant = await prisma.merchant.findUnique({ where: { ownerId: response.locals.user.id }, select: { id: true } });
-  if (!merchant) throw new HttpError(403, "MERCHANT_REQUIRED");
-  const tags = [...new Set((body.tags as string[]).map((tag) => tag.trim()))];
-  const result = await prisma.merchantMembership.updateMany({
-    where: { merchantId: merchant.id, memberId },
-    data: { tags },
-  });
-  if (result.count === 0) throw new HttpError(404, "MEMBER_NOT_FOUND");
-  response.json({ memberId, tags });
-});

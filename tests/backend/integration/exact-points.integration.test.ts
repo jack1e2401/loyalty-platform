@@ -70,7 +70,7 @@ test("delayed annual reset preserves qualification earned after its effective bo
   assert.equal(updatedMembership.qualificationProgress.toString(), order.earnedPointsExact);
 });
 
-test("member profile persists private contact fields and merchant tags stay membership scoped", async () => {
+test("member profile persists private contact fields", async () => {
   const shop = await createShop();
   const member = await createMember();
   const joined = await request(`/api/member/merchants/${shop.id}/membership`, "POST", member.token);
@@ -83,11 +83,9 @@ test("member profile persists private contact fields and merchant tags stay memb
   assert.deepEqual({ name: updated.json.profile.name, phone: updated.json.profile.phone, address: updated.json.profile.address, birthDate: updated.json.profile.birthDate }, { name: "Flow Member", phone: "+84900000000", address: "District 1", birthDate: "1994-06-15" });
   const invalid = await request("/api/member/profile", "PATCH", member.token, { birthDate: "2024-02-31" });
   assert.equal(invalid.status, 400);
-  const tagged = await request<{ tags: string[] }>(`/api/merchant/customers/${member.id}/tags`, "PATCH", shop.token, { tags: ["vip", " local ", "vip"] });
-  assert.equal(tagged.status, 200);
-  assert.deepEqual(tagged.json.tags, ["vip", "local"]);
-  const membership = await prisma.merchantMembership.findUniqueOrThrow({ where: { memberId_merchantId: { memberId: member.id, merchantId: shop.id } } });
-  assert.deepEqual(membership.tags, ["vip", "local"]);
+  const detail = await request<{ customer: Record<string, unknown> }>(`/api/merchant/customers/${member.id}`, "GET", shop.token);
+  assert.equal(detail.status, 200);
+  assert.equal("tags" in detail.json.customer, false);
 });
 
 async function createDiscountDefinition(shop: { token: string }, title: string, discountAmount: string) {

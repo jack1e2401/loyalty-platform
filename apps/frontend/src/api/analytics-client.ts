@@ -91,15 +91,6 @@ export function createAnalyticsClient(baseUrl: string, fetcher: FetchLike = fetc
       );
     },
 
-    updateMerchantCustomerTags(memberId: number | string, tags: string[], token: string) {
-      return requestAnalyticsJson<{ memberId: number; tags: string[] }>(
-        fetcher,
-        baseUrl,
-        `/api/merchant/customers/${memberId}/tags`,
-        { method: "PATCH", token, body: { tags } },
-      );
-    },
-
     getAnalyticsProductTable(table: "top" | "slow" | "no-sales" | "low-stock", query: MerchantAnalyticsQuery & { page: number; limit: number }, token: string) {
       const params = new URLSearchParams({ page: String(query.page), limit: String(query.limit) });
       if (query.from) params.set("from", query.from);
