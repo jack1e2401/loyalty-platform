@@ -25,6 +25,6 @@ Frontend mặc định ở `http://localhost:5173`, API ở `http://localhost:30
 | `npm run test:db` | Integration test tại `tests/backend/integration`, cần MySQL đã áp migration |
 | `npm run test:e2e` | Playwright tại `tests/frontend/e2e`, tự khởi động Vite |
 
-Cài Chromium cho Playwright bằng `npx playwright install chromium`. Các bộ E2E riêng có thể chạy qua scripts `test:e2e:m2`, `test:e2e:commerce`, `test:e2e:demo`, và `test:e2e:ux` trong workspace frontend. Các ca gọi HTTP thật cần API local chạy trên database test đã migrate và cấu hình installation bootstrap tương ứng.
+Cài Chromium cho Playwright bằng `npx playwright install chromium`. Các bộ E2E riêng có thể chạy qua scripts `test:e2e:m2`, `test:e2e:commerce`, và `test:e2e:ux` trong workspace frontend. Các ca gọi HTTP thật cần API local chạy trên database test đã migrate và cấu hình installation bootstrap tương ứng.
 
 `npm run typecheck` và `npm run build` chạy cho cả hai app. [AGENTS.md](AGENTS.md) chứa quy ước làm việc. [docs/superpowers](docs/superpowers) chứa các plan và spec của dự án.

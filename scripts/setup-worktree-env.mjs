@@ -82,7 +82,6 @@ writeFileSync(
   frontendEnvPath,
   [
     `VITE_API_BASE_URL=http://localhost:${port}`,
-    `VITE_API_MODE=http`,
     "",
   ].join("\n"),
   "utf8",

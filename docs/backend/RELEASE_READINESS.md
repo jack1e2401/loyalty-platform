@@ -17,7 +17,7 @@ The order and refund history fields retain historical statuses and audit details
 1. Provision a fresh MySQL database for the merchant installation and place its URL in `DATABASE_URL`.
 2. Supply the owner and store configuration through deployment secrets or a local ignored `.env` file.
 3. Install dependencies, apply migrations, and run the idempotent bootstrap from the repository root.
-4. Start the API and frontend with `VITE_API_MODE=http`; register members through the UI.
+4. Start the API and frontend; register members through the UI.
 
 Do not run these migrations against the existing shared database. Partitioning shared data into per-merchant databases is a separate operational migration and must preserve each merchant's order, refund, member, and ledger history.
 

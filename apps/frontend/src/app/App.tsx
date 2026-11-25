@@ -5,29 +5,6 @@ import { LoginPage, RegisterPage } from "../features/auth/AuthPages";
 import { RequireRole } from "../features/auth/RequireRole";
 import { EditorialArtPanel } from "../components/EditorialArtPanel";
 import { BackendConsoleLayout } from "../layouts/BackendConsoleLayout";
-import { ApiProvider } from "../api/client";
-import { ConsoleLayout as DemoConsoleLayout } from "../layouts/ConsoleLayout";
-import { MemberLayout as DemoMemberLayout } from "../layouts/MemberLayout";
-import { MerchantLoyalty as DemoMerchantLoyalty } from "../features/merchant/legacy/MerchantLoyaltyPage";
-import { MerchantOrders as DemoMerchantOrders } from "../features/merchant/legacy/MerchantOrdersPage";
-import { MerchantOverview as DemoMerchantOverview } from "../features/merchant/legacy/MerchantOverviewPage";
-import { MerchantProducts as DemoMerchantProducts } from "../features/merchant/legacy/MerchantProductsPage";
-import { MerchantRewards as DemoMerchantRewards } from "../features/merchant/legacy/MerchantRewardsPage";
-import { MerchantStore as DemoMerchantStore } from "../features/merchant/legacy/MerchantStorePage";
-import { MerchantVouchers as DemoMerchantVouchers } from "../features/merchant/legacy/MerchantVouchersPage";
-import {
-  MemberCart as DemoMemberCart,
-  MemberCheckout as DemoMemberCheckout,
-  MemberProduct as DemoMemberProduct,
-  MemberStorefront as DemoMemberStorefront,
-} from "../features/member/MemberShop";
-import {
-  MemberOrderResult as DemoMemberOrderResult,
-  MemberOrders as DemoMemberOrders,
-  MemberRewards as DemoMemberRewards,
-  MemberVouchers as DemoMemberVouchers,
-  MemberWallet as DemoMemberWallet,
-} from "../features/member/MemberLoyalty";
 import {
   MerchantLoyalty,
   MerchantOrders,
@@ -73,20 +50,11 @@ import { MerchantChallengeEditorPage } from "../features/merchant/challenges/Mer
 import { MerchantRefundRequestsPage } from "../features/merchant/refunds/MerchantRefundRequestsPage";
 import { RewardsHubLayout } from "../features/storefront/RewardsHubLayout";
 
-// Production and local development use real endpoints. Fixtures are opt-in only.
-const useBackend = import.meta.env.VITE_API_MODE !== "mock";
-
 export function App() {
   return (
     <AuthSessionProvider>
-      {useBackend ? (
-        <>
-          <ChallengeLimitAnnouncement />
-          <BackendRoutes />
-        </>
-      ) : (
-        <DemoRoutes />
-      )}
+      <ChallengeLimitAnnouncement />
+      <BackendRoutes />
     </AuthSessionProvider>
   );
 }
@@ -186,59 +154,6 @@ function LegacyMerchantLoyaltyRedirect() {
   return <Navigate to={`/merchant/loyalty/${route}${query}`} replace />;
 }
 
-function DemoRoutes() {
-  return (
-    <ApiProvider>
-      <Routes>
-        <Route path="/" element={<DemoWelcome />} />
-        <Route path="/merchant/:merchantId" element={<DemoConsoleLayout />}>
-          <Route index element={<DemoMerchantOverview />} />
-          <Route path="store" element={<DemoMerchantStore />} />
-          <Route path="products" element={<DemoMerchantProducts />} />
-          <Route path="orders" element={<DemoMerchantOrders />} />
-          <Route path="loyalty" element={<DemoMerchantLoyalty />} />
-          <Route path="vouchers" element={<DemoMerchantVouchers />} />
-          <Route path="rewards" element={<DemoMerchantRewards />} />
-        </Route>
-        <Route path="/member/:merchantId" element={<DemoMemberLayout />}>
-          <Route index element={<DemoMemberStorefront />} />
-          <Route path="product/:productId" element={<DemoMemberProduct />} />
-          <Route path="cart" element={<DemoMemberCart />} />
-          <Route path="checkout" element={<DemoMemberCheckout />} />
-          <Route path="wallet" element={<DemoMemberWallet />} />
-          <Route path="vouchers" element={<DemoMemberVouchers />} />
-          <Route path="rewards" element={<DemoMemberRewards />} />
-          <Route path="orders" element={<DemoMemberOrders />} />
-          <Route path="orders/:orderId" element={<DemoMemberOrderResult />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </ApiProvider>
-  );
-}
-
-function DemoWelcome() {
-  return (
-    <main className="min-h-dvh overflow-x-clip bg-[#f5f5ef] px-5 py-6 sm:px-9 sm:py-8">
-      <div className="mx-auto max-w-7xl">
-        <LandingHeader demo />
-        <LandingBody>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg" className="rounded-full px-7">
-              <Link to="/member/moc">
-                Trải nghiệm Member <span aria-hidden="true">→</span>
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full px-7">
-              <Link to="/merchant/moc">Merchant</Link>
-            </Button>
-          </div>
-        </LandingBody>
-      </div>
-    </main>
-  );
-}
-
 function Welcome() {
   const { user } = useAuthSession();
   if (user) return <Navigate to={user.role === "MERCHANT" ? "/merchant" : "/member"} replace />;
@@ -266,7 +181,7 @@ function Welcome() {
   );
 }
 
-function LandingHeader({ demo = false }: { demo?: boolean }) {
+function LandingHeader() {
   return (
     <header className="flex h-12 items-center justify-between">
       <Link
@@ -278,7 +193,6 @@ function LandingHeader({ demo = false }: { demo?: boolean }) {
         </span>
         loyalty<span className="text-[#89b461]">.</span>
       </Link>
-      {demo ? <span className="text-sm font-medium text-[#55705b]">Mua sắm thân quen</span> : null}
     </header>
   );
 }

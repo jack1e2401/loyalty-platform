@@ -13,7 +13,7 @@ Payment and loyalty outcomes come from backend responses. Mock refunds complete 
 
 ## Local development
 
-Use Node.js 22.12 or newer and create `apps/frontend/.env` from [.env.example](../../apps/frontend/.env.example). Set `VITE_API_BASE_URL` to the backend URL and `VITE_API_MODE=http` for the installation-backed app.
+Use Node.js 22.12 or newer and create `apps/frontend/.env` from [.env.example](../../apps/frontend/.env.example). Set `VITE_API_BASE_URL` to the backend URL for the installation-backed app.
 
 From the repository root:
 
