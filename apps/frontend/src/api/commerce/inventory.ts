@@ -58,7 +58,7 @@ export function createInventoryClient(baseUrl = "", fetcher: typeof fetch = fetc
       );
     },
     getVoucherInventory(definitionId: number, token: string) {
-      return requestJson<InventoryResponse>(
+      return requestJson<InventoryResponse | { inventory: null; movements: []; requiresInitialization: true }>(
         fetcher,
         baseUrl,
         `/api/merchant/vouchers/${definitionId}/stock/movements`,

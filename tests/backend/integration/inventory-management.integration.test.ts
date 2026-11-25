@@ -60,6 +60,28 @@ async function inventory(shop: Shop, ownerType: "products" | "rewards" | "vouche
   );
 }
 
+test("legacy discount vouchers expose missing inventory and initialize only on stock-in", async () => {
+  const shop = await createShop();
+  const other = await createShop();
+  const definition = await prisma.voucherDefinition.create({ data: {
+    merchantId: shop.id, type: "DISCOUNT", title: "Legacy voucher", pointsCost: 1, discountAmount: "500",
+  } });
+  const result = await request<{ inventory: null; requiresInitialization: boolean; movements: unknown[] }>(
+    `/api/merchant/vouchers/${definition.id}/stock/movements`, "GET", shop.token,
+  );
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.json, { inventory: null, movements: [], requiresInitialization: true });
+  assert.equal(await prisma.inventoryBalance.count({ where: { voucherDefinitionId: definition.id } }), 0);
+  assert.equal((await inventory(other, "vouchers", definition.id)).status, 404);
+  assert.equal((await adjustStock(shop, "vouchers", definition.id, "out", 1, "No stock")).status, 409);
+  const key = randomUUID();
+  assert.equal((await adjustStock(shop, "vouchers", definition.id, "in", 3, "Add stock", key)).status, 200);
+  assert.equal((await adjustStock(shop, "vouchers", definition.id, "in", 3, "Add stock", key)).json.replayed, true);
+  const loaded = await inventory(shop, "vouchers", definition.id);
+  assert.equal(loaded.json.inventory.availableQuantity, 3);
+  assert.deepEqual(loaded.json.movements.map((movement) => movement.movementType).sort(), ["LEGACY_BACKFILL", "MANUAL_IN"]);
+});
+
 test("sale stock is audited and reserved, consumed, cancelled, and expired exactly once", async () => {
   const shop = await createShop("10000", "1.00", 0);
   const otherShop = await createShop("10000");

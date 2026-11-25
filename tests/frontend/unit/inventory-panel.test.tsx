@@ -56,9 +56,14 @@ describe("Merchant inventory panel", () => {
     fireEvent.change(screen.getByLabelText("Số lượng"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Ghi chú"), { target: { value: "Hàng khách trả" } });
     fireEvent.click(screen.getByRole("button", { name: "Nhập kho" }));
+    expect(onAdjust).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(onAdjust).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Nhập kho" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận điều chỉnh" }));
     expect(onAdjust).toHaveBeenCalledWith({ direction: "in", quantity: 2, reason: "Hàng khách trả" });
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getAllByRole("button", { name: "Đang lưu…" })).toHaveLength(2);
+    expect(screen.getByRole("dialog")).toBeTruthy();
     resolveAdjustment();
     await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/cập nhật/i));
   });
@@ -69,8 +74,9 @@ describe("Merchant inventory panel", () => {
     fireEvent.change(screen.getByLabelText("Số lượng"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("Ghi chú"), { target: { value: "Điều chỉnh" } });
     fireEvent.click(screen.getByRole("button", { name: "Xuất kho" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận điều chỉnh" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Không đủ tồn kho");
     expect(screen.queryByRole("status")).toBeNull();
-    expect((screen.getByRole("button", { name: "Xuất kho" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Xác nhận điều chỉnh" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

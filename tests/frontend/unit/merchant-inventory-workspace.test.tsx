@@ -34,9 +34,18 @@ it("uses the same idempotency key when an uncertain adjustment is retried", asyn
   fireEvent.change(screen.getByLabelText("Số lượng"), { target: { value: "2" } });
   fireEvent.change(screen.getByLabelText("Ghi chú"), { target: { value: "Bổ sung" } });
   fireEvent.click(screen.getByRole("button", { name: "Tăng lượt phát hành" }));
+  fireEvent.click(screen.getByRole("button", { name: "Xác nhận điều chỉnh" }));
   expect(await screen.findByText("Mất kết nối")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Tăng lượt phát hành" }));
+  fireEvent.click(screen.getByRole("button", { name: "Xác nhận điều chỉnh" }));
   await waitFor(() => expect(mocks.adjust).toHaveBeenCalledTimes(2));
   expect(mocks.adjust.mock.calls[0][4]).toBe(mocks.adjust.mock.calls[1][4]);
   expect(await screen.findByText("Đã cập nhật lượt phát hành.")).toBeInTheDocument();
+});
+
+it("shows an uninitialized voucher without inventing a balance", async () => {
+  mocks.get.mockResolvedValue({ inventory: null, movements: [], requiresInitialization: true });
+  render(<MemoryRouter initialEntries={["/merchant/inventory/voucher/53"]}><Routes><Route path="/merchant/inventory/:kind/:id" element={<MerchantInventoryPage />} /></Routes></MemoryRouter>);
+  expect(await screen.findByText(/Voucher chưa có số dư/)).toBeInTheDocument();
+  expect(screen.queryByText("Lượt còn lại")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Giảm lượt phát hành" })).toBeDisabled();
 });

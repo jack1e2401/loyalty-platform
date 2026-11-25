@@ -24,7 +24,11 @@ export const inventoryRepository = {
   async getInventory(merchantId: number, kind: InventoryItemKind, id: number) {
     const owner = ownerFor(kind, merchantId, id);
     const balance = await prisma.inventoryBalance.findFirst({ where: { ...owner } });
-    if (!balance) return null;
+    if (!balance) {
+      if (kind !== "DISCOUNT_VOUCHER") return null;
+      const voucher = await prisma.voucherDefinition.findFirst({ where: { id, merchantId, type: "DISCOUNT" }, select: { id: true } });
+      return voucher ? { inventory: null, movements: [], requiresInitialization: true } : null;
+    }
     const movements = await prisma.inventoryMovement.findMany({
       where: { balanceId: balance.id },
       include: { actor: { select: { email: true } } },
@@ -87,6 +91,20 @@ export const inventoryRepository = {
             select: { id: true },
           });
       if (!modelOwner) throw new HttpError(404, "INVENTORY_ITEM_NOT_FOUND");
+
+      if (input.kind === "DISCOUNT_VOUCHER") {
+        const existing = await tx.inventoryBalance.findFirst({ where: owner });
+        if (!existing) {
+          if (input.direction !== "in") throw new HttpError(409, "INVENTORY_NOT_INITIALIZED");
+          const created = await tx.inventoryBalance.create({ data: owner });
+          await tx.inventoryMovement.create({ data: {
+            balanceId: created.id, ...owner, movementType: "LEGACY_BACKFILL", quantityDelta: 0,
+            onHandBefore: 0, onHandAfter: 0, reservedBefore: 0, reservedAfter: 0,
+            reason: "Issuance capacity set to zero because legacy quantity was not recorded",
+            eventRef: `inventory-backfill-voucher-${input.id}`,
+          } });
+        }
+      }
 
       await moveInventory(tx, {
         ...owner,

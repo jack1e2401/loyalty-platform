@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { ConfirmActionDialog } from "../../components/ui/ConfirmActionDialog";
 
 export type InventoryBalance = {
   onHandQuantity: number;
@@ -33,6 +34,7 @@ export type InventoryPanelProps = {
   onAdjust: (adjustment: InventoryAdjustment) => Promise<unknown>;
   mode?: "adjust" | "history";
   subject?: "product" | "voucher";
+  uninitialized?: boolean;
 };
 
 const dateTime = (value: string) => new Date(value).toLocaleString("vi-VN");
@@ -73,6 +75,7 @@ export function InventoryPanel({
   onAdjust,
   mode,
   subject = "product",
+  uninitialized = false,
 }: InventoryPanelProps) {
   const titleId = useId();
   const isVoucher = subject === "voucher";
@@ -82,6 +85,7 @@ export function InventoryPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pending, setPending] = useState<InventoryAdjustment | null>(null);
 
   async function submit(event: { preventDefault: () => void }, direction: InventoryAdjustment["direction"]) {
     event.preventDefault();
@@ -98,9 +102,16 @@ export function InventoryPanel({
       return;
     }
 
+    setPending({ direction, quantity: parsedQuantity, reason: trimmedReason });
+  }
+
+  async function confirmAdjustment() {
+    if (!pending || loading) return;
+    setError("");
     setLoading(true);
     try {
-      await onAdjust({ direction, quantity: parsedQuantity, reason: trimmedReason });
+      await onAdjust(pending);
+      setPending(null);
       setSuccess(isVoucher ? "Đã cập nhật lượt phát hành." : "Tồn kho đã được cập nhật.");
       setQuantity("");
       setReason("");
@@ -127,7 +138,7 @@ export function InventoryPanel({
       </h2>
       {mode !== "history" && (
         <>
-          <dl className="grid grid-cols-3 gap-3 text-sm">
+          {!uninitialized && <dl className="grid grid-cols-3 gap-3 text-sm">
             {!isVoucher && (
               <>
                 <div>
@@ -144,7 +155,7 @@ export function InventoryPanel({
               <dt className="muted">{isVoucher ? "Lượt còn lại" : "Có thể bán"}</dt>
               <dd className="mt-1 text-xl font-bold">{balance.availableQuantity}</dd>
             </div>
-          </dl>
+          </dl>}
 
           <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => event.preventDefault()}>
             <label className="grid gap-1 text-sm font-semibold">
@@ -182,14 +193,14 @@ export function InventoryPanel({
               </button>
               <button
                 type="button"
-                disabled={loading}
+                disabled={loading || uninitialized}
                 onClick={(event) => void submit(event, "out")}
                 className="rounded-lg border px-4 py-2 font-semibold disabled:opacity-60"
               >
                 {loading ? "Đang lưu…" : isVoucher ? "Giảm lượt phát hành" : "Xuất kho"}
               </button>
             </div>
-            {error && (
+            {error && !pending && (
               <p role="alert" className="sm:col-span-2 text-sm text-red-700">
                 {error}
               </p>
@@ -202,6 +213,11 @@ export function InventoryPanel({
           </form>
         </>
       )}
+
+      <ConfirmActionDialog open={pending !== null} onOpenChange={(open) => { if (!open && !loading) setPending(null); }}
+        title="Xác nhận điều chỉnh?"
+        description={`${uninitialized ? "Số dư ban đầu được ghi nhận là 0. " : ""}${pending?.direction === "in" ? "Tăng" : "Giảm"} ${pending?.quantity ?? 0} ${isVoucher ? "lượt phát hành" : "đơn vị tồn kho"}.`}
+        confirmLabel="Xác nhận điều chỉnh" busy={loading} error={error} onConfirm={() => void confirmAdjustment()} />
 
       {mode !== "adjust" && (
         <div>
