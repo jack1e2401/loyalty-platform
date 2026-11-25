@@ -1,3 +1,4 @@
+import { MerchantPagination } from "./cms/MerchantPagination";
 import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
@@ -6,6 +7,9 @@ import type { LoyaltyConfigDto, MerchantLoyaltyPolicyVersionDto } from "../../ap
 export type MerchantLoyaltyHistoryProps = {
   versions: MerchantLoyaltyPolicyVersionDto[];
   currentConfig?: LoyaltyConfigDto;
+  currentVersion?: MerchantLoyaltyPolicyVersionDto | null;
+  pagination?: { page: number; limit: number; totalItems: number };
+  onPageChange?: (page: number, limit: number) => void;
 };
 
 function formatDate(value: string): string {
@@ -135,8 +139,8 @@ function VersionDetails({ version }: { version: MerchantLoyaltyPolicyVersionDto 
   );
 }
 
-export function MerchantLoyaltyHistory({ versions, currentConfig }: MerchantLoyaltyHistoryProps) {
-  const current = versions.find((policy) => policy.isCurrent);
+export function MerchantLoyaltyHistory({ versions, currentConfig, currentVersion, pagination, onPageChange }: MerchantLoyaltyHistoryProps) {
+  const current = currentVersion ?? versions.find((policy) => policy.isCurrent);
   const currentPolicy = currentConfig ?? current;
 
   return (
@@ -144,7 +148,6 @@ export function MerchantLoyaltyHistory({ versions, currentConfig }: MerchantLoya
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 id="loyalty-history-title" className="text-2xl font-semibold sm:text-3xl">Chính sách Loyalty</h1>
-          <p className="mt-1 text-sm text-[#65736a]">Quản lý chính sách tích điểm và lịch sử phiên bản</p>
         </div>
         <Link to="/merchant/loyalty/config?mode=new" className={primaryLink}>
           <span aria-hidden="true">+</span> Tạo chính sách mới
@@ -180,7 +183,7 @@ export function MerchantLoyaltyHistory({ versions, currentConfig }: MerchantLoya
       <section aria-labelledby="loyalty-versions-title" className="space-y-3">
         <header className="flex items-baseline justify-between gap-3">
           <h2 id="loyalty-versions-title" className={sectionTitle}>Lịch sử phiên bản</h2>
-          <p className="text-sm text-[#65736a]">Tổng cộng: {versions.length}</p>
+          <p className="text-sm text-[#65736a]">Tổng cộng: {pagination?.totalItems ?? versions.length}</p>
         </header>
         {versions.length > 0 ? (
           <div className={`${panel} overflow-x-auto`}>
@@ -205,6 +208,7 @@ export function MerchantLoyaltyHistory({ versions, currentConfig }: MerchantLoya
             </table>
           </div>
         ) : <p className={`${panel} p-4 text-sm text-[#65736a]`}>Chưa có phiên bản phát hành.</p>}
+        {pagination && onPageChange && <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems} onChange={onPageChange} />}
       </section>
     </section>
   );

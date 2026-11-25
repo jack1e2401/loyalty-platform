@@ -17,7 +17,9 @@ import { LoyaltyPolicyEditor } from "./LoyaltyPolicyEditor";
 export function MerchantLoyalty() {
   const token = useToken();
   const resource = useResource(() => api.getLoyaltyConfig(token), [token]);
-  const history = useResource(() => api.getLoyaltyPolicyHistory(token), [token]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLimit, setHistoryLimit] = useState(20);
+  const history = useResource(() => api.getLoyaltyPolicyHistory(token, { page: historyPage, limit: historyLimit }), [token, historyPage, historyLimit]);
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -234,7 +236,9 @@ export function MerchantLoyalty() {
             ) : history.error ? (
               <ErrorState message={history.error} retry={history.reload} />
             ) : (
-              <MerchantLoyaltyHistory versions={history.data?.versions ?? []} currentConfig={config} />
+              <MerchantLoyaltyHistory versions={history.data?.versions ?? []} currentConfig={config}
+                currentVersion={history.data?.current} pagination={history.data?.pagination}
+                onPageChange={(page, limit) => { setHistoryPage(page); setHistoryLimit(limit); }} />
             )}
           </>
         )}

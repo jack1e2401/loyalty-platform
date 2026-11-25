@@ -27,6 +27,12 @@ export const ordersService = {
     return ordersRepository.listMerchantOrders(merchant.id);
   },
 
+  async listMerchantOrdersPage(ownerId: number, page: number, limit: number, search: string, status: string) {
+    const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
+    if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
+    return ordersRepository.listMerchantOrdersPage(merchant.id, page, limit, search, status);
+  },
+
   async getMerchantOrder(ownerId: number, orderId: number) {
     const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");

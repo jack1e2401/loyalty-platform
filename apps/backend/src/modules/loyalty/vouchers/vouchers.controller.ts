@@ -12,7 +12,14 @@ function readId(value: string): number {
 function param(value: string | string[] | undefined): string {
   return typeof value === "string" ? value : "";
 }
-export const listMerchantDefinitions: RequestHandler = async (_request, response) => {
+export const listMerchantDefinitions: RequestHandler = async (request, response) => {
+  if (request.query.page !== undefined || request.query.limit !== undefined) {
+    const page = readId(param(request.query.page === undefined ? "1" : request.query.page as string | string[]));
+    const limit = readId(param(request.query.limit === undefined ? "20" : request.query.limit as string | string[]));
+    if (page > 1_000_000 || limit > 100) throw new HttpError(400, "INVALID_INPUT");
+    response.json(await vouchersService.listMerchantDefinitionsPage(response.locals.user.id, page, limit));
+    return;
+  }
   response.json({ definitions: await vouchersService.listMerchantDefinitions(response.locals.user.id) });
 };
 export const createDefinition: RequestHandler = async (request, response) => {

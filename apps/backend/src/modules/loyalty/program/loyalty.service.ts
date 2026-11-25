@@ -33,6 +33,17 @@ export const loyaltyService = {
     return loyaltyRepository.listHistory(merchant.id);
   },
 
+  async listPolicyHistoryPage(ownerId: number, page: number, limit: number) {
+    const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
+    if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
+    const [versions, latest, totalItems] = await Promise.all([
+      loyaltyRepository.listHistory(merchant.id, { page, limit }),
+      loyaltyRepository.listHistory(merchant.id, { page: 1, limit: 1 }),
+      loyaltyRepository.countHistory(merchant.id),
+    ]);
+    return { versions, current: latest[0] ?? null, pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) } };
+  },
+
   async previewMemberEarning(memberId: number, merchantId: number, netOrderAmountVnd: string) {
     return previewMemberEarning(memberId, merchantId, netOrderAmountVnd);
   },

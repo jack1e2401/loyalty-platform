@@ -99,7 +99,7 @@ export type ProductInput = ProductFields &
 
 export type ProductPatch = Partial<ProductFields> & { price?: string; status?: ProductStatus };
 
-export type CategoriesResponse = { categories: ProductCategoryDto[] };
+export type CategoriesResponse = { categories: ProductCategoryDto[]; pagination?: PaginationDto };
 
 export type CategoryResponse = { category: ProductCategoryDto };
 

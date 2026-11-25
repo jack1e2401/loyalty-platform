@@ -15,14 +15,14 @@ import {
   Select,
 } from "../../../components/ui";
 import { api, message, useToken } from "../merchant-page-support";
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { MerchantVouchersTable } from "../MerchantVouchersTable";
 
 export function MerchantVouchers() {
   const token = useToken();
-  const resource = useResource(
-    () => api.listMerchantVoucherDefinitions(token).then((response) => response.definitions),
-    [token],
-  );
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const resource = useResource(() => api.listMerchantVoucherDefinitions(token, { page, limit }), [token, page, limit]);
   const [kind, setKind] = useState<VoucherDefinitionInput["type"] | "">("");
   const [title, setTitle] = useState("");
   const [pointsCost, setPointsCost] = useState("");
@@ -68,8 +68,9 @@ export function MerchantVouchers() {
               initialQuantity: Number(initialQuantity),
               rewardDescription: null,
             };
-      const response = await api.createVoucherDefinition(input, token);
-      resource.setData((current) => [...(current ?? []), response.definition]);
+      await api.createVoucherDefinition(input, token);
+      setPage(1);
+      resource.reload();
       setKind("");
       setTitle("");
       setPointsCost("");
@@ -113,7 +114,7 @@ export function MerchantVouchers() {
 
   function updateDefinition(definition: VoucherDefinitionDto) {
     resource.setData(
-      (current) => current?.map((item) => (item.id === definition.id ? definition : item)) ?? null,
+      (current) => current ? { ...current, definitions: current.definitions.map((item) => item.id === definition.id ? definition : item) } : null,
     );
   }
 
@@ -247,19 +248,23 @@ export function MerchantVouchers() {
         <LoadingState cards={2} />
       ) : resource.error ? (
         <ErrorState message={resource.error} retry={resource.reload} />
-      ) : !resource.data?.length ? (
+      ) : !resource.data?.definitions.length ? (
         <EmptyState
           title="Chưa có voucher"
           description="Tạo voucher đầu tiên cho chương trình của cửa hàng."
         />
       ) : (
+        <>
         <MerchantVouchersTable
-          definitions={resource.data}
+          definitions={resource.data.definitions}
           token={token}
           busyId={busyId}
           onToggle={toggle}
           onDefinitionChange={updateDefinition}
         />
+        {resource.data.pagination && <MerchantPagination page={resource.data.pagination.page} limit={resource.data.pagination.limit}
+          totalItems={resource.data.pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
+        </>
       )}
     </>
   );

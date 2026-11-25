@@ -16,8 +16,9 @@ import { requestJson, productQueryPath } from "./shared";
 
 export function createCatalogClient(baseUrl = "", fetcher: typeof fetch = fetch) {
   return {
-    listOwnCategories(token: string) {
-      return requestJson<CategoriesResponse>(fetcher, baseUrl, "/api/merchant/categories", { token });
+    listOwnCategories(token: string, paging?: { page: number; limit: number }) {
+      const query = paging ? `?page=${paging.page}&limit=${paging.limit}` : "";
+      return requestJson<CategoriesResponse>(fetcher, baseUrl, `/api/merchant/categories${query}`, { token });
     },
     createCategory(input: ProductCategoryInput, token: string) {
       return requestJson<CategoryResponse>(fetcher, baseUrl, "/api/merchant/categories", {

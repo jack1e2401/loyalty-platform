@@ -250,6 +250,19 @@ test("Customer 360 lists 0-order members, handles REFUND_PENDING/REFUNDED, and e
   assert.equal(buyerRow.refundPendingSpendVnd, "50000");
   assert.equal(buyerRow.netSpendVnd, "150000");
 
+  const firstPage = await request<{ items: { memberId: number }[]; pagination: { totalItems: number; totalPages: number } }>(
+    "/api/merchant/customers?page=1&limit=1", "GET", storeA.ownerToken,
+  );
+  const secondPage = await request<{ items: { memberId: number }[] }>("/api/merchant/customers?page=2&limit=1", "GET", storeA.ownerToken);
+  assert.equal(firstPage.json.pagination.totalItems, 2);
+  assert.equal(firstPage.json.pagination.totalPages, 2);
+  assert.notEqual(firstPage.json.items[0].memberId, secondPage.json.items[0].memberId);
+  const filteredTier = await request<{ items: { memberId: number }[]; pagination: { totalItems: number } }>(
+    "/api/merchant/customers?tier=UNRANKED&limit=1&page=1", "GET", storeA.ownerToken,
+  );
+  assert.equal(filteredTier.json.pagination.totalItems, 1);
+  assert.deepEqual(filteredTier.json.items.map((item) => item.memberId), [zeroOrderMember.id]);
+
   // Filter non_buyers
   const nonBuyers = await request<{ items: { memberId: number }[] }>(
     "/api/merchant/customers?purchaseStatus=non_buyers",

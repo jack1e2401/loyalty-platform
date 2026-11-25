@@ -13,6 +13,7 @@ import type {
 import { useResource } from "../../api/useResource";
 import { Button, EmptyState, ErrorState, LoadingState, PageHeader } from "../../components/ui";
 import { ConfirmActionDialog } from "../../components/ui/ConfirmActionDialog";
+import { MerchantPagination } from "../merchant/cms/MerchantPagination";
 import { EventFormDialog } from "./EventFormDialog";
 import { MerchantEventCard } from "./MerchantEventCard";
 import { MerchantEventFilters } from "./MerchantEventFilters";
@@ -31,6 +32,7 @@ export function MerchantEventsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
 
   const [formTarget, setFormTarget] = useState<MerchantEventDto | "new" | null>(null);
@@ -57,8 +59,8 @@ export function MerchantEventsPage() {
   }, [token]);
 
   const resource = useResource(
-    () => eventsApi.listMerchantEvents({ status: statusFilter, q: searchQuery, page, limit: 10 }, token),
-    [token, statusFilter, searchQuery, page],
+    () => eventsApi.listMerchantEvents({ status: statusFilter, q: searchQuery, page, limit }, token),
+    [token, statusFilter, searchQuery, page, limit],
   );
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -235,33 +237,9 @@ export function MerchantEventsPage() {
             />
           ))}
 
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-sm text-[#5d6f62]">
-                Trang {pagination.page} / {pagination.totalPages} ({pagination.totalItems} sự kiện)
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                >
-                  Trước
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPage((prev) => prev + 1)}
-                >
-                  Sau
-                </Button>
-              </div>
-            </div>
-          )}
+          {pagination && <MerchantPagination page={pagination.page} limit={pagination.limit}
+            totalItems={pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
+
         </div>
       )}
 

@@ -33,8 +33,9 @@ export function createOrdersClient(baseUrl = "", fetcher: typeof fetch = fetch) 
     getMemberOrder(orderId: number, token: string) {
       return requestJson<OrderResponse>(fetcher, baseUrl, `/api/member/orders/${orderId}`, { token });
     },
-    listMerchantOrders(token: string) {
-      return requestJson<MerchantOrdersResponse>(fetcher, baseUrl, "/api/merchant/orders", { token });
+    listMerchantOrders(token: string, filters?: { page: number; limit: number; q?: string; status?: string }) {
+      const query = filters ? `?${new URLSearchParams({ page: String(filters.page), limit: String(filters.limit), q: filters.q ?? "", status: filters.status ?? "" })}` : "";
+      return requestJson<MerchantOrdersResponse>(fetcher, baseUrl, `/api/merchant/orders${query}`, { token });
     },
     getMerchantOrder(orderId: number, token: string) {
       return requestJson<OrderResponse>(fetcher, baseUrl, `/api/merchant/orders/${orderId}`, { token });

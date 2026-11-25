@@ -111,6 +111,7 @@ export const definitionInclude = {
 export async function definitionDtos(
   merchantId: number,
   activeOnly: boolean,
+  paging?: { page: number; limit: number },
 ): Promise<DefinitionDto[]> {
   const records = await prisma.voucherDefinition.findMany({
     where: {
@@ -119,6 +120,7 @@ export async function definitionDtos(
     },
     include: definitionInclude,
     orderBy: { id: "asc" },
+    ...(paging ? { skip: (paging.page - 1) * paging.limit, take: paging.limit } : {}),
   });
   const ids = records
     .filter((item) => item.type === "DISCOUNT")
@@ -150,6 +152,13 @@ export const voucherReadRepository = {
     activeOnly: boolean,
   ): Promise<DefinitionDto[]> {
     return definitionDtos(merchantId, activeOnly);
+  },
+  async listDefinitionsPage(merchantId: number, page: number, limit: number) {
+    const [definitions, totalItems] = await Promise.all([
+      definitionDtos(merchantId, false, { page, limit }),
+      prisma.voucherDefinition.count({ where: { merchantId } }),
+    ]);
+    return { definitions, pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) } };
   },
   async getDefinition(id: number) {
     return prisma.voucherDefinition.findUnique({ where: { id } });

@@ -16,41 +16,67 @@ export async function listMerchantCustomers(
   merchantId: number,
   query: CustomerListQuery,
 ): Promise<{ items: CustomerSummaryDto[]; pagination: PaginationDto; tiers: { level: string; name: string }[] }> {
-  const [memberships, configuredTiers, orderGroups, rule] = await prisma.$transaction([
-    prisma.merchantMembership.findMany({
-      where: {
-        merchantId,
-        ...(query.q ? { member: { OR: [{ email: { contains: query.q } }, { name: { contains: query.q } }, { phone: { contains: query.q } }] } } : {}),
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      include: {
-        member: { select: { id: true, email: true, name: true, phone: true } },
-        wallet: {
-          include: {
-            _count: { select: { transactions: { where: { type: "EARN" } } } },
-          },
-        },
-      },
-    }),
-    prisma.loyaltyTier.findMany({
-      where: { merchantId, isActive: true },
-      orderBy: { sortOrder: "asc" },
-    }),
-    prisma.order.groupBy({
-      by: ["memberId", "status"],
-      where: {
-        merchantId,
-        status: { in: ["PAID", "REFUND_PENDING"] },
-      },
-      orderBy: [{ memberId: "asc" }, { status: "asc" }],
-      _count: { _all: true },
-      _sum: { total: true },
-      _max: { paidAt: true },
-    }),
+  const [configuredTiers, rule] = await Promise.all([
+    prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.loyaltyRule.findUnique({ where: { merchantId } }),
   ]);
-
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
+  const mode = rule?.qualificationMode ?? "POINTS";
+  const rankedTiers = tiers
+    .map((tier) => ({
+      level: tier.level,
+      threshold: mode === "SPEND"
+        ? ("minSpendVnd" in tier ? tier.minSpendVnd : null)
+        : tier.minLifetimePoints,
+    }))
+    .filter((tier) => tier.threshold != null)
+    .sort((left, right) => new Prisma.Decimal(String(right.threshold)).comparedTo(String(left.threshold)));
+  const tierCases = rankedTiers.map((tier) =>
+    Prisma.sql`WHEN m.qualificationProgress >= ${new Prisma.Decimal(String(tier.threshold))} THEN ${tier.level}`,
+  );
+  const earned = Prisma.sql`EXISTS (
+    SELECT 1 FROM \`LoyaltyWallet\` w JOIN \`PointTransaction\` t ON t.walletId = w.id
+    WHERE w.membershipId = m.id AND t.type = 'EARN'
+  )`;
+  const tierExpression = tierCases.length
+    ? Prisma.sql`CASE WHEN m.tierId IS NOT NULL OR ${earned}
+        THEN CASE ${Prisma.join(tierCases, " ")} ELSE 'UNRANKED' END
+        ELSE 'UNRANKED' END`
+    : Prisma.sql`'UNRANKED'`;
+  const pattern = query.q ? `%${query.q.replace(/[\\%_]/g, "\\$&")}%` : "";
+  const searchFilter = query.q
+    ? Prisma.sql`AND (u.email LIKE ${pattern} OR u.name LIKE ${pattern} OR u.phone LIKE ${pattern})`
+    : Prisma.empty;
+  const hasOrders = Prisma.sql`EXISTS (
+    SELECT 1 FROM \`Order\` o WHERE o.merchantId = m.merchantId AND o.memberId = m.memberId
+      AND o.status IN ('PAID', 'REFUND_PENDING')
+  )`;
+  const purchaseFilter = query.purchaseStatus === "buyers" ? Prisma.sql`AND ${hasOrders}`
+    : query.purchaseStatus === "non_buyers" ? Prisma.sql`AND NOT ${hasOrders}` : Prisma.empty;
+  const tierFilter = query.tier ? Prisma.sql`AND (${tierExpression}) = ${query.tier}` : Prisma.empty;
+  const where = Prisma.sql`FROM \`MerchantMembership\` m JOIN \`User\` u ON u.id = m.memberId
+    WHERE m.merchantId = ${merchantId} ${searchFilter} ${purchaseFilter} ${tierFilter}`;
+  const [ids, counts] = await prisma.$transaction([
+    prisma.$queryRaw<{ id: number }[]>(Prisma.sql`SELECT m.id ${where} ORDER BY m.createdAt DESC, m.id DESC
+      LIMIT ${query.limit} OFFSET ${(query.page - 1) * query.limit}`),
+    prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`SELECT COUNT(*) AS total ${where}`),
+  ]);
+  const memberships = ids.length ? await prisma.merchantMembership.findMany({
+    where: { merchantId, id: { in: ids.map(({ id }) => id) } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    include: {
+      member: { select: { id: true, email: true, name: true, phone: true } },
+      wallet: { include: { _count: { select: { transactions: { where: { type: "EARN" } } } } } },
+    },
+  }) : [];
+  const memberIds = memberships.map(({ memberId }) => memberId);
+  const orderGroups = memberIds.length ? await prisma.order.groupBy({
+    by: ["memberId", "status"],
+    where: { merchantId, memberId: { in: memberIds }, status: { in: ["PAID", "REFUND_PENDING"] } },
+    orderBy: [{ memberId: "asc" }, { status: "asc" }],
+    _count: { _all: true }, _sum: { total: true }, _max: { paidAt: true },
+  }) : [];
+
   const statsByMember = new Map<
     number,
     {
@@ -122,18 +148,9 @@ export async function listMerchantCustomers(
     };
   });
 
-  const filtered = summaries.filter((item) => {
-    if (query.tier && item.tier !== query.tier) return false;
-    const qualifyingOrders = item.paidOrderCount + item.refundPendingOrderCount;
-    if (query.purchaseStatus === "buyers" && qualifyingOrders === 0) return false;
-    if (query.purchaseStatus === "non_buyers" && qualifyingOrders > 0) return false;
-    return true;
-  });
-
-  const totalItems = filtered.length;
-  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / query.limit);
-  const start = (query.page - 1) * query.limit;
-  const items = filtered.slice(start, start + query.limit);
+  const totalItems = Number(counts[0]?.total ?? 0);
+  const totalPages = Math.ceil(totalItems / query.limit);
+  const items = summaries;
 
   return {
     items,

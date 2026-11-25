@@ -34,7 +34,8 @@ export function MerchantChallengeDetailPage() {
   const id = Number(challengeId);
   const token = useToken();
   const [page, setPage] = useState(1);
-  const resource = useResource(() => api.getMerchantChallenge(id, token, page, 20), [id, token, page]);
+  const [limit, setLimit] = useState(20);
+  const resource = useResource(() => api.getMerchantChallenge(id, token, page, limit), [id, token, page, limit]);
 
   if (!Number.isSafeInteger(id) || id <= 0)
     return (
@@ -57,7 +58,6 @@ export function MerchantChallengeDetailPage() {
       : challenge.effectiveStatus === "PAUSED"
         ? "amber"
         : "neutral";
-  const totalPages = Math.max(1, participants.pagination.totalPages);
 
   return (
     <section className="mx-auto max-w-6xl space-y-6 pb-8">
@@ -183,8 +183,8 @@ export function MerchantChallengeDetailPage() {
         participants={participants.items}
         totalItems={participants.pagination.totalItems}
         page={participants.pagination.page}
-        totalPages={totalPages}
-        onPageChange={setPage}
+        limit={participants.pagination.limit}
+        onPageChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }}
       />
 
       {limitChanges.length > 0 && (

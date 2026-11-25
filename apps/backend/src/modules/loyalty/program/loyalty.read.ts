@@ -62,9 +62,9 @@ export async function getMerchantMemberWallet(merchantId: number, memberId: numb
   return { member: result.member, wallet: result.wallet };
 }
 
-export type MerchantMemberFilters = { email?: string; cursor?: number; limit: number };
+export type MerchantMemberFilters = { email?: string; cursor?: number; limit: number; page?: number };
 
-export async function listMerchantMembers(merchantId: number, { email, cursor, limit }: MerchantMemberFilters) {
+export async function listMerchantMembers(merchantId: number, { email, cursor, limit, page: pageNumber }: MerchantMemberFilters) {
   const [memberships, configuredTiers, rule] = await prisma.$transaction([
     prisma.merchantMembership.findMany({
       where: {
@@ -73,7 +73,8 @@ export async function listMerchantMembers(merchantId: number, { email, cursor, l
         ...(email ? { member: { email: { contains: email } } } : {}),
       },
       orderBy: { id: "desc" },
-      take: limit + 1,
+      take: pageNumber === undefined ? limit + 1 : limit,
+      ...(pageNumber !== undefined ? { skip: (pageNumber - 1) * limit } : {}),
       include: {
         member: { select: { id: true, email: true } },
         wallet: {
@@ -91,6 +92,9 @@ export async function listMerchantMembers(merchantId: number, { email, cursor, l
     prisma.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.loyaltyRule.findUnique({ where: { merchantId } }),
   ]);
+  const totalItems = pageNumber === undefined ? 0 : await prisma.merchantMembership.count({
+    where: { merchantId, ...(email ? { member: { email: { contains: email } } } : {}) },
+  });
   const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
   const page = memberships.slice(0, limit);
   return {
@@ -113,6 +117,7 @@ export async function listMerchantMembers(merchantId: number, { email, cursor, l
       };
     }),
     nextCursor: memberships.length > limit ? page.at(-1)!.id : null,
+    ...(pageNumber === undefined ? {} : { pagination: { page: pageNumber, limit, totalItems, totalPages: Math.ceil(totalItems / limit) } }),
   };
 }
 
@@ -211,6 +216,7 @@ export interface MerchantTransactionFilters {
   to?: string;
   cursor?: number;
   limit?: number;
+  page?: number;
 }
 
 export async function listMerchantTransactions(merchantId: number, filters: MerchantTransactionFilters) {
@@ -271,7 +277,8 @@ export async function listMerchantTransactions(merchantId: number, filters: Merc
       memberVoucher: { select: { id: true, snapshotTitle: true, snapshotType: true } },
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit + 1,
+    take: filters.page === undefined ? limit + 1 : limit,
+    ...(filters.page !== undefined ? { skip: (filters.page - 1) * limit } : {}),
   }), prisma.pointTransaction.groupBy({ by: ["type"], orderBy: { type: "asc" }, where: summaryWhere, _sum: { delta: true } })]);
 
   const hasNext = records.length > limit;
@@ -311,8 +318,11 @@ export async function listMerchantTransactions(merchantId: number, filters: Merc
     };
   });
 
+  const totalItems = filters.page === undefined ? 0 : await prisma.pointTransaction.count({
+    where: { ...summaryWhere, ...(filters.type ? { type: filters.type } : {}) },
+  });
   const total = (type: PointTransactionType) => totals.find((row) => row.type === type)?._sum?.delta ?? new Prisma.Decimal(0);
-  return { items, nextCursor, summary: {
+  return { items, nextCursor, ...(filters.page === undefined ? {} : { pagination: { page: filters.page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) } }), summary: {
     earned: exactPoints(total("EARN")),
     redeemed: exactPoints(total("REDEEM_DISCOUNT").plus(total("REDEEM_REWARD")).abs()),
     reversed: exactPoints(total("EARN_REVERSAL").abs()),

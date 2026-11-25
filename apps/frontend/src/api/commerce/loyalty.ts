@@ -31,8 +31,9 @@ export function createLoyaltyClient(baseUrl = "", fetcher: typeof fetch = fetch)
         token,
       });
     },
-    getLoyaltyPolicyHistory(token: string) {
-      return requestJson<MerchantLoyaltyHistoryResponse>(fetcher, baseUrl, "/api/merchant/loyalty/history", {
+    getLoyaltyPolicyHistory(token: string, paging?: { page: number; limit: number }) {
+      const query = paging ? `?page=${paging.page}&limit=${paging.limit}` : "";
+      return requestJson<MerchantLoyaltyHistoryResponse>(fetcher, baseUrl, `/api/merchant/loyalty/history${query}`, {
         token,
       });
     },
@@ -41,10 +42,12 @@ export function createLoyaltyClient(baseUrl = "", fetcher: typeof fetch = fetch)
         token,
       });
     },
-    listMerchantLoyaltyMembers(filters: { email: string; cursor: number | null }, token: string) {
+    listMerchantLoyaltyMembers(filters: { email: string; cursor?: number | null; page?: number; limit?: number }, token: string) {
       const params = new URLSearchParams();
       if (filters.email) params.set("email", filters.email);
-      if (filters.cursor !== null) params.set("cursor", String(filters.cursor));
+      if (filters.cursor != null) params.set("cursor", String(filters.cursor));
+      if (filters.page !== undefined) params.set("page", String(filters.page));
+      if (filters.limit !== undefined) params.set("limit", String(filters.limit));
       const query = params.toString();
       return requestJson<MerchantLoyaltyMembersResponse>(
         fetcher,
@@ -89,6 +92,7 @@ export function createLoyaltyClient(baseUrl = "", fetcher: typeof fetch = fetch)
       if (params.to !== undefined) searchParams.set("to", params.to);
       if (params.cursor !== undefined) searchParams.set("cursor", params.cursor);
       if (params.limit !== undefined) searchParams.set("limit", String(params.limit));
+      if (params.page !== undefined) searchParams.set("page", String(params.page));
       const queryString = searchParams.toString();
       const path = `/api/merchant/loyalty/transactions${queryString ? `?${queryString}` : ""}`;
       return requestJson<MerchantTransactionsResponse>(fetcher, baseUrl, path, { token });

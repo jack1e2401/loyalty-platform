@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
+import { MerchantPagination } from "./cms/MerchantPagination";
 import { useAuthSession } from "../../api/auth-session";
 import { createCommerceClient } from "../../api/commerce-http";
 import type { MerchantLedgerItemDto, PointTransactionType } from "../../api/commerce-types";
@@ -63,35 +64,23 @@ export function MerchantLoyaltyTransactions() {
     type?: PointTransactionType;
     from?: string;
     to?: string;
-    cursor?: string;
-  }>(() => vietnamDateBounds(defaultRange.from, defaultRange.to));
+    page?: number;
+    limit?: number;
+  }>(() => ({ ...vietnamDateBounds(defaultRange.from, defaultRange.to), page: 1, limit: 20 }));
 
   const resource = useResource(() => api.listMerchantTransactions(filters, token), [filters, token]);
-  const [transactions, setTransactions] = useState<MerchantLedgerItemDto[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-
-  useEffect(() => {
-    const page = resource.data;
-    if (!page) return;
-
-    setTransactions((current) => {
-      if (filters.cursor === undefined) return page.items;
-      const uniqueItems = new Map(current.map((item) => [item.id, item]));
-      page.items.forEach((item) => uniqueItems.set(item.id, item));
-      return [...uniqueItems.values()];
-    });
-    setNextCursor(page.nextCursor);
-  }, [filters.cursor, resource.data]);
+  const transactions = resource.data?.items ?? [];
+  const pagination = resource.data?.pagination;
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setTransactions([]);
-    setNextCursor(null);
     setFilters({
       memberId: memberIdInput ? Number(memberIdInput) : undefined,
       orderId: orderIdInput ? Number(orderIdInput) : undefined,
       type: typeInput ? typeInput : undefined,
       ...vietnamDateBounds(fromInput, toInput),
+      page: 1,
+      limit: filters.limit ?? 20,
     });
   }
 
@@ -209,23 +198,9 @@ export function MerchantLoyaltyTransactions() {
               </tbody>
             </table>
           </Card>
-          {resource.loading && (
-            <p role="status" className="text-center text-sm muted">
-              Đang tải giao dịch tiếp theo…
-            </p>
-          )}
-          {nextCursor && (
-            <div className="text-center pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={resource.loading}
-                onClick={() => setFilters((f) => ({ ...f, cursor: nextCursor }))}
-              >
-                Xem thêm giao dịch
-              </Button>
-            </div>
-          )}
+          {pagination && <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
+            onChange={(page, limit) => setFilters((current) => ({ ...current, page, limit }))} />}
+
         </div>
       )}
     </div>

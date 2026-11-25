@@ -273,11 +273,16 @@ export const loyaltyConfigRepository = {
     return this.getConfig(merchantId);
   },
 
-  async listHistory(merchantId: number) {
+  async countHistory(merchantId: number) {
+    return prisma.loyaltyPolicyVersion.count({ where: { merchantId } });
+  },
+
+  async listHistory(merchantId: number, paging?: { page: number; limit: number }) {
     const versions = await prisma.loyaltyPolicyVersion.findMany({
       where: { merchantId },
       include: { publishedBy: { select: { email: true } } },
       orderBy: [{ version: "desc" }],
+      ...(paging ? { skip: (paging.page - 1) * paging.limit, take: paging.limit } : {}),
     });
     return versions.map((version, index) => ({
       id: version.id,
@@ -297,7 +302,7 @@ export const loyaltyConfigRepository = {
       publishedAt: version.publishedAt.toISOString(),
       publishedById: version.publishedById,
       publishedByEmail: version.publishedBy?.email ?? null,
-      isCurrent: index === 0,
+      isCurrent: index === 0 && (!paging || paging.page === 1),
     }));
   },
 };

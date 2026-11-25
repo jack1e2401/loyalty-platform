@@ -244,6 +244,14 @@ test("mock payment freezes the immutable published policy snapshot in member and
     "/api/merchant/loyalty/history", "GET", shop.token,
   );
   assert.deepEqual(explicitNewPolicyHistory.json.versions.map(({ version }) => version), [2, 1]);
+  const pagedHistory = await request<{ versions: { version: number; isCurrent: boolean }[]; current: { version: number }; pagination: { totalItems: number } }>(
+    "/api/merchant/loyalty/history?page=2&limit=1", "GET", shop.token,
+  );
+  assert.equal(pagedHistory.status, 200);
+  assert.equal(pagedHistory.json.current.version, 2);
+  assert.equal(pagedHistory.json.pagination.totalItems, 2);
+  assert.deepEqual(pagedHistory.json.versions.map(({ version, isCurrent }) => ({ version, isCurrent })), [{ version: 1, isCurrent: false }]);
+
   assert.equal(explicitNewPolicyHistory.json.versions[0]?.vndPerPoint, 10000);
   assert.equal(explicitNewPolicyHistory.json.versions[0]?.qualificationMode, "POINTS");
 

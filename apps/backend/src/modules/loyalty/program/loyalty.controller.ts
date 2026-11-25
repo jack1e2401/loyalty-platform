@@ -24,7 +24,14 @@ export const runLoyaltyTierReset: RequestHandler = async (_request, response) =>
   response.json(await loyaltyService.runTierReset(response.locals.user.id));
 };
 
-export const listLoyaltyPolicyHistory: RequestHandler = async (_request, response) => {
+export const listLoyaltyPolicyHistory: RequestHandler = async (request, response) => {
+  if (request.query.page !== undefined || request.query.limit !== undefined) {
+    const page = readRouteId(request.query.page ?? "1");
+    const limit = readRouteId(request.query.limit ?? "20");
+    if (page > 1_000_000 || limit > 100) throw new HttpError(400, "INVALID_INPUT");
+    response.json(await loyaltyService.listPolicyHistoryPage(response.locals.user.id, page, limit));
+    return;
+  }
   const versions = await loyaltyService.listPolicyHistory(response.locals.user.id);
   response.json({ versions });
 };
@@ -37,16 +44,18 @@ export const getMemberWallet: RequestHandler = async (request, response) => {
 };
 
 export const listMerchantMembers: RequestHandler = async (request, response) => {
-  const { email, cursor, limit } = request.query;
+  const { email, cursor, limit, page } = request.query;
   if (email !== undefined && (typeof email !== "string" || email.trim().length > 191)) {
     throw new HttpError(400, "INVALID_INPUT");
   }
   const pageSize = limit === undefined ? 20 : readRouteId(limit);
+  if (page !== undefined && readRouteId(page) > 1_000_000) throw new HttpError(400, "INVALID_INPUT");
   if (pageSize > 100) throw new HttpError(400, "INVALID_INPUT");
   response.json(await loyaltyService.listMerchantMembers(response.locals.user.id, {
     email: typeof email === "string" ? email.trim() : undefined,
     cursor: cursor === undefined ? undefined : readRouteId(cursor),
     limit: pageSize,
+    page: page === undefined ? undefined : readRouteId(page),
   }));
 };
 
@@ -143,6 +152,8 @@ export const listMerchantTransactions: RequestHandler = async (request, response
     }
   }
 
+  const page = request.query.page === undefined ? undefined : readRouteId(request.query.page);
+  if (page !== undefined && page > 1_000_000) throw new HttpError(400, "INVALID_INPUT");
   const result = await loyaltyService.listMerchantTransactions(response.locals.user.id, {
     memberId,
     orderId,
@@ -151,6 +162,7 @@ export const listMerchantTransactions: RequestHandler = async (request, response
     to,
     cursor,
     limit,
+    page,
   });
   response.json(result);
 };

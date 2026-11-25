@@ -1,6 +1,7 @@
+import { useState } from "react";
+import { MerchantPagination } from "./cms/MerchantPagination";
 import { useAuthSession } from "../../api/auth-session";
 import { createCommerceClient } from "../../api/commerce-http";
-import type { ProductCategoryDto } from "../../api/commerce-types";
 import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { useResource } from "../../api/useResource";
@@ -14,15 +15,15 @@ export function MerchantCategoriesPage() {
   const { accessToken } = useAuthSession();
   const navigate = useNavigate();
   if (!accessToken) throw new Error("Phiên đăng nhập đã hết hạn");
-  const categories = useResource<{ categories: ProductCategoryDto[] }>(
-    () => api.listOwnCategories(accessToken),
-    [accessToken],
-  );
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const categories = useResource(() => api.listOwnCategories(accessToken, { page, limit }), [accessToken, page, limit]);
 
   if (categories.loading && !categories.data) return <LoadingState cards={2} />;
   if (categories.error && !categories.data) return <ErrorState message={categories.error} retry={categories.reload} />;
 
   return (
+    <>
     <MerchantCategoriesPanel
       heading={<CmsPageHeader
         title="Danh mục sản phẩm"
@@ -35,5 +36,8 @@ export function MerchantCategoriesPage() {
       error={categories.error}
       onChanged={categories.reload}
     />
+    {categories.data?.pagination && <MerchantPagination page={categories.data.pagination.page} limit={categories.data.pagination.limit}
+      totalItems={categories.data.pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
+    </>
   );
 }

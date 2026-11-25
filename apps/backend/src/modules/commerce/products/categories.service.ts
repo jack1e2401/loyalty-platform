@@ -9,6 +9,11 @@ export const categoriesService = {
     return categoriesRepository.listByMerchant(merchant.id);
   },
 
+  async listOwnCategoriesPage(ownerId: number, page: number, limit: number) {
+    const merchant = await merchantService.getOwnStore(ownerId);
+    return categoriesRepository.listPage(merchant.id, page, limit);
+  },
+
   async createCategory(ownerId: number, input: ProductCategoryInput): Promise<ProductCategoryDto> {
     const merchant = await merchantService.getOwnStore(ownerId);
     return categoriesRepository.create(merchant.id, input);

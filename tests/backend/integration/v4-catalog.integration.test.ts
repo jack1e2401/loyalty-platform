@@ -113,6 +113,12 @@ test("categories CRUD, Vietnamese auto-slug, merchant isolation, and safe produc
   const categoryId = created.json.category.id as number;
 
   // Duplicate name or slug in same merchant -> 409 CATEGORY_ALREADY_EXISTS
+  const paged = await request("/api/merchant/categories?page=1&limit=1", "GET", merchantAToken);
+  assert.equal(paged.response.status, 200);
+  assert.equal(paged.json.categories.length, 1);
+  assert.ok(paged.json.pagination.totalItems >= 1);
+  assert.equal((await request("/api/merchant/categories?page=0&limit=1", "GET", merchantAToken)).response.status, 400);
+
   const dupName = await request("/api/merchant/categories", "POST", merchantAToken, {
     name: "Cà phê đặc biệt",
     slug: "other-slug",

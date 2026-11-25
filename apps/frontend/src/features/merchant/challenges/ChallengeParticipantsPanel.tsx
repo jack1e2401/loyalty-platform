@@ -1,5 +1,6 @@
 import type { ChallengeParticipantDto, MerchantChallengeDto } from "../../../api/challenges-types";
-import { Button, Card, StatusText } from "../../../components/ui";
+import { MerchantPagination } from "../cms/MerchantPagination";
+import { Card, StatusText } from "../../../components/ui";
 import { challengeRewardStateLabel } from "./challenge-labels";
 import { dateTime, participantProgress, ParticipantCard, rewardTone } from "./ChallengeDetailComponents";
 
@@ -8,8 +9,8 @@ type Props = {
   participants: ChallengeParticipantDto[];
   totalItems: number;
   page: number;
-  totalPages: number;
-  onPageChange: (update: (current: number) => number) => void;
+  limit: number;
+  onPageChange: (page: number, limit: number) => void;
 };
 
 export function ChallengeParticipantsPanel({
@@ -17,7 +18,7 @@ export function ChallengeParticipantsPanel({
   participants,
   totalItems,
   page,
-  totalPages,
+  limit,
   onPageChange,
 }: Props) {
   return (
@@ -68,24 +69,7 @@ export function ChallengeParticipantsPanel({
         ))}
       </ul>
 
-      <nav
-        aria-label="Phân trang thành viên"
-        className="flex flex-wrap items-center justify-end gap-3 border-t border-[#edf1ea] px-4 py-4 sm:px-6"
-      >
-        <span className="mr-auto text-xs muted">
-          Trang {page} / {totalPages}
-        </span>
-        <Button variant="outline" disabled={page <= 1} onClick={() => onPageChange((current) => current - 1)}>
-          Trước
-        </Button>
-        <Button
-          variant="outline"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange((current) => current + 1)}
-        >
-          Sau
-        </Button>
-      </nav>
+      <MerchantPagination page={page} limit={limit} totalItems={totalItems} onChange={onPageChange} />
     </Card>
   );
 }

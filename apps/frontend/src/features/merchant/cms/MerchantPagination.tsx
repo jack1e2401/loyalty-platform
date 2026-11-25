@@ -11,8 +11,9 @@ export function MerchantPagination({ page, limit, totalItems, onChange }: Props)
   const totalPages = Math.ceil(totalItems / limit);
   const first = totalItems ? (page - 1) * limit + 1 : 0;
   const last = Math.min(page * limit, totalItems);
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1)
-    .filter((value) => value === 1 || value === totalPages || Math.abs(value - page) <= 1);
+  const pages = [...new Set([1, page - 1, page, page + 1, totalPages])]
+    .filter((value) => value >= 1 && value <= totalPages)
+    .sort((left, right) => left - right);
 
   return (
     <nav aria-label="Phân trang" className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">

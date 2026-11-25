@@ -1,9 +1,17 @@
 import type { RequestHandler } from "express";
+import { HttpError } from "../../../lib/http-error.js";
 import { categoriesService } from "./categories.service.js";
 import { readCategoryInput, readCategoryPatch } from "./categories.validation.js";
 import { readRouteId } from "./products.validation.js";
 
-export const listOwnCategories: RequestHandler = async (_request, response) => {
+export const listOwnCategories: RequestHandler = async (request, response) => {
+  if (request.query.page !== undefined || request.query.limit !== undefined) {
+    const page = readRouteId(request.query.page ?? "1");
+    const limit = readRouteId(request.query.limit ?? "20");
+    if (page > 1_000_000 || limit > 100) throw new HttpError(400, "INVALID_INPUT");
+    response.json(await categoriesService.listOwnCategoriesPage(response.locals.user.id, page, limit));
+    return;
+  }
   const categories = await categoriesService.listOwnCategories(response.locals.user.id);
   response.json({ categories });
 };

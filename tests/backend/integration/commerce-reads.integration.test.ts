@@ -187,3 +187,20 @@ test("merchant order list returns buyer email and earned points only for its own
   assert.deepEqual(otherStore.json.orders.map((order: { id: number }) => order.id), [orderBId]);
   assert.ok(!otherStore.json.orders.some((order: { id: number }) => order.id === orderAId));
 });
+test("merchant order paging filters and counts at the database for the owning merchant", async () => {
+  const first = await request("/api/merchant/orders?page=1&limit=1", merchantAToken);
+  const second = await request("/api/merchant/orders?page=2&limit=1", merchantAToken);
+  assert.equal(first.response.status, 200);
+  assert.equal(first.json.pagination.totalItems, 2);
+  assert.equal(first.json.pagination.totalPages, 2);
+  assert.equal(first.json.orders.length, 1);
+  assert.equal(second.json.orders.length, 1);
+  assert.notEqual(first.json.orders[0].id, second.json.orders[0].id);
+  const filtered = await request(`/api/merchant/orders?page=1&limit=20&q=${orderAId}&status=PAID`, merchantAToken);
+  assert.equal(filtered.response.status, 200);
+  assert.deepEqual(filtered.json.orders.map((order: { id: number }) => order.id), [orderAId]);
+  assert.equal(filtered.json.pagination.totalItems, 1);
+  const isolated = await request(`/api/merchant/orders?page=1&limit=20&q=${orderAId}`, merchantBToken);
+  assert.equal(isolated.json.pagination.totalItems, 0);
+  assert.equal((await request("/api/merchant/orders?page=0&limit=20", merchantAToken)).response.status, 400);
+});

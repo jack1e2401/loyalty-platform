@@ -54,7 +54,7 @@ export interface MemberVoucherDto {
   cancellationReason?: string | null;
 }
 
-export type VoucherDefinitionsResponse = { definitions: VoucherDefinitionDto[] };
+export type VoucherDefinitionsResponse = { definitions: VoucherDefinitionDto[]; pagination?: { page: number; limit: number; totalItems: number; totalPages: number } };
 
 export type VoucherDefinitionResponse = { definition: VoucherDefinitionDto };
 

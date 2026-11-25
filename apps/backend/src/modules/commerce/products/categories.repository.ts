@@ -25,6 +25,15 @@ export const categoriesRepository = {
     });
   },
 
+  async listPage(merchantId: number, page: number, limit: number) {
+    const [categories, totalItems] = await prisma.$transaction([
+      prisma.productCategory.findMany({ where: { merchantId }, select: categorySelection,
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }], skip: (page - 1) * limit, take: limit }),
+      prisma.productCategory.count({ where: { merchantId } }),
+    ]);
+    return { categories, pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) } };
+  },
+
   async findOwned(merchantId: number, categoryId: number): Promise<ProductCategoryDto | null> {
     return prisma.productCategory.findFirst({
       where: { id: categoryId, merchantId },

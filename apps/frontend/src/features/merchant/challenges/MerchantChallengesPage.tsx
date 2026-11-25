@@ -1,3 +1,4 @@
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { createChallengesClient, translateChallengeError } from "../../../api/challenges-client";
@@ -62,15 +63,16 @@ export function MerchantChallengesPage() {
     setSearchParams(next, { replace: true });
   }
 
+  const [limit, setLimit] = useState(20);
   const filters = useMemo<ListMerchantChallengesParams>(
     () => ({
       q,
       status: status === "ALL" ? "" : status,
       type: type === "ALL" ? "" : type,
       page,
-      limit: 20,
+      limit,
     }),
-    [q, status, type, page],
+    [q, status, type, page, limit],
   );
   const resource = useResource(() => api.listMerchantChallenges(filters, token), [filters, token, revision]);
 
@@ -106,7 +108,6 @@ export function MerchantChallengesPage() {
     }
   }
 
-  const pageCount = Math.max(1, resource.data?.pagination.totalPages ?? 1);
 
   return (
     <section className="space-y-6">
@@ -218,28 +219,9 @@ export function MerchantChallengesPage() {
               />
             ))}
           </div>
-          <nav
-            aria-label="Phân trang nhiệm vụ"
-            className="flex flex-wrap items-center justify-end gap-3 border-t border-[#e8ede5] pt-4"
-          >
-            <span className="mr-auto text-sm muted">
-              Trang {resource.data.pagination.page} / {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => updateSearchParam("page", String(page - 1))}
-            >
-              Trước
-            </Button>
-            <Button
-              variant="outline"
-              disabled={page >= pageCount}
-              onClick={() => updateSearchParam("page", String(page + 1))}
-            >
-              Sau
-            </Button>
-          </nav>
+          <MerchantPagination page={resource.data.pagination.page} limit={resource.data.pagination.limit}
+            totalItems={resource.data.pagination.totalItems}
+            onChange={(nextPage, nextLimit) => { setLimit(nextLimit); updateSearchParam("page", String(nextPage)); }} />
         </>
       )}
     </section>

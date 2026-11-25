@@ -133,7 +133,10 @@ export interface MerchantLedgerItemDto extends WalletTransactionDto {
   voucherSummary?: { id: number; title: string; type: string } | null;
 }
 
+type LoyaltyPagination = { page: number; limit: number; totalItems: number; totalPages: number };
+
 export interface MerchantTransactionsResponse {
+  pagination?: LoyaltyPagination;
   summary?: { earned: string; redeemed: string; reversed: string; restored: string };
   items: MerchantLedgerItemDto[];
   nextCursor: string | null;
@@ -149,7 +152,7 @@ export interface MerchantLoyaltyMemberDto {
   latestChange: Pick<WalletTransactionDto, "type" | "delta" | "createdAt"> | null;
 }
 
-export type MerchantLoyaltyMembersResponse = { items: MerchantLoyaltyMemberDto[]; nextCursor: number | null };
+export type MerchantLoyaltyMembersResponse = { items: MerchantLoyaltyMemberDto[]; nextCursor: number | null; pagination?: LoyaltyPagination };
 
 export type MerchantLoyaltyMemberWalletResponse = {
   member: Pick<MerchantLoyaltyMemberDto, "id" | "email">;
@@ -177,9 +180,10 @@ export interface MerchantLoyaltyPolicyVersionDto {
   isCurrent: boolean;
 }
 
-export type MerchantLoyaltyHistoryResponse = { versions: MerchantLoyaltyPolicyVersionDto[] };
+export type MerchantLoyaltyHistoryResponse = { versions: MerchantLoyaltyPolicyVersionDto[]; current?: MerchantLoyaltyPolicyVersionDto | null; pagination?: LoyaltyPagination };
 
 export interface MerchantTransactionsQuery {
+  page?: number;
   memberId?: number;
   orderId?: number;
   type?: PointTransactionType;

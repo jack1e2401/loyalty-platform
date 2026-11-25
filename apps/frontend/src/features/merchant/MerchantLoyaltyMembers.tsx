@@ -9,6 +9,7 @@ import {
   LoyaltyWalletContent,
   pointTransactionLabel,
 } from "../member/LoyaltyWalletContent";
+import { MerchantPagination } from "./cms/MerchantPagination";
 import { MemberLoyaltyPolicyDialog } from "../member/MemberLoyaltyPolicyDialog";
 
 const api = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
@@ -17,23 +18,23 @@ const membersPath = "/merchant/loyalty?tab=members";
 export function MerchantLoyaltyMembers({ token, memberId }: { token: string; memberId: string | null }) {
   const [draftEmail, setDraftEmail] = useState("");
   const [email, setEmail] = useState("");
-  const [cursors, setCursors] = useState<(number | null)[]>([null]);
-  const cursor = cursors.at(-1) ?? null;
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const resource = useResource(
-    () => api.listMerchantLoyaltyMembers({ email, cursor }, token),
-    [email, cursor, token],
+    () => api.listMerchantLoyaltyMembers({ email, page, limit }, token),
+    [email, page, limit, token],
   );
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setEmail(draftEmail.trim());
-    setCursors([null]);
+    setPage(1);
   }
 
   if (memberId !== null) return <MerchantMemberWallet token={token} memberId={memberId} />;
 
   const items = resource.data?.items ?? [];
-  const nextCursor = resource.data?.nextCursor ?? null;
+  const pagination = resource.data?.pagination;
   return (
     <section aria-label="Thành viên Loyalty" className="space-y-4">
       <form className="flex flex-wrap items-end gap-2" onSubmit={search}>
@@ -134,28 +135,9 @@ export function MerchantLoyaltyMembers({ token, memberId }: { token: string; mem
           </table>
         </div>
       )}
-      {!resource.loading && !resource.error && (cursors.length > 1 || nextCursor !== null) && (
-        <nav aria-label="Trang thành viên" className="flex justify-end gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={cursors.length === 1}
-            onClick={() => setCursors((previous) => previous.slice(0, -1))}
-          >
-            Trang trước
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={nextCursor === null}
-            onClick={() => setCursors((previous) => [...previous, nextCursor])}
-          >
-            Trang sau
-          </Button>
-        </nav>
-      )}
+      {pagination && <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
+        onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
+
     </section>
   );
 }

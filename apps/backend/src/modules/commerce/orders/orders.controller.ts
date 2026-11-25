@@ -31,7 +31,21 @@ export const getMemberOrder: RequestHandler = async (request, response) => {
   response.json({ order });
 };
 
-export const listMerchantOrders: RequestHandler = async (_request, response) => {
+export const listMerchantOrders: RequestHandler = async (request, response) => {
+  if (request.query.page !== undefined || request.query.limit !== undefined) {
+    const page = Number(request.query.page ?? 1);
+    const limit = Number(request.query.limit ?? 20);
+    const search = request.query.q ?? "";
+    const status = request.query.status ?? "";
+    if (!Number.isSafeInteger(page) || page < 1 || page > 1_000_000 ||
+        !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
+        typeof search !== "string" || search.length > 191 ||
+        typeof status !== "string" || (status && !["PENDING", "PAID", "FAILED", "CANCELLED", "REFUND_PENDING", "REFUNDED"].includes(status))) {
+      throw new HttpError(400, "INVALID_INPUT");
+    }
+    response.json(await ordersService.listMerchantOrdersPage(response.locals.user.id, page, limit, search.trim().replace(/^#/, ""), status));
+    return;
+  }
   const orders = await ordersService.listMerchantOrders(response.locals.user.id);
   response.json({ orders });
 };

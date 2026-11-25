@@ -17,6 +17,7 @@ import {
   Select,
   StatusText,
 } from "../../components/ui";
+import { MerchantPagination } from "../merchant/cms/MerchantPagination";
 import { money } from "../../lib/utils";
 
 const analyticsApi = createAnalyticsClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
@@ -32,7 +33,7 @@ export function MerchantCustomersPage() {
   const [tier, setTier] = useState<MemberTier | "">("");
   const [purchaseStatus, setPurchaseStatus] = useState<CustomerPurchaseStatus>("all");
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState(20);
 
   const resource = useResource(
     () =>
@@ -46,7 +47,7 @@ export function MerchantCustomersPage() {
         },
         accessToken!,
       ),
-    [accessToken, q, tier, purchaseStatus, page],
+    [accessToken, q, tier, purchaseStatus, page, limit],
   );
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -215,33 +216,9 @@ export function MerchantCustomersPage() {
             </table>
           </div>
 
-          {pagination.totalPages > 1 && (
-            <nav aria-label="Phân trang khách hàng" className="flex items-center justify-between gap-3">
-              <p className="text-xs muted">
-                Trang {pagination.page} / {pagination.totalPages} · {pagination.totalItems} khách hàng
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Trang trước
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Trang sau
-                </Button>
-              </div>
-            </nav>
-          )}
+          <MerchantPagination page={pagination.page} limit={pagination.limit} totalItems={pagination.totalItems}
+            onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />
+
         </>
       )}
     </div>

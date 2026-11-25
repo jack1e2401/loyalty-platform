@@ -177,7 +177,7 @@ describe("Workstream B — Product Catalog V2 UI", () => {
       const body = init?.body ? JSON.parse(String(init.body)) : undefined;
       calls.push({ url, method, body });
 
-      if (url.endsWith("/api/merchant/categories") && method === "GET") {
+      if (url.split("?")[0].endsWith("/api/merchant/categories") && method === "GET") {
         return Response.json({ categories });
       }
       if (url.endsWith("/api/merchant/categories") && method === "POST") {

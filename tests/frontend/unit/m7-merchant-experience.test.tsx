@@ -57,7 +57,11 @@ describe("M7 Merchant Experience", () => {
     const order = { id: 847, merchantId: 7, memberId: 9, memberEmail: "lan@example.test", status: "PAID", subtotal: "6000", discountAmount: "0", total: "6000", paidAt: null, items: [], earnedPointsExact: null };
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes("/api/merchant/orders")) return Response.json({ orders: [order] });
+      if (url.includes("/api/merchant/orders")) {
+        const query = new URL(url).searchParams.get("q") ?? "";
+        const orders = !query || order.memberEmail.includes(query) ? [order] : [];
+        return Response.json({ orders, pagination: { page: 1, limit: 20, totalItems: orders.length, totalPages: orders.length } });
+      }
       if (url.includes("/api/merchant/rewards")) return Response.json({ rewards: [] });
       return Response.json({ error: "Not found" }, { status: 404 });
     });
@@ -65,9 +69,9 @@ describe("M7 Merchant Experience", () => {
     expect(await screen.findByRole("link", { name: "#847" })).toBeInTheDocument();
     expect(screen.queryByText("Không có quà tặng trong danh sách này.")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Tìm đơn hàng"), { target: { value: "khong-co" } });
-    expect(screen.queryByRole("link", { name: "#847" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("link", { name: "#847" })).not.toBeInTheDocument());
     fireEvent.change(screen.getByLabelText("Tìm đơn hàng"), { target: { value: "lan@example" } });
-    expect(screen.getByRole("link", { name: "#847" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "#847" })).toBeInTheDocument();
     fireEvent.click(screen.getByText("Quà đổi thưởng"));
     expect(await screen.findByText("Không có quà tặng trong danh sách này.")).toBeInTheDocument();
   });
@@ -146,7 +150,7 @@ describe("M7 Merchant Experience", () => {
     const writes: string[] = [];
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.endsWith("/api/merchant/loyalty/history")) return Response.json({ versions: [] });
+      if (url.split("?")[0].endsWith("/api/merchant/loyalty/history")) return Response.json({ versions: [] });
       if (url.endsWith("/api/merchant/loyalty") && init?.method === "PUT") {
         writes.push(`${init.method} ${url}`);
         return Response.json({ config: { ...config, vndPerPoint: 5000 } });
@@ -192,7 +196,7 @@ describe("M7 Merchant Experience", () => {
     let publishedBody: Record<string, unknown> | null = null;
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.endsWith("/api/merchant/loyalty/history")) return Response.json({ versions: [] });
+      if (url.split("?")[0].endsWith("/api/merchant/loyalty/history")) return Response.json({ versions: [] });
       if (url.endsWith("/api/merchant/loyalty") && init?.method === "PUT") {
         publishedBody = JSON.parse(String(init.body)) as Record<string, unknown>;
         return Response.json({ config });
@@ -432,9 +436,9 @@ describe("M7 Merchant Experience", () => {
     mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.includes("/api/merchant/loyalty/transactions")) {
-        return url.includes("cursor=next")
-          ? Response.json({ items: [nextTxItem], nextCursor: null })
-          : Response.json({ items: [txItem], nextCursor: "next" });
+        return url.includes("page=2")
+          ? Response.json({ items: [nextTxItem], nextCursor: null, pagination: { page: 2, limit: 20, totalItems: 21, totalPages: 2 } })
+          : Response.json({ items: [txItem], nextCursor: null, pagination: { page: 1, limit: 20, totalItems: 21, totalPages: 2 } });
       }
       if (url.includes("/api/merchant/loyalty") && (!init || init.method === "GET")) {
         return Response.json({ config });
@@ -464,12 +468,10 @@ describe("M7 Merchant Experience", () => {
     );
     fireEvent.click(detail.getByRole("button", { name: "Đóng" }));
 
-    fireEvent.click(screen.getByRole("button", { name: /xem thêm giao dịch/i }));
-
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
     await waitFor(() => {
-      expect(within(ledger).getByRole("row", { name: /#101/ })).toBeInTheDocument();
-      expect(within(ledger).getByRole("row", { name: /#102/ })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /xem thêm giao dịch/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("row", { name: /#102/ })).toBeInTheDocument();
+      expect(screen.queryByRole("row", { name: /#101/ })).not.toBeInTheDocument();
     });
 
     // Test search filter inputs

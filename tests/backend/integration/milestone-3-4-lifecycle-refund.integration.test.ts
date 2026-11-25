@@ -548,6 +548,21 @@ test("ledger reads stay merchant-scoped and pending orders remain cancellable", 
   assert.ok("memberId" in first);
   assert.ok("email" in first);
 
+  const pagedLedger = await request("/api/merchant/loyalty/transactions?page=1&limit=1&type=EARN", "GET", merchantAToken);
+  assert.equal(pagedLedger.response.status, 200);
+  assert.equal(pagedLedger.json.items.length, 1);
+  assert.equal(pagedLedger.json.pagination.limit, 1);
+  assert.ok(pagedLedger.json.pagination.totalItems >= 1);
+  const pagedVouchers = await request("/api/merchant/vouchers?page=1&limit=1", "GET", merchantAToken);
+  assert.equal(pagedVouchers.response.status, 200);
+  assert.equal(pagedVouchers.json.definitions.length, 1);
+  assert.ok(pagedVouchers.json.pagination.totalItems >= 1);
+  assert.equal((await request("/api/merchant/vouchers?page=0&limit=1", "GET", merchantAToken)).response.status, 400);
+  const pagedMembers = await request("/api/merchant/loyalty/members?page=1&limit=1", "GET", merchantAToken);
+  assert.equal(pagedMembers.response.status, 200);
+  assert.equal(pagedMembers.json.items.length, 1);
+  assert.ok(pagedMembers.json.pagination.totalItems >= 1);
+
   const earnOnly = await request("/api/merchant/loyalty/transactions?type=EARN", "GET", merchantAToken);
   assert.equal(earnOnly.response.status, 200);
   assert.ok(earnOnly.json.items.every((item: any) => item.type === "EARN"));

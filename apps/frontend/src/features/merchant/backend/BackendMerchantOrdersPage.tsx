@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Flex, Input, Segmented, Select, Spin, Typography } from "antd";
-import type { OrderDto } from "../../../api/commerce-types";
 import { useResource } from "../../../api/useResource";
 import { EmptyState, ErrorState } from "../../../components/ui";
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { MerchantRewardQueue } from "../MerchantRewardQueue";
 import { CmsPageHeader } from "../cms";
 import { MerchantPurchaseOrdersTable } from "./MerchantPurchaseOrdersTable";
@@ -63,46 +63,43 @@ export function MerchantOrders() {
 
 function MerchantPurchaseOrders({ orderId }: { orderId: number | null }) {
   const token = useToken();
-  const resource = useResource<(OrderDto & { memberEmail?: string })[]>(
-    () => orderId === null
-      ? api.listMerchantOrders(token).then(({ orders }) => orders)
-      : api.getMerchantOrder(orderId, token).then(({ order }) => [order]),
-    [token, orderId],
-  );
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ALL");
-  const normalizedQuery = query.trim().toLocaleLowerCase("vi-VN").replace(/^#/, "");
-  const filteredOrders = (resource.data ?? []).filter((order) =>
-    (status === "ALL" || order.status === status) &&
-    (!normalizedQuery || String(order.id).includes(normalizedQuery) || String(order.memberId).includes(normalizedQuery) || order.memberEmail?.toLocaleLowerCase("vi-VN").includes(normalizedQuery)),
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const resource = useResource(
+    () => orderId === null
+      ? api.listMerchantOrders(token, { page, limit, q: query.trim(), status: status === "ALL" ? "" : status })
+      : api.getMerchantOrder(orderId, token).then(({ order }) => ({ orders: [order], pagination: undefined })),
+    [token, orderId, page, limit, query, status],
   );
+  const orders = resource.data?.orders ?? [];
 
-  let content;
-  if (resource.loading) {
-    content = <Flex justify="center" className="py-10"><Spin description="Đang tải đơn hàng…" /></Flex>;
-  } else if (resource.error) {
-    content = <ErrorState message={resource.error} retry={resource.reload} />;
-  } else if (!resource.data?.length) {
-    content = <EmptyState title="Chưa có đơn hàng" description="Đơn của Member sẽ xuất hiện sau khi được tạo tại cửa hàng này." />;
-  } else if (orderId !== null) {
-    const order = resource.data[0];
-    content = order ? <MerchantPurchaseOrderDetail order={order} /> : null;
-  } else {
-    content = (
-      <div className="grid gap-4">
-        <Flex gap={12} wrap>
-          <Input aria-label="Tìm đơn hàng" placeholder="Mã đơn hoặc thành viên" value={query} onChange={(event) => setQuery(event.target.value)} style={{ width: 260, maxWidth: "100%" }} allowClear />
-          <Select aria-label="Lọc trạng thái đơn hàng" value={status} onChange={setStatus} style={{ width: 180 }} options={[
+  if (orderId !== null) {
+    if (resource.loading) return <Flex justify="center" className="py-10"><Spin description="Đang tải đơn hàng…" /></Flex>;
+    if (resource.error) return <ErrorState message={resource.error} retry={resource.reload} />;
+    const order = orders[0];
+    return order ? <MerchantPurchaseOrderDetail order={order} /> : <EmptyState title="Chưa có đơn hàng" description="Không tìm thấy đơn hàng." />;
+  }
+
+  return (
+    <div className="grid gap-4">
+      <Flex gap={12} wrap>
+        <Input aria-label="Tìm đơn hàng" placeholder="Mã đơn hoặc thành viên" value={query}
+          onChange={(event) => { setPage(1); setQuery(event.target.value); }} style={{ width: 260, maxWidth: "100%" }} allowClear />
+        <Select aria-label="Lọc trạng thái đơn hàng" value={status}
+          onChange={(value) => { setPage(1); setStatus(value); }} style={{ width: 180 }} options={[
             { value: "ALL", label: "Tất cả trạng thái" }, { value: "PENDING", label: "Chờ thanh toán" },
             { value: "PAID", label: "Đã thanh toán" }, { value: "FAILED", label: "Thất bại" },
             { value: "CANCELLED", label: "Đã hủy" }, { value: "REFUND_PENDING", label: "Đang hoàn tiền" },
             { value: "REFUNDED", label: "Đã hoàn tiền" },
           ]} />
-        </Flex>
-        <MerchantPurchaseOrdersTable orders={filteredOrders} />
-      </div>
-    );
-  }
-
-  return <>{content}</>;
+      </Flex>
+      {resource.loading ? <Flex justify="center" className="py-10"><Spin description="Đang tải đơn hàng…" /></Flex>
+        : resource.error ? <ErrorState message={resource.error} retry={resource.reload} />
+        : <MerchantPurchaseOrdersTable orders={orders} />}
+      {resource.data?.pagination && <MerchantPagination page={resource.data.pagination.page} limit={resource.data.pagination.limit}
+        totalItems={resource.data.pagination.totalItems} onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
+    </div>
+  );
 }

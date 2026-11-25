@@ -14,8 +14,9 @@ import { requestJson } from "./shared";
 
 export function createVouchersClient(baseUrl = "", fetcher: typeof fetch = fetch) {
   return {
-    listMerchantVoucherDefinitions(token: string) {
-      return requestJson<VoucherDefinitionsResponse>(fetcher, baseUrl, "/api/merchant/vouchers", { token });
+    listMerchantVoucherDefinitions(token: string, paging?: { page: number; limit: number }) {
+      const query = paging ? `?page=${paging.page}&limit=${paging.limit}` : "";
+      return requestJson<VoucherDefinitionsResponse>(fetcher, baseUrl, `/api/merchant/vouchers${query}`, { token });
     },
     createVoucherDefinition(input: VoucherDefinitionInput, token: string) {
       return requestJson<VoucherDefinitionResponse>(fetcher, baseUrl, "/api/merchant/vouchers", {

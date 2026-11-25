@@ -15,6 +15,11 @@ export const vouchersService = {
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
     return vouchersRepository.listDefinitions(merchant.id, false);
   },
+  async listMerchantDefinitionsPage(ownerId: number, page: number, limit: number) {
+    const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
+    if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
+    return vouchersRepository.listDefinitionsPage(merchant.id, page, limit);
+  },
   async updateDefinition(ownerId: number, id: number, patch: DefinitionPatch) {
     const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");

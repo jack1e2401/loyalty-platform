@@ -68,7 +68,10 @@ export interface OrderDto {
 
 export type OrdersResponse = { orders: OrderDto[] };
 
-export type MerchantOrdersResponse = { orders: (OrderDto & { memberEmail?: string })[] };
+export type MerchantOrdersResponse = {
+  orders: (OrderDto & { memberEmail?: string })[];
+  pagination?: { page: number; limit: number; totalItems: number; totalPages: number };
+};
 
 interface OrderLineInput {
   productId: number;
