@@ -6,7 +6,7 @@ import type {
   TierLevel,
 } from "../../../api/commerce-types";
 import { useResource } from "../../../api/useResource";
-import { Card, EmptyState, ErrorState, LoadingState } from "../../../components/ui";
+import { EmptyState, ErrorState, LoadingState } from "../../../components/ui";
 import { MerchantLoyaltyTransactions } from "../MerchantLoyaltyTransactions";
 import { MerchantLoyaltyHistory } from "../MerchantLoyaltyHistory";
 import { MerchantLoyaltyMembers } from "../MerchantLoyaltyMembers";
@@ -234,9 +234,7 @@ export function MerchantLoyalty() {
             ) : history.error ? (
               <ErrorState message={history.error} retry={history.reload} />
             ) : (
-              <Card className="mx-auto w-full max-w-5xl p-3 sm:p-4">
-                <MerchantLoyaltyHistory versions={history.data?.versions ?? []} currentConfig={config} />
-              </Card>
+              <MerchantLoyaltyHistory versions={history.data?.versions ?? []} currentConfig={config} />
             )}
           </>
         )}

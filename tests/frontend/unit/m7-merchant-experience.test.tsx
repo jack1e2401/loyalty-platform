@@ -184,7 +184,7 @@ describe("M7 Merchant Experience", () => {
     fireEvent.click(screen.getByRole("button", { name: "Phát hành phiên bản mới" }));
     await waitFor(() => expect(writes).toHaveLength(2));
     expect(writes[1]).toContain("PUT http://localhost:3000/api/merchant/loyalty");
-    expect(await screen.findByText("Các phiên bản trước")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Lịch sử phiên bản" })).toBeInTheDocument();
   });
 
   it("redirects the bare config route and publishes an unchanged new-policy draft as a new version", async () => {
@@ -202,7 +202,7 @@ describe("M7 Merchant Experience", () => {
     });
 
     renderMerchantPage("/merchant/loyalty/config", <MerchantLoyalty />);
-    expect(await screen.findByText("Các phiên bản trước")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Lịch sử phiên bản" })).toBeInTheDocument();
     cleanup();
     renderMerchantPage("/merchant/loyalty/config?mode=new", <MerchantLoyalty />);
     expect(await screen.findByRole("heading", { name: "Tạo chính sách mới" })).toBeInTheDocument();

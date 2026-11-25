@@ -40,16 +40,19 @@ describe("loyalty policy history UI", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("v3")).toBeTruthy();
-    expect(screen.getByText(/10.000 ₫ cho mỗi điểm/)).toBeTruthy();
-    expect(screen.getByText(/owner@test.local/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Chính sách v3" })).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("Hiện hành")).toBeTruthy();
+    expect(screen.getByText(/10.000 ₫ = 1 điểm/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Tạo chính sách mới" }).getAttribute("href")).toBe("/merchant/loyalty/config?mode=new");
-    fireEvent.click(screen.getByText("Xem chi tiết chính sách"));
     expect(screen.getByText(/SILVER/)).toBeTruthy();
     expect(screen.getByText(/1.10/)).toBeTruthy();
     expect(screen.getByText(/Điểm tích lũy/)).toBeTruthy();
     expect(screen.getByText(/Giảm một hạng/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Chỉnh sửa chính sách" }).getAttribute("href")).toBe("/merchant/loyalty/config?mode=edit&version=3");
+    fireEvent.click(screen.getByRole("button", { name: "Xem chi tiết v3" }));
+    expect(within(screen.getByRole("dialog")).getByText(/owner@test.local/)).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Đóng" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("keeps previous versions read-only and explains when legacy settings were not saved", () => {
@@ -64,13 +67,13 @@ describe("loyalty policy history UI", () => {
       </MemoryRouter>,
     );
 
-    const oldVersionButton = screen.getByRole("button", { name: /Phiên bản 1/ });
+    const oldVersionButton = screen.getByRole("button", { name: "Xem chi tiết v1" });
     fireEvent.click(oldVersionButton);
     expect(screen.getAllByText("Không được lưu trong phiên bản này").length).toBeGreaterThan(0);
-    expect(within(oldVersionButton.closest("li")!).queryByRole("link", { name: "Chỉnh sửa chính sách" })).toBeNull();
-    const threshold = within(oldVersionButton.closest("li")!).getByText(/100 điểm · loại xét hạng chưa lưu/);
-    const multiplier = within(oldVersionButton.closest("li")!).getByText(/×1.10/);
-    expect(threshold.className).toContain("text-[#65736a]");
+    expect(within(screen.getByRole("dialog")).queryByRole("link", { name: "Chỉnh sửa chính sách" })).toBeNull();
+    const threshold = within(screen.getByRole("dialog")).getByText(/100 điểm · loại xét hạng chưa lưu/);
+    const multiplier = within(screen.getByRole("dialog")).getByText(/×1.10/);
+    expect(threshold).toBeTruthy();
     expect(multiplier).toBeTruthy();
   });
 
