@@ -211,6 +211,7 @@ model Merchant {
   tierResetRuns      TierResetRun[]
   inventoryBalances  InventoryBalance[]
   inventoryMovements InventoryMovement[]
+  storeProfile       Json?
   storefrontDraft    StorefrontDraft?
   storefrontVersions StorefrontConfigVersion[]
   events             MerchantEvent[]

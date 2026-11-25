@@ -1,3 +1,5 @@
+import { readStoreProfile } from "./storefront.validation.js";
+import { withStoreProfile } from "./storefront.profile.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { merchantService } from "../profile/merchant.service.js";
 import { storefrontRepository } from "./storefront.repository.js";
@@ -33,6 +35,7 @@ export const storefrontService = {
       merchant,
       draft,
       published: toVersionSummary(published),
+      hasUnpublishedChanges: JSON.stringify({ ...draft.config, branding: { ...draft.config.branding, ...readStoreProfile(published.config.branding) } }) !== JSON.stringify(published.config),
     };
   },
 
@@ -44,14 +47,14 @@ export const storefrontService = {
 
   async getPreview(ownerId: number): Promise<MerchantStorefrontPreviewDto> {
     const merchant = await merchantService.getOwnStore(ownerId);
-    const { draft } = await storefrontRepository.ensureInitialized(merchant, ownerId);
+    const { draft, published } = await storefrontRepository.ensureInitialized(merchant, ownerId);
     const dynamic = await storefrontRepository.loadDynamicStorefrontData(
       merchant.id,
       draft.config.featuredProductIds,
     );
     return {
       merchant: { id: merchant.id, name: merchant.name, slug: merchant.slug },
-      config: draft.config,
+      config: await withStoreProfile(merchant.id, draft.config, published.config),
       isDraftPreview: true,
       ...dynamic,
     };
@@ -103,7 +106,7 @@ export const storefrontService = {
     return {
       merchant,
       version: toVersionSummary(published),
-      config: published.config,
+      config: await withStoreProfile(merchant.id, published.config, published.config),
       ...dynamic,
     };
   },

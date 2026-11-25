@@ -1,4 +1,5 @@
 import { Prisma } from "../../../generated/prisma/client.js";
+import { HttpError } from "../../../lib/http-error.js";
 import { prisma } from "../../../lib/prisma.js";
 import { withTransactionRetry } from "../../../lib/prisma-transaction.js";
 import type {
@@ -28,7 +29,11 @@ export const storefrontVersionRepository = {
     return withTransactionRetry(() =>
       prisma.$transaction(
         async (tx) => {
-          await initializeDefaultStorefrontTx(tx, merchant, actorId);
+          const { draft } = await initializeDefaultStorefrontTx(tx, merchant, actorId);
+          if (config.featuredProductIds.length > 6 &&
+              JSON.stringify(config.featuredProductIds) !== JSON.stringify(draft.config.featuredProductIds)) {
+            throw new HttpError(400, "FEATURED_PRODUCTS_LIMIT");
+          }
           await assertOwnedFeaturedProductsTx(
             tx,
             merchant.id,

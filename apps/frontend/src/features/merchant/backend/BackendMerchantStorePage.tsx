@@ -1,20 +1,23 @@
 import { useResource } from "../../../api/useResource";
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "../../../components/ui";
 import { MerchantStoreDetails } from "../MerchantStoreDetails";
-import { api, useToken } from "../merchant-page-support";
+import { createStorefrontClient } from "../../../api/storefront-client";
+import { useToken } from "../merchant-page-support";
+
+const api = createStorefrontClient();
 
 export function MerchantStore() {
   const token = useToken();
-  const resource = useResource(() => api.getOwnMerchant(token), [token]);
+  const resource = useResource(() => api.getStoreProfile(token), [token]);
   return (
     <>
-      <PageHeader title="Cửa hàng" />
+      <PageHeader title="Thông tin cửa hàng" />
       {resource.loading ? (
         <LoadingState cards={1} />
       ) : resource.error ? (
         <ErrorState message={resource.error} retry={resource.reload} />
       ) : resource.data?.merchant ? (
-        <MerchantStoreDetails merchant={resource.data.merchant} token={token} />
+        <MerchantStoreDetails data={resource.data} token={token} />
       ) : (
         <EmptyState
           title="Chưa có cửa hàng"

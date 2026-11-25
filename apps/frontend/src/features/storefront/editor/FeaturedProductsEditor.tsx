@@ -14,6 +14,7 @@ export function FeaturedProductsEditor({ productIds, products, onToggle }: Props
         <h2 className="text-lg font-extrabold text-[#20392a]">Sản phẩm nổi bật</h2>
         <span className="text-xs font-semibold muted">{productIds.length}/6 đã chọn</span>
       </div>
+      <p className="text-sm muted">Chọn tối đa 6 sản phẩm hiển thị trên trang chủ.</p>
       {!products.length ? (
         <p className="text-sm muted">Chưa có sản phẩm đang bán để chọn làm sản phẩm nổi bật.</p>
       ) : (

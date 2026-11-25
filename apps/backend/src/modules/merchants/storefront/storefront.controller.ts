@@ -1,6 +1,15 @@
 import type { RequestHandler } from "express";
 import { storefrontService } from "./storefront.service.js";
-import { readStorefrontConfig, readStorefrontNote, readVersionId } from "./storefront.validation.js";
+import { getStoreProfile, updateStoreProfile } from "./storefront.profile.js";
+import { readStoreProfileUpdate, readStorefrontConfig, readStorefrontNote, readVersionId } from "./storefront.validation.js";
+
+export const getMerchantStoreProfile: RequestHandler = async (_request, response) => {
+  response.json(await getStoreProfile(response.locals.user.id));
+};
+
+export const saveMerchantStoreProfile: RequestHandler = async (request, response) => {
+  response.json(await updateStoreProfile(response.locals.user.id, readStoreProfileUpdate(request.body)));
+};
 
 export const getMerchantStorefront: RequestHandler = async (_request, response) => {
   response.json(await storefrontService.getMerchantStorefront(response.locals.user.id));

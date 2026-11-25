@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from "react";
 import { Trash, UploadSimple } from "@phosphor-icons/react";
 import { resolveStorefrontAssetUrl } from "../../api/storefront-client";
+import { ConfirmActionDialog } from "../../components/ui/ConfirmActionDialog";
 import { Button, Field, Input } from "../../components/ui";
 
 function translateUploadError(code: string): string {
@@ -22,31 +23,39 @@ export function StorefrontImageField({
   onChange,
   onUpload,
   hint,
+  previewClassName = "h-32 sm:h-36",
 }: {
   label: string;
   value: string | null;
   onChange: (nextUrl: string | null) => void;
   onUpload: (file: File) => Promise<string>;
   hint?: string;
+  previewClassName?: string;
 }) {
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const previewSrc = resolveStorefrontAssetUrl(value);
 
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (file) setFileToUpload(file);
+  }
+
+  async function upload() {
+    if (!fileToUpload || uploading) return;
     setUploading(true);
     setUploadError("");
     try {
-      const url = await onUpload(file);
+      const url = await onUpload(fileToUpload);
       onChange(url);
     } catch (reason) {
       const code = reason instanceof Error ? reason.message : "Tải ảnh thất bại";
       setUploadError(translateUploadError(code));
     } finally {
       setUploading(false);
+      setFileToUpload(null);
     }
   }
 
@@ -85,13 +94,22 @@ export function StorefrontImageField({
           </Button>
         )}
       </div>
+      <ConfirmActionDialog
+        open={fileToUpload !== null}
+        onOpenChange={(open) => { if (!open) setFileToUpload(null); }}
+        title="Tải ảnh lên?"
+        description="Ảnh sẽ được tải lên kho ảnh của cửa hàng."
+        confirmLabel="Tải ảnh lên"
+        busy={uploading}
+        onConfirm={() => void upload()}
+      />
       {uploadError && (
         <p role="alert" className="text-xs font-semibold text-[#a4473a]">
           {uploadError}
         </p>
       )}
       {previewSrc && (
-        <div className="mt-3 h-32 overflow-hidden rounded-xl border border-[#e5ece3] bg-[#edf2e9] sm:h-36">
+        <div className={`mt-3 overflow-hidden rounded-xl border border-[#e5ece3] bg-[#edf2e9] ${previewClassName}`}>
           <img src={previewSrc} alt={label} className="h-full w-full object-cover" />
         </div>
       )}

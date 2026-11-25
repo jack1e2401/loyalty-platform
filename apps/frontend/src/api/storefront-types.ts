@@ -123,6 +123,7 @@ export interface MerchantStorefrontStateResponse {
   merchant: StorefrontMerchantSummaryDto & { isActive: boolean };
   draft: StorefrontDraftDto;
   published: StorefrontVersionSummaryDto | null;
+  hasUnpublishedChanges: boolean;
 }
 
 export interface MerchantStorefrontDraftResponse {
@@ -161,3 +162,14 @@ export interface UploadedMediaResponse {
   mimeType: string;
   size: number;
 }
+
+
+export type StoreProfile = Pick<StorefrontBrandingConfig,
+  "logoUrl" | "storeImageUrl" | "footerDescription" | "contactEmail" | "contactPhone" | "address" | "openingHours"
+>;
+
+export type StoreProfileResponse = {
+  merchant: StorefrontMerchantSummaryDto & { isActive: boolean };
+  profile: StoreProfile;
+  counts: { members: number; monthlyOrders: number; activeProducts: number };
+};

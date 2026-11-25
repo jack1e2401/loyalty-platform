@@ -2,6 +2,8 @@ import { Router } from "express";
 import { authenticate, requireRole } from "../../../middleware/auth.js";
 import {
   getMerchantStorefront,
+  getMerchantStoreProfile,
+  saveMerchantStoreProfile,
   getMerchantStorefrontPreview,
   getPublicStorefrontBySlug,
   listMerchantStorefrontVersions,
@@ -13,6 +15,8 @@ import {
 export const merchantStorefrontRoutes = Router();
 merchantStorefrontRoutes.use(authenticate, requireRole("MERCHANT"));
 merchantStorefrontRoutes.get("/", getMerchantStorefront);
+merchantStorefrontRoutes.get("/profile", getMerchantStoreProfile);
+merchantStorefrontRoutes.put("/profile", saveMerchantStoreProfile);
 merchantStorefrontRoutes.put("/draft", saveMerchantStorefrontDraft);
 merchantStorefrontRoutes.get("/preview", getMerchantStorefrontPreview);
 merchantStorefrontRoutes.post("/publish", publishMerchantStorefront);

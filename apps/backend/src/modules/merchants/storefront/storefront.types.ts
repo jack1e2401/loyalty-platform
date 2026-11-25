@@ -123,6 +123,7 @@ export interface MerchantStorefrontStateDto {
   merchant: StorefrontMerchantSummaryDto & { isActive: boolean };
   draft: StorefrontDraftDto;
   published: StorefrontVersionSummaryDto | null;
+  hasUnpublishedChanges: boolean;
 }
 
 export interface MerchantStorefrontPreviewDto {

@@ -1,3 +1,4 @@
+import { resolveStorefrontAssetUrl } from "../../../api/storefront-client";
 import { useMemo } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Ticket, Wallet } from "@phosphor-icons/react";
@@ -152,10 +153,16 @@ function StorefrontHomeContent({
     cart.addProduct(product);
   }
 
+  const cover = resolveStorefrontAssetUrl(data.config.branding.bannerUrl);
   const bodySections = enabledSections.filter((s) => s.key !== "footer" && s.key !== "store_info");
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {cover && (
+        <div className="aspect-[3/1] overflow-hidden rounded-2xl border border-[#e3ebe0]">
+          <img src={cover} alt="" className="size-full object-cover" />
+        </div>
+      )}
       {bodySections.map((section) => (
         <div key={section.key} className="space-y-4">
           <StorefrontSectionRenderer

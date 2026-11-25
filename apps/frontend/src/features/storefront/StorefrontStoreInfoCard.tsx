@@ -34,6 +34,7 @@ export function StorefrontStoreInfoCard({
         <div className="min-w-0 flex-1">
           <h2 id="store-info-title" className="text-base font-extrabold text-[#20392a]">Thông tin cửa hàng</h2>
           <p className="mt-0.5 text-sm font-semibold text-[#53685a]">{merchant.name}</p>
+          {branding.footerDescription && <p className="mt-2 break-words text-sm text-[#405b47]">{branding.footerDescription}</p>}
           <div className="mt-3 grid gap-2 text-sm text-[#405b47] sm:grid-cols-2">
             {branding.address && (
               <p className="flex items-start gap-2 break-words">

@@ -6,6 +6,8 @@ import type {
   MerchantStorefrontVersionsResponse,
   PublicStorefrontResponse,
   StorefrontConfig,
+  StoreProfile,
+  StoreProfileResponse,
   UploadedMediaResponse,
 } from "./storefront-types";
 import { fetchWithSessionRefresh } from "./session-http";
@@ -55,6 +57,16 @@ async function requestJson<T>(
 
 export function createStorefrontClient(baseUrl = DEFAULT_API_BASE, fetcher: FetchLike = fetch) {
   return {
+    getStoreProfile(token: string) {
+      return requestJson<StoreProfileResponse>(fetcher, baseUrl, "/api/merchant/storefront/profile", { token });
+    },
+
+    saveStoreProfile(profile: StoreProfile & { name: string }, token: string) {
+      return requestJson<Pick<StoreProfileResponse, "merchant" | "profile">>(
+        fetcher, baseUrl, "/api/merchant/storefront/profile", { method: "PUT", token, body: profile },
+      );
+    },
+
     getMerchantStorefront(token: string) {
       return requestJson<MerchantStorefrontStateResponse>(fetcher, baseUrl, "/api/merchant/storefront", { token });
     },

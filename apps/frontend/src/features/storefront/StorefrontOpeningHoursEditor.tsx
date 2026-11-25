@@ -1,5 +1,5 @@
 import type { StorefrontOpeningHoursDay, StorefrontWeekday } from "../../api/storefront-types";
-import { Button, Field, Input } from "../../components/ui";
+import { Button, Input } from "../../components/ui";
 
 const WEEKDAYS: { day: StorefrontWeekday; label: string }[] = [
   { day: 1, label: "Thứ 2" },
@@ -43,44 +43,44 @@ export function StorefrontOpeningHoursEditor({
           </Button>
         )}
       </div>
-      {value && WEEKDAYS.map(({ day, label }) => {
-        const schedule = value.find((item) => item.day === day);
-        if (!schedule) return null;
-        return (
-          <div key={day} className="grid items-center gap-3 border-t border-[#e8eee6] pt-3 sm:grid-cols-[7rem_8rem_1fr_1fr]">
-            <span className="text-sm font-semibold text-[#405b47]">{label}</span>
-            <label className="flex items-center gap-2 text-sm text-[#53685a]">
-              <input
-                type="checkbox"
-                checked={schedule.closed}
-                onChange={(event) => updateDay(day, {
-                  closed: event.target.checked,
-                  openTime: null,
-                  closeTime: null,
-                })}
-                className="size-4 accent-[#335e3d]"
-              />
-              Nghỉ
-            </label>
-            <Field label={`Mở cửa ${label}`}>
-              <Input
-                type="time"
-                disabled={schedule.closed}
-                value={schedule.openTime ?? ""}
-                onChange={(event) => updateDay(day, { openTime: event.target.value || null })}
-              />
-            </Field>
-            <Field label={`Đóng cửa ${label}`}>
-              <Input
-                type="time"
-                disabled={schedule.closed}
-                value={schedule.closeTime ?? ""}
-                onChange={(event) => updateDay(day, { closeTime: event.target.value || null })}
-              />
-            </Field>
-          </div>
-        );
-      })}
+      {value && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-72 text-left text-sm">
+            <thead>
+              <tr className="text-[#53685a]">
+                <th scope="col" className="py-2">Ngày</th>
+                <th scope="col" className="px-1">Giờ mở</th>
+                <th scope="col" className="px-1">Giờ đóng</th>
+                <th scope="col" className="px-1 text-center">Nghỉ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {WEEKDAYS.map(({ day, label }) => {
+                const schedule = value.find((item) => item.day === day);
+                if (!schedule) return null;
+                return (
+                  <tr key={day} className="border-t border-[#e8eee6]">
+                    <th scope="row" className="whitespace-nowrap py-2 font-semibold">{label}</th>
+                    <td className="px-1">
+                      <Input type="time" aria-label={`Mở cửa ${label}`} disabled={schedule.closed} value={schedule.openTime ?? ""}
+                        onChange={(event) => updateDay(day, { openTime: event.target.value || null })} />
+                    </td>
+                    <td className="px-1">
+                      <Input type="time" aria-label={`Đóng cửa ${label}`} disabled={schedule.closed} value={schedule.closeTime ?? ""}
+                        onChange={(event) => updateDay(day, { closeTime: event.target.value || null })} />
+                    </td>
+                    <td className="px-1 text-center">
+                      <input type="checkbox" className="size-4 accent-[#335e3d]" aria-label={`Nghỉ ${label}`}
+                        checked={schedule.closed}
+                        onChange={(event) => updateDay(day, { closed: event.target.checked, openTime: null, closeTime: null })} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

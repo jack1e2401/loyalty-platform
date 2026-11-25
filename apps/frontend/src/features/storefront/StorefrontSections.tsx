@@ -63,8 +63,7 @@ export function StorefrontSectionRenderer({
   onSelectCategory?: (categoryId: number | null) => void;
 }) {
   const accent = branding.primaryColor || "#335e3d";
-  const bannerSrc = resolveStorefrontAssetUrl(branding.bannerUrl);
-  const heroImgSrc = resolveStorefrontAssetUrl(branding.heroImageUrl) ?? bannerSrc;
+  const heroImgSrc = resolveStorefrontAssetUrl(branding.heroImageUrl);
   const storeBase = `/s/${merchant.slug}`;
 
   switch (section.key) {

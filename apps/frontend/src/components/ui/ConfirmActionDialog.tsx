@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { WarningCircle } from "@phosphor-icons/react";
 import { Button, BusyLabel } from "./index";
@@ -12,6 +13,7 @@ interface ConfirmActionDialogProps {
   busy?: boolean;
   error?: string;
   onConfirm(): void;
+  children?: ReactNode;
 }
 
 export function ConfirmActionDialog({
@@ -24,6 +26,7 @@ export function ConfirmActionDialog({
   busy = false,
   error,
   onConfirm,
+  children,
 }: ConfirmActionDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => !busy && onOpenChange(nextOpen)}>
@@ -37,6 +40,7 @@ export function ConfirmActionDialog({
           </span>
           <Dialog.Title className="mt-5 text-xl font-extrabold text-[#20392a]">{title}</Dialog.Title>
           <Dialog.Description className="mt-2 text-sm leading-6 muted">{description}</Dialog.Description>
+          {children && <div className="mt-4">{children}</div>}
           {error && (
             <p role="alert" className="mt-4 rounded-xl bg-[#fae7e3] p-3 text-sm text-[#a4473a]">
               {error}

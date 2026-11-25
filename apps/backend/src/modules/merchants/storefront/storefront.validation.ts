@@ -148,6 +148,28 @@ function readAllowedLinks(value: unknown): StorefrontAllowedLink[] {
   });
 }
 
+export function readStoreProfile(value: unknown) {
+  const input = readObject(value);
+  const contactEmail = readNullableText(input.contactEmail, 191);
+  if (contactEmail !== null && !EMAIL_REGEX.test(contactEmail)) {
+    throw new HttpError(400, "INVALID_INPUT");
+  }
+  return {
+    logoUrl: readNullableImageUrl(input.logoUrl),
+    storeImageUrl: readNullableImageUrl(input.storeImageUrl),
+    footerDescription: readNullableText(input.footerDescription, 500),
+    contactEmail,
+    contactPhone: readNullableText(input.contactPhone, 40),
+    address: readNullableText(input.address, 255),
+    openingHours: readOpeningHours(input.openingHours),
+  };
+}
+
+export function readStoreProfileUpdate(value: unknown) {
+  const input = readObject(value);
+  return { name: readRequiredText(input.name, 191), profile: readStoreProfile(input) };
+}
+
 function readBranding(value: unknown): StorefrontBrandingConfig {
   const input = readObject(value);
   const primaryColor = input.primaryColor === undefined
@@ -156,14 +178,8 @@ function readBranding(value: unknown): StorefrontBrandingConfig {
       ? input.primaryColor.trim()
       : (() => { throw new HttpError(400, "INVALID_INPUT"); })();
 
-  const contactEmail = readNullableText(input.contactEmail, 191);
-  if (contactEmail !== null && !EMAIL_REGEX.test(contactEmail)) {
-    throw new HttpError(400, "INVALID_INPUT");
-  }
-
   return {
-    logoUrl: readNullableImageUrl(input.logoUrl),
-    storeImageUrl: readNullableImageUrl(input.storeImageUrl),
+    ...readStoreProfile(input),
     bannerUrl: readNullableImageUrl(input.bannerUrl),
     primaryColor,
     heroTitle: readRequiredText(input.heroTitle, 120),
@@ -171,11 +187,6 @@ function readBranding(value: unknown): StorefrontBrandingConfig {
     heroImageUrl: readNullableImageUrl(input.heroImageUrl),
     heroCtaText: readNullableText(input.heroCtaText, 60),
     heroCtaLink: readNullableStorefrontLink(input.heroCtaLink),
-    footerDescription: readNullableText(input.footerDescription, 500),
-    contactEmail,
-    contactPhone: readNullableText(input.contactPhone, 40),
-    address: readNullableText(input.address, 255),
-    openingHours: readOpeningHours(input.openingHours),
     allowedLinks: readAllowedLinks(input.allowedLinks),
   };
 }

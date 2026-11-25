@@ -47,6 +47,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AuthSessionProvider } from "../../../apps/frontend/src/api/auth-session";
 import type { StorefrontConfig } from "../../../apps/frontend/src/api/storefront-types";
 import { LoginPage, RegisterPage } from "../../../apps/frontend/src/features/auth/AuthPages";
+import { MerchantStoreProfileForm } from "../../../apps/frontend/src/features/merchant/MerchantStoreProfileForm";
 import { MerchantStorefrontEditor } from "../../../apps/frontend/src/features/storefront/MerchantStorefrontEditor";
 import { PublicStorefrontPage } from "../../../apps/frontend/src/features/storefront/PublicStorefrontPage";
 
@@ -165,7 +166,35 @@ describe("V4 Storefront UI & Auth returnTo/slug", () => {
     ).toBeTruthy();
   });
 
-  it("loads MerchantStorefrontEditor, saves draft, publishes, and rolls back", async () => {
+  it("keeps the slug read-only and saves a profile only after confirmation", async () => {
+    const merchant = { id: 5, name: "Cà Phê Mộc", slug: "ca-phe-moc", isActive: true };
+    const { logoUrl, footerDescription, contactEmail, contactPhone, address } = buildConfig().branding;
+    const profile = { logoUrl, footerDescription, contactEmail, contactPhone, address, storeImageUrl: null, openingHours: null };
+    const writes: unknown[] = [];
+    storefrontFetchHandler = async (_input, init) => {
+      const body = JSON.parse(String(init?.body));
+      writes.push(body);
+      return Response.json({ merchant: { ...merchant, name: body.name }, profile });
+    };
+    render(<MerchantStoreProfileForm data={{ merchant, profile, counts: { members: 0, monthlyOrders: 0, activeProducts: 0 } }} token="merchant-token" />);
+
+    expect(screen.getByLabelText("Đường dẫn cửa hàng")).toHaveAttribute("readonly");
+    fireEvent.click(screen.getByRole("button", { name: "Thiết lập giờ" }));
+    expect(screen.getByRole("columnheader", { name: "Giờ mở" })).toBeInTheDocument();
+    expect(screen.getByRole("rowheader", { name: "Chủ nhật" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Xóa lịch" }));
+    fireEvent.change(screen.getByLabelText("Tên cửa hàng"), { target: { value: "Mộc mới" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thông tin" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(writes).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thông tin" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận lưu" }));
+
+    await screen.findByText("Đã cập nhật thông tin cửa hàng.");
+    expect(writes).toEqual([{ ...profile, name: "Mộc mới", openingHours: null }]);
+  });
+
+  it("confirms draft and publish writes and collapses version history", async () => {
     const sessionData = JSON.stringify({
       accessToken: "merchant-token",
       user: { id: 10, email: "owner@moc.local", role: "MERCHANT", isActive: true },
@@ -298,13 +327,23 @@ describe("V4 Storefront UI & Auth returnTo/slug", () => {
     );
 
     await screen.findByRole("heading", { name: "Giao diện cửa hàng" });
-    fireEvent.click(screen.getByRole("button", { name: /Lưu bản nháp/i }));
+    expect(screen.queryByRole("button", { name: "Lưu bản nháp" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Tiêu đề Hero/), { target: { value: "Giao diện mới" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu bản nháp" }));
+    expect(draftSaveCount).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận lưu" }));
     await screen.findByText("Đã lưu bản nháp thành công.");
     expect(draftSaveCount).toBe(1);
 
-    fireEvent.click(screen.getByRole("button", { name: /Xuất bản/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Xuất bản" }));
+    expect(publishedVersion).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận xuất bản" }));
     await screen.findByText("Đã xuất bản phiên bản v2.");
+    const history = screen.getByText("Lịch sử phiên bản (2)").closest("details")!;
+    expect(history.open).toBe(false);
+    history.open = true;
     expect(screen.getByRole("button", { name: /Khôi phục phiên bản này/i })).toBeInTheDocument();
+    expect(draftSaveCount).toBe(1);
   });
 
   it("honors safe relative returnTo on LoginPage and rejects protocol-relative //evil.com", async () => {
