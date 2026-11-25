@@ -52,28 +52,6 @@ export interface StorefrontConfig {
   featuredProductIds: number[];
 }
 
-export type StorefrontVersionSource = "DEFAULT_INIT" | "PUBLISH" | "ROLLBACK";
-
-export interface StorefrontVersionSummaryDto {
-  id: number;
-  version: number;
-  isPublished: boolean;
-  source: StorefrontVersionSource;
-  sourceVersionId: number | null;
-  note: string | null;
-  publishedById: number | null;
-  publishedAt: string;
-}
-
-export interface StorefrontVersionDto extends StorefrontVersionSummaryDto {
-  config: StorefrontConfig;
-}
-
-export interface StorefrontDraftDto {
-  config: StorefrontConfig;
-  updatedAt: string;
-}
-
 export interface StorefrontMerchantSummaryDto {
   id: number;
   name: string;
@@ -121,36 +99,11 @@ export interface StorefrontProductDto {
 
 export interface MerchantStorefrontStateResponse {
   merchant: StorefrontMerchantSummaryDto & { isActive: boolean };
-  draft: StorefrontDraftDto;
-  published: StorefrontVersionSummaryDto | null;
-  hasUnpublishedChanges: boolean;
-}
-
-export interface MerchantStorefrontDraftResponse {
-  draft: StorefrontDraftDto;
-}
-
-export interface MerchantStorefrontPreviewResponse {
-  merchant: StorefrontMerchantSummaryDto;
   config: StorefrontConfig;
-  isDraftPreview: true;
-  categories: StorefrontCategoryDto[];
-  featuredProducts: StorefrontProductDto[];
-  upcomingEvents: StorefrontEventDto[];
-}
-
-export interface MerchantStorefrontPublishResponse {
-  published: StorefrontVersionDto;
-  draft: StorefrontDraftDto;
-}
-
-export interface MerchantStorefrontVersionsResponse {
-  versions: StorefrontVersionSummaryDto[];
 }
 
 export interface PublicStorefrontResponse {
   merchant: StorefrontMerchantSummaryDto;
-  version: StorefrontVersionSummaryDto;
   config: StorefrontConfig;
   featuredProducts: StorefrontProductDto[];
   categories: StorefrontCategoryDto[];

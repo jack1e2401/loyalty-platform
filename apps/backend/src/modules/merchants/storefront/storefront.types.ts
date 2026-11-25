@@ -1,4 +1,4 @@
-import type { EventStatus, ProductKind, ProductStatus, StorefrontVersionSource } from "../../../generated/prisma/enums.js";
+import type { EventStatus, ProductKind, ProductStatus } from "../../../generated/prisma/enums.js";
 
 export type StorefrontSectionKey =
   | "hero"
@@ -54,26 +54,6 @@ export interface StorefrontConfig {
   featuredProductIds: number[];
 }
 
-export interface StorefrontVersionSummaryDto {
-  id: number;
-  version: number;
-  isPublished: boolean;
-  source: StorefrontVersionSource;
-  sourceVersionId: number | null;
-  note: string | null;
-  publishedById: number | null;
-  publishedAt: string;
-}
-
-export interface StorefrontVersionDto extends StorefrontVersionSummaryDto {
-  config: StorefrontConfig;
-}
-
-export interface StorefrontDraftDto {
-  config: StorefrontConfig;
-  updatedAt: string;
-}
-
 export interface StorefrontMerchantSummaryDto {
   id: number;
   name: string;
@@ -117,29 +97,4 @@ export interface StorefrontProductDto {
   status: ProductStatus;
   price: string;
   inventory: { availableQuantity: number };
-}
-
-export interface MerchantStorefrontStateDto {
-  merchant: StorefrontMerchantSummaryDto & { isActive: boolean };
-  draft: StorefrontDraftDto;
-  published: StorefrontVersionSummaryDto | null;
-  hasUnpublishedChanges: boolean;
-}
-
-export interface MerchantStorefrontPreviewDto {
-  merchant: StorefrontMerchantSummaryDto;
-  config: StorefrontConfig;
-  isDraftPreview: true;
-  categories: StorefrontCategoryDto[];
-  featuredProducts: StorefrontProductDto[];
-  upcomingEvents: StorefrontEventDto[];
-}
-
-export interface PublicStorefrontDto {
-  merchant: StorefrontMerchantSummaryDto;
-  version: StorefrontVersionSummaryDto;
-  config: StorefrontConfig;
-  featuredProducts: StorefrontProductDto[];
-  categories: StorefrontCategoryDto[];
-  upcomingEvents: StorefrontEventDto[];
 }

@@ -236,27 +236,7 @@ async function main(): Promise<void> {
       ],
     };
     const configJson = config as unknown as Prisma.InputJsonValue;
-    await tx.storefrontDraft.upsert({
-      where: { merchantId: merchant.id },
-      create: { merchantId: merchant.id, config: configJson, updatedById: owner.id },
-      update: { config: configJson, updatedById: owner.id },
-    });
-    const published = await tx.storefrontConfigVersion.findFirst({
-      where: { merchantId: merchant.id, isPublished: true },
-      orderBy: { version: "desc" },
-      select: { id: true },
-    });
-    if (published) {
-      await tx.storefrontConfigVersion.update({
-        where: { id: published.id },
-        data: { config: configJson, note: "Local UI demo storefront", source: "PUBLISH", publishedById: owner.id, publishedAt: now },
-      });
-    } else {
-      const latest = await tx.storefrontConfigVersion.findFirst({ where: { merchantId: merchant.id }, orderBy: { version: "desc" }, select: { version: true } });
-      await tx.storefrontConfigVersion.create({
-        data: { merchantId: merchant.id, version: (latest?.version ?? 0) + 1, config: configJson, isPublished: true, source: "PUBLISH", publishedById: owner.id, publishedAt: now, note: "Local UI demo storefront" },
-      });
-    }
+    await tx.merchant.update({ where: { id: merchant.id }, data: { storefrontConfig: configJson } });
 
     await tx.merchantEvent.upsert({
       where: { merchantId_slug: { merchantId: merchant.id, slug: "hikari-weekend-tasting" } },

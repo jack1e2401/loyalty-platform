@@ -39,8 +39,6 @@ before(async () => {
 
 after(async () => {
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-  await prisma.storefrontConfigVersion.deleteMany({ where: { merchantId } });
-  await prisma.storefrontDraft.deleteMany({ where: { merchantId } });
   const merchant = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { ownerId: true } });
   await prisma.merchant.deleteMany({ where: { id: merchantId } });
   if (merchant) await prisma.user.deleteMany({ where: { id: merchant.ownerId } });
@@ -60,38 +58,29 @@ async function merchantRequest(path: string, method = "GET", body?: unknown) {
   return { response, json: await response.json() as Record<string, any> };
 }
 
-test("merchant storefront initializes, saves, and publishes for its installation", async () => {
-  const memberAccess = await fetch(`${baseUrl}/api/merchant/storefront/preview`, {
-    headers: { authorization: `Bearer ${memberToken}` },
-  });
+test("merchant storefront saves directly to its public configuration", async () => {
+  const memberAccess = await fetch(`${baseUrl}/api/merchant/storefront`, { headers: { authorization: `Bearer ${memberToken}` } });
   assert.equal(memberAccess.status, 403);
-
   const initialized = await merchantRequest("/api/merchant/storefront");
   assert.equal(initialized.response.status, 200);
   assert.equal(initialized.json.merchant.id, merchantId);
-  assert.equal(initialized.json.published.version, 1);
-
-  const draft = defaultStorefrontConfig("Installation Store", merchantSlug);
-  draft.branding.heroTitle = "Cửa hàng của tôi";
-  const saved = await merchantRequest("/api/merchant/storefront/draft", "PUT", draft);
+  const config = defaultStorefrontConfig("Installation Store", merchantSlug);
+  config.branding.heroTitle = "Cửa hàng của tôi";
+  const saved = await merchantRequest("/api/merchant/storefront", "PUT", config);
   assert.equal(saved.response.status, 200);
-
-  const preview = await merchantRequest("/api/merchant/storefront/preview");
-  assert.equal(preview.response.status, 200);
-  assert.equal(preview.json.config.branding.heroTitle, "Cửa hàng của tôi");
-
-  const published = await merchantRequest("/api/merchant/storefront/publish", "POST", { note: "Cập nhật giao diện" });
-  assert.equal(published.response.status, 201);
-  assert.equal(published.json.published.version, 2);
-
   const publicStore = await fetch(`${baseUrl}/api/public/stores/${merchantSlug}`);
   assert.equal(publicStore.status, 200);
-  const content = await publicStore.json() as { config: { branding: { heroTitle: string } }; version: { version: number } };
+  const content = await publicStore.json() as { config: { branding: { heroTitle: string } } };
   assert.equal(content.config.branding.heroTitle, "Cửa hàng của tôi");
-  assert.equal(content.version.version, 2);
+  assert.equal((await merchantRequest("/api/merchant/storefront")).json.config.branding.heroTitle, "Cửa hàng của tôi");
+  const invalid = { ...config, featuredProductIds: [2147483647] };
+  assert.equal((await merchantRequest("/api/merchant/storefront", "PUT", invalid)).response.status, 400);
+  assert.equal((await merchantRequest("/api/merchant/storefront")).json.config.branding.heroTitle, "Cửa hàng của tôi");
+  const removed = await fetch(`${baseUrl}/api/merchant/storefront/versions`, { headers: { authorization: `Bearer ${ownerToken}` } });
+  assert.equal(removed.status, 404);
 });
 
-test("profile updates are public without publishing and survive an appearance rollback", async () => {
+test("profile updates remain authoritative when the appearance is saved", async () => {
   const profilePath = "/api/merchant/storefront/profile";
   const statePath = "/api/merchant/storefront";
   const previous = await merchantRequest(statePath);
@@ -128,18 +117,17 @@ test("profile updates are public without publishing and survive an appearance ro
   }
 
   const current = await readPublic();
-  assert.equal(current.version.id, previous.json.published.id);
   assert.equal(current.merchant.name, "Cửa hàng cập nhật");
   assert.equal(current.config.branding.contactPhone, "0901234567");
   assert.deepEqual(current.config.branding.openingHours, openingHours);
 
-  const versions = await merchantRequest(`${statePath}/versions`);
-  const initialVersion = versions.json.versions.find((version: { version: number }) => version.version === 1);
-  const rollback = await merchantRequest(`${statePath}/versions/${initialVersion.id}/rollback`, "POST", {});
-  assert.equal(rollback.response.status, 201);
-  const restored = await readPublic();
-  assert.equal(restored.config.branding.heroTitle, "Installation Store");
-  assert.equal(restored.merchant.name, current.merchant.name);
-  assert.equal(restored.config.branding.logoUrl, "/uploads/store-logo.webp");
-  assert.deepEqual(restored.config.branding.openingHours, openingHours);
+  const appearance = previous.json.config;
+  appearance.branding.heroTitle = "Giao diện mới";
+  const updated = await merchantRequest(statePath, "PUT", appearance);
+  assert.equal(updated.response.status, 200);
+  const refreshed = await readPublic();
+  assert.equal(refreshed.config.branding.heroTitle, "Giao diện mới");
+  assert.equal(refreshed.merchant.name, current.merchant.name);
+  assert.equal(refreshed.config.branding.logoUrl, "/uploads/store-logo.webp");
+  assert.deepEqual(refreshed.config.branding.openingHours, openingHours);
 });

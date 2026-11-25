@@ -153,8 +153,6 @@ model User {
   refundsRequested                 OrderRefund[]              @relation("RefundRequester")
   publishedLoyaltyPolicies         LoyaltyPolicyVersion[]     @relation("LoyaltyPolicyPublisher")
   inventoryMovements               InventoryMovement[]        @relation("InventoryMovementActor")
-  updatedStorefrontDrafts          StorefrontDraft[]          @relation("StorefrontDraftUpdater")
-  publishedStorefrontVersions      StorefrontConfigVersion[]  @relation("StorefrontVersionPublisher")
   refundRequestsAsMember           RefundRequest[]            @relation("RefundMember")
   refundRequestsAsMerchantReviewer RefundRequest[]            @relation("RefundMerchantReviewer")
   refundReconciliationAttempts     RefundReconciliationAttempt[] @relation("RefundReconciliationActor")
@@ -177,12 +175,6 @@ model RefreshSession {
 
   @@index([userId, revokedAt, expiresAt])
   @@index([familyId, revokedAt])
-}
-
-enum StorefrontVersionSource {
-  DEFAULT_INIT
-  PUBLISH
-  ROLLBACK
 }
 
 enum EventStatus {
@@ -212,45 +204,11 @@ model Merchant {
   inventoryBalances  InventoryBalance[]
   inventoryMovements InventoryMovement[]
   storeProfile       Json?
-  storefrontDraft    StorefrontDraft?
-  storefrontVersions StorefrontConfigVersion[]
+  storefrontConfig   Json?
   events             MerchantEvent[]
   challenges         Challenge[]
   refundRequests     RefundRequest[]
   orderRequests      OrderRequest[]
-}
-
-model StorefrontDraft {
-  id          Int      @id @default(autoincrement())
-  merchantId  Int      @unique
-  config      Json
-  updatedById Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
-  updatedBy   User?    @relation("StorefrontDraftUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@index([updatedById])
-}
-
-model StorefrontConfigVersion {
-  id              Int                     @id @default(autoincrement())
-  merchantId      Int
-  version         Int
-  config          Json
-  isPublished     Boolean                 @default(false)
-  source          StorefrontVersionSource @default(PUBLISH)
-  sourceVersionId Int?
-  note            String?                 @db.VarChar(255)
-  publishedById   Int?
-  publishedAt     DateTime                @default(now())
-  merchant        Merchant                @relation(fields: [merchantId], references: [id], onDelete: Restrict)
-  publishedBy     User?                   @relation("StorefrontVersionPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
-
-  @@unique([merchantId, version])
-  @@index([merchantId, isPublished])
-  @@index([merchantId, publishedAt])
-  @@index([publishedById])
 }
 
 model ProductCategory {

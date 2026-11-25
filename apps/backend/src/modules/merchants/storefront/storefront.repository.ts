@@ -2,85 +2,30 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { withTransactionRetry } from "../../../lib/prisma-transaction.js";
-import type {
-  StorefrontCategoryDto,
-  StorefrontConfig,
-  StorefrontDraftDto,
-  StorefrontEventDto,
-  StorefrontMerchantSummaryDto,
-  StorefrontProductDto,
-  StorefrontVersionDto,
-  StorefrontVersionSummaryDto,
-} from "./storefront.types.js";
-import {
-  defaultStorefrontConfig,
-  readStorefrontConfig,
-} from "./storefront.validation.js";
+import type { StorefrontConfig, StorefrontMerchantSummaryDto } from "./storefront.types.js";
+import { defaultStorefrontConfig, readStorefrontConfig } from "./storefront.validation.js";
 import { storefrontPublicRepository } from "./storefront.public.repository.js";
-import { storefrontVersionRepository } from "./storefront.versions.repository.js";
-import {
-  initializeDefaultStorefrontTx,
-  toDraftDto,
-  toVersionDto,
-  versionFullSelect,
-} from "./storefront.persistence.js";
-export { initializeDefaultStorefrontTx } from "./storefront.persistence.js";
+import { assertOwnedFeaturedProductsTx } from "./storefront.persistence.js";
 
 export const storefrontRepository = {
   ...storefrontPublicRepository,
-  async findActiveMerchantBySlug(
-    slug: string,
-  ): Promise<StorefrontMerchantSummaryDto | null> {
-    return prisma.merchant.findFirst({
-      where: { slug, isActive: true },
-      select: { id: true, name: true, slug: true },
-    });
+  async findActiveMerchantBySlug(slug: string): Promise<StorefrontMerchantSummaryDto | null> {
+    return prisma.merchant.findFirst({ where: { slug, isActive: true }, select: { id: true, name: true, slug: true } });
   },
-
-  async ensureInitialized(
-    merchant: StorefrontMerchantSummaryDto,
-    actorId: number | null = null,
-  ): Promise<{ draft: StorefrontDraftDto; published: StorefrontVersionDto }> {
-    const [draft, published] = await Promise.all([
-      prisma.storefrontDraft.findUnique({
-        where: { merchantId: merchant.id },
-        select: { config: true, updatedAt: true },
-      }),
-      prisma.storefrontConfigVersion.findFirst({
-        where: { merchantId: merchant.id, isPublished: true },
-        orderBy: { version: "desc" },
-        select: versionFullSelect,
-      }),
-    ]);
-
-    if (draft && published) {
-      return { draft: toDraftDto(draft), published: toVersionDto(published) };
-    }
-
-    return withTransactionRetry(() =>
-      prisma.$transaction(
-        async (tx) => {
-          await initializeDefaultStorefrontTx(tx, merchant, actorId);
-          const [ensuredDraft, ensuredPublished] = await Promise.all([
-            tx.storefrontDraft.findUniqueOrThrow({
-              where: { merchantId: merchant.id },
-              select: { config: true, updatedAt: true },
-            }),
-            tx.storefrontConfigVersion.findFirstOrThrow({
-              where: { merchantId: merchant.id, isPublished: true },
-              orderBy: { version: "desc" },
-              select: versionFullSelect,
-            }),
-          ]);
-          return {
-            draft: toDraftDto(ensuredDraft),
-            published: toVersionDto(ensuredPublished),
-          };
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      ),
-    );
+  async getConfig(merchant: StorefrontMerchantSummaryDto): Promise<StorefrontConfig> {
+    const row = await prisma.merchant.findUniqueOrThrow({ where: { id: merchant.id }, select: { storefrontConfig: true } });
+    return row.storefrontConfig === null ? defaultStorefrontConfig(merchant.name, merchant.slug) : readStorefrontConfig(row.storefrontConfig);
   },
-
-  ...storefrontVersionRepository,
+  async saveConfig(merchant: StorefrontMerchantSummaryDto, config: StorefrontConfig): Promise<StorefrontConfig> {
+    return withTransactionRetry(() => prisma.$transaction(async (tx) => {
+      const row = await tx.merchant.findUniqueOrThrow({ where: { id: merchant.id }, select: { storefrontConfig: true } });
+      const previous = row.storefrontConfig === null ? defaultStorefrontConfig(merchant.name, merchant.slug) : readStorefrontConfig(row.storefrontConfig);
+      if (config.featuredProductIds.length > 6 && JSON.stringify(config.featuredProductIds) !== JSON.stringify(previous.featuredProductIds)) {
+        throw new HttpError(400, "FEATURED_PRODUCTS_LIMIT");
+      }
+      await assertOwnedFeaturedProductsTx(tx, merchant.id, config.featuredProductIds);
+      await tx.merchant.update({ where: { id: merchant.id }, data: { storefrontConfig: config as unknown as Prisma.InputJsonValue } });
+      return config;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
+  },
 };

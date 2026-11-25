@@ -1,6 +1,6 @@
 import { resolveStorefrontAssetUrl } from "../../../api/storefront-client";
 import { useMemo } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Ticket, Wallet } from "@phosphor-icons/react";
 import { useAuthSession } from "../../../api/auth-session";
 import { createCommerceClient } from "../../../api/commerce-http";
@@ -31,28 +31,11 @@ export function PublicStorefrontPage() {
 
 function StandaloneStorefrontPage() {
   const { slug = "" } = useParams();
-  const [searchParams] = useSearchParams();
-  const { user, accessToken } = useAuthSession();
+  const { user } = useAuthSession();
 
-  const wantsDraftPreview =
-    searchParams.get("preview") === "draft" && user?.role === "MERCHANT" && Boolean(accessToken);
-
-  useEnsureMembership({ slug, enabled: !wantsDraftPreview });
+  useEnsureMembership({ slug, enabled: true });
 
   const resource = useResource<StorefrontShellData>(async () => {
-    if (wantsDraftPreview && accessToken) {
-      const preview = await storefrontApi.getPreview(accessToken);
-      if (preview.merchant.slug === slug) {
-        return {
-          merchant: preview.merchant,
-          config: preview.config,
-          featuredProducts: preview.featuredProducts,
-          categories: preview.categories,
-          upcomingEvents: preview.upcomingEvents,
-          isDraftPreview: true,
-        };
-      }
-    }
     const pub = await storefrontApi.getPublicStorefront(slug);
     return {
       merchant: pub.merchant,
@@ -60,9 +43,8 @@ function StandaloneStorefrontPage() {
       featuredProducts: pub.featuredProducts,
       categories: pub.categories,
       upcomingEvents: pub.upcomingEvents,
-      isDraftPreview: false,
     };
-  }, [slug, wantsDraftPreview, accessToken]);
+  }, [slug]);
 
   if (resource.loading) return <LoadingState cards={3} />;
   if (resource.error || !resource.data) {
@@ -122,10 +104,10 @@ function StorefrontHomeContent({
 
   const memberWallet = useResource(
     () =>
-      user?.role === "MEMBER" && accessToken && !data.isDraftPreview
+      user?.role === "MEMBER" && accessToken
         ? commerceApi.getMemberWallet(data.merchant.id, accessToken).then((res) => res.wallet)
         : Promise.resolve(null),
-    [user?.role, accessToken, data.merchant.id, data.isDraftPreview],
+    [user?.role, accessToken, data.merchant.id],
   );
 
   const displayProducts = (
@@ -178,7 +160,7 @@ function StorefrontHomeContent({
             onBuy={handleBuy}
           />
 
-          {section.key === "hero" && !data.isDraftPreview && (
+          {section.key === "hero" && (
             <ChallengeHeroCard slug={data.merchant.slug} storeBase={storeBase} />
           )}
 

@@ -194,99 +194,21 @@ describe("V4 Storefront UI & Auth returnTo/slug", () => {
     expect(writes).toEqual([{ ...profile, name: "Mộc mới", openingHours: null }]);
   });
 
-  it("confirms draft and publish writes and collapses version history", async () => {
-    const sessionData = JSON.stringify({
-      accessToken: "merchant-token",
-      user: { id: 10, email: "owner@moc.local", role: "MERCHANT", isActive: true },
-    });
-    sessionStorage.setItem("loyalty.m2.session", sessionData);
-
+  it("confirms a direct storefront update", async () => {
+    sessionStorage.setItem("loyalty.m2.session", JSON.stringify({
+      accessToken: "merchant-token", user: { id: 10, email: "owner@moc.local", role: "MERCHANT", isActive: true },
+    }));
     const initialConfig = buildConfig();
-    let publishedVersion = 1;
-    let draftSaveCount = 0;
-
+    const writes: unknown[] = [];
     storefrontFetchHandler = async (input, init) => {
       const url = String(input);
-      if (url.endsWith("/api/merchant/storefront") && (!init?.method || init.method === "GET")) {
-        return Response.json({
-          merchant: { id: 5, name: "Cà Phê Mộc", slug: "ca-phe-moc", isActive: true },
-          draft: { config: initialConfig, updatedAt: "2026-11-16T00:00:00.000Z" },
-          published: {
-            id: 1,
-            version: 1,
-            isPublished: true,
-            source: "DEFAULT_INIT",
-            sourceVersionId: null,
-            note: null,
-            publishedById: 10,
-            publishedAt: "2026-11-16T00:00:00.000Z",
-          },
-        });
+      if (url.endsWith("/api/merchant/storefront") && init?.method === "PUT") {
+        const config = JSON.parse(String(init.body));
+        writes.push(config);
+        return Response.json({ config });
       }
-      if (url.endsWith("/api/merchant/storefront/versions")) {
-        return Response.json({
-          versions:
-            publishedVersion === 1
-              ? [
-                  {
-                    id: 1,
-                    version: 1,
-                    isPublished: true,
-                    source: "DEFAULT_INIT",
-                    sourceVersionId: null,
-                    note: null,
-                    publishedById: 10,
-                    publishedAt: "2026-11-16T00:00:00.000Z",
-                  },
-                ]
-              : [
-                  {
-                    id: 2,
-                    version: 2,
-                    isPublished: true,
-                    source: "PUBLISH",
-                    sourceVersionId: null,
-                    note: "Mới",
-                    publishedById: 10,
-                    publishedAt: "2026-11-16T01:00:00.000Z",
-                  },
-                  {
-                    id: 1,
-                    version: 1,
-                    isPublished: false,
-                    source: "DEFAULT_INIT",
-                    sourceVersionId: null,
-                    note: null,
-                    publishedById: 10,
-                    publishedAt: "2026-11-16T00:00:00.000Z",
-                  },
-                ],
-        });
-      }
-      if (url.endsWith("/api/merchant/storefront/draft") && init?.method === "PUT") {
-        draftSaveCount += 1;
-        return Response.json({
-          draft: { config: JSON.parse(String(init.body)), updatedAt: "2026-11-16T00:30:00.000Z" },
-        });
-      }
-      if (url.endsWith("/api/merchant/storefront/publish") && init?.method === "POST") {
-        publishedVersion = 2;
-        return Response.json(
-          {
-            published: {
-              id: 2,
-              version: 2,
-              isPublished: true,
-              source: "PUBLISH",
-              sourceVersionId: null,
-              note: "Mới",
-              publishedById: 10,
-              publishedAt: "2026-11-16T01:00:00.000Z",
-            },
-            draft: { config: initialConfig, updatedAt: "2026-11-16T00:30:00.000Z" },
-          },
-          { status: 201 },
-        );
+      if (url.endsWith("/api/merchant/storefront")) {
+        return Response.json({ merchant: { id: 5, name: "Cà Phê Mộc", slug: "ca-phe-moc", isActive: true }, config: initialConfig });
       }
       return Response.json({ error: "Not found" }, { status: 404 });
     };
@@ -327,23 +249,16 @@ describe("V4 Storefront UI & Auth returnTo/slug", () => {
     );
 
     await screen.findByRole("heading", { name: "Giao diện cửa hàng" });
-    expect(screen.queryByRole("button", { name: "Lưu bản nháp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Lưu thay đổi" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Tiêu đề Hero/), { target: { value: "Giao diện mới" } });
-    fireEvent.click(screen.getByRole("button", { name: "Lưu bản nháp" }));
-    expect(draftSaveCount).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(writes).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận lưu" }));
-    await screen.findByText("Đã lưu bản nháp thành công.");
-    expect(draftSaveCount).toBe(1);
-
-    fireEvent.click(screen.getByRole("button", { name: "Xuất bản" }));
-    expect(publishedVersion).toBe(1);
-    fireEvent.click(screen.getByRole("button", { name: "Xác nhận xuất bản" }));
-    await screen.findByText("Đã xuất bản phiên bản v2.");
-    const history = screen.getByText("Lịch sử phiên bản (2)").closest("details")!;
-    expect(history.open).toBe(false);
-    history.open = true;
-    expect(screen.getByRole("button", { name: /Khôi phục phiên bản này/i })).toBeInTheDocument();
-    expect(draftSaveCount).toBe(1);
+    await screen.findByText("Đã lưu giao diện cửa hàng.");
+    expect(writes).toHaveLength(1);
+    expect(screen.queryByText(/Lịch sử phiên bản/)).not.toBeInTheDocument();
   });
 
   it("honors safe relative returnTo on LoginPage and rejects protocol-relative //evil.com", async () => {

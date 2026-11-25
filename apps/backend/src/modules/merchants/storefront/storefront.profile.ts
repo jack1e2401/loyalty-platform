@@ -19,8 +19,8 @@ export async function withStoreProfile(merchantId: number, config: StorefrontCon
 
 export async function getStoreProfile(ownerId: number) {
   const merchant = await merchantService.getOwnStore(ownerId);
-  const { published } = await storefrontRepository.ensureInitialized(merchant, ownerId);
-  const profile = await loadStoreProfile(merchant.id) ?? readStoreProfile(published.config.branding);
+  const config = await storefrontRepository.getConfig(merchant);
+  const profile = await loadStoreProfile(merchant.id) ?? readStoreProfile(config.branding);
   // The installation reports calendar months in Vietnam time (UTC+7).
   const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, -7));

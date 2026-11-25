@@ -268,23 +268,6 @@ export function readStorefrontConfig(value: unknown): StorefrontConfig {
   };
 }
 
-export function readStorefrontNote(value: unknown): string | null {
-  if (value === undefined || value === null) return null;
-  const input = readObject(value);
-  return readNullableText(input.note, 255);
-}
-
-export function readVersionId(value: unknown): number {
-  if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) {
-    throw new HttpError(400, "INVALID_INPUT");
-  }
-  const id = Number(value);
-  if (!Number.isSafeInteger(id) || id > 2_147_483_647) {
-    throw new HttpError(400, "INVALID_INPUT");
-  }
-  return id;
-}
-
 export function defaultStorefrontConfig(merchantName: string, slug: string): StorefrontConfig {
   const trimmedName = merchantName.trim();
   const safeHeroTitle = (trimmedName && !containsHtmlOrScript(trimmedName)

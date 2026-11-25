@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, FloppyDisk, RocketLaunch } from "@phosphor-icons/react";
+import { ArrowUpRight, FloppyDisk } from "@phosphor-icons/react";
 import { useAuthSession } from "../../../api/auth-session";
 import { createCommerceClient } from "../../../api/commerce-http";
 import type { ProductDto } from "../../../api/commerce-types";
@@ -9,20 +9,16 @@ import type {
   StorefrontConfig,
   StorefrontSectionConfig,
   StorefrontSectionKey,
-  StorefrontVersionSummaryDto,
 } from "../../../api/storefront-types";
 import { useResource } from "../../../api/useResource";
 import {
   BusyLabel,
   Button,
-  Field,
   ErrorState,
-  Input,
   LoadingState,
   PageHeader,
 } from "../../../components/ui";
 import { ConfirmActionDialog } from "../../../components/ui/ConfirmActionDialog";
-import { StorefrontVersionHistory } from "./StorefrontVersionHistory";
 import { StorefrontBrandingEditor } from "./StorefrontBrandingEditor";
 import { StorefrontSectionsEditor } from "./StorefrontSectionsEditor";
 import { FeaturedProductsEditor } from "./FeaturedProductsEditor";
@@ -39,8 +35,6 @@ function translateStorefrontError(code: string): string {
       return "Có sản phẩm nổi bật không hợp lệ hoặc không còn đang bán.";
     case "INVALID_INPUT":
       return "Dữ liệu chưa hợp lệ. Kiểm tra màu hex (#RRGGBB), đường dẫn (/s/... hoặc https://...) và không dùng thẻ HTML.";
-    case "VERSION_NOT_FOUND":
-      return "Không tìm thấy phiên bản để khôi phục.";
     default:
       return code;
   }
@@ -49,38 +43,27 @@ function translateStorefrontError(code: string): string {
 export function MerchantStorefrontEditor() {
   const { accessToken } = useAuthSession();
   const state = useResource(async () => {
-    const [storefront, versionsRes, productsRes] = await Promise.all([
+    const [storefront, productsRes] = await Promise.all([
       storefrontApi.getMerchantStorefront(accessToken!),
-      storefrontApi.listVersions(accessToken!),
       commerceApi.listOwnProducts(accessToken!, { limit: 100 }),
     ]);
     return {
       storefront,
-      versions: versionsRes.versions,
       saleProducts: productsRes.items.filter((p) => p.kind === "SALE" && p.status === "ACTIVE"),
     };
   }, [accessToken]);
 
   const [savedDraft, setSavedDraft] = useState<StorefrontConfig | null>(null);
-  const [unpublished, setUnpublished] = useState(false);
-  const [pending, setPending] = useState<"save" | "publish" | number | null>(null);
+  const [pending, setPending] = useState(false);
   const [draft, setDraft] = useState<StorefrontConfig | null>(null);
-  const [versions, setVersions] = useState<StorefrontVersionSummaryDto[]>([]);
-  const [published, setPublished] = useState<StorefrontVersionSummaryDto | null>(null);
-  const [publishNote, setPublishNote] = useState("");
   const [savingDraft, setSavingDraft] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [rollbackId, setRollbackId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!state.data) return;
-    setDraft(state.data.storefront.draft.config);
-    setSavedDraft(state.data.storefront.draft.config);
-    setUnpublished(state.data.storefront.hasUnpublishedChanges);
-    setPublished(state.data.storefront.published);
-    setVersions(state.data.versions);
+    setDraft(state.data.storefront.config);
+    setSavedDraft(state.data.storefront.config);
   }, [state.data]);
 
   const orderedSections = useMemo(
@@ -98,7 +81,7 @@ export function MerchantStorefrontEditor() {
   if (!state.data || !draft) return null;
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(savedDraft);
-  const busy = savingDraft || publishing || rollbackId !== null;
+  const busy = savingDraft;
   const merchant = state.data.storefront.merchant;
   const saleProducts: ProductDto[] = state.data.saleProducts;
 
@@ -160,73 +143,21 @@ export function MerchantStorefrontEditor() {
     });
   }
 
-  async function handleSaveDraft() {
+  async function handleSave() {
     if (!accessToken || !draft || busy) return;
     setSavingDraft(true);
     setNotice("");
     setError("");
     try {
-      const response = await storefrontApi.saveDraft(draft, accessToken);
-      setDraft(response.draft.config);
-      setSavedDraft(response.draft.config);
-      setUnpublished(true);
-      setPending(null);
-      setNotice("Đã lưu bản nháp thành công.");
+      const response = await storefrontApi.saveConfig(draft, accessToken);
+      setDraft(response.config);
+      setSavedDraft(response.config);
+      setPending(false);
+      setNotice("Đã lưu giao diện cửa hàng.");
     } catch (reason) {
-      setError(translateStorefrontError(reason instanceof Error ? reason.message : "Lưu bản nháp thất bại"));
+      setError(translateStorefrontError(reason instanceof Error ? reason.message : "Lưu giao diện thất bại"));
     } finally {
       setSavingDraft(false);
-    }
-  }
-
-  async function handlePublish() {
-    if (!accessToken || !draft || busy) return;
-    setPublishing(true);
-    setNotice("");
-    setError("");
-    try {
-      if (dirty) {
-        const saved = await storefrontApi.saveDraft(draft, accessToken);
-        setDraft(saved.draft.config);
-        setSavedDraft(saved.draft.config);
-        setUnpublished(true);
-      }
-      const res = await storefrontApi.publish(publishNote.trim() || undefined, accessToken);
-      setPublished(res.published);
-      setDraft(res.draft.config);
-      setSavedDraft(res.draft.config);
-      setUnpublished(false);
-      setPending(null);
-      setPublishNote("");
-      const nextVersions = await storefrontApi.listVersions(accessToken);
-      setVersions(nextVersions.versions);
-      setNotice(`Đã xuất bản phiên bản v${res.published.version}.`);
-    } catch (reason) {
-      setError(translateStorefrontError(reason instanceof Error ? reason.message : "Xuất bản thất bại"));
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  async function handleRollback(versionId: number) {
-    if (!accessToken || busy) return;
-    setRollbackId(versionId);
-    setNotice("");
-    setError("");
-    try {
-      const res = await storefrontApi.rollbackVersion(versionId, undefined, accessToken);
-      setPublished(res.published);
-      setDraft(res.draft.config);
-      setSavedDraft(res.draft.config);
-      setUnpublished(false);
-      setPending(null);
-      const nextVersions = await storefrontApi.listVersions(accessToken);
-      setVersions(nextVersions.versions);
-      setNotice(`Đã khôi phục thành phiên bản v${res.published.version}.`);
-    } catch (reason) {
-      setError(translateStorefrontError(reason instanceof Error ? reason.message : "Khôi phục thất bại"));
-    } finally {
-      setRollbackId(null);
     }
   }
 
@@ -234,14 +165,9 @@ export function MerchantStorefrontEditor() {
     <div className="space-y-6">
       <PageHeader
         title="Giao diện cửa hàng"
-        description={`Đường dẫn công khai: /s/${merchant.slug}${published ? ` · Đang hiển thị v${published.version}` : ""}`}
+        description={`Đường dẫn công khai: /s/${merchant.slug}`}
         action={
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to={`/s/${merchant.slug}?preview=draft`} target="_blank" rel="noopener noreferrer">
-                Xem trước bản nháp <ArrowUpRight aria-hidden="true" size={15} />
-              </Link>
-            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to={`/s/${merchant.slug}`} target="_blank" rel="noopener noreferrer">
                 Trang công khai <ArrowUpRight aria-hidden="true" size={15} />
@@ -277,48 +203,17 @@ export function MerchantStorefrontEditor() {
         onToggle={toggleFeaturedProduct}
       />
 
-      <details className="rounded-2xl border border-[#e4ece1] bg-white p-4">
-        <summary className="cursor-pointer font-semibold text-[#20392a]">Lịch sử phiên bản ({versions.length})</summary>
-        <StorefrontVersionHistory versions={versions} busyVersionId={rollbackId} onRollback={(id) => { setError(""); setPending(id); }} />
-      </details>
-
-      {(dirty || unpublished) && (
+      {dirty && (
         <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-t-xl border border-[#dce6d9] bg-white px-4 py-3 shadow-sm">
-          <span className="text-sm text-[#53685a]">{dirty ? "Có thay đổi chưa lưu" : "Bản nháp chưa xuất bản"}</span>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" disabled={!dirty || busy} onClick={() => { setError(""); setPending("save"); }}>
-              {savingDraft ? <BusyLabel>Đang lưu</BusyLabel> : <><FloppyDisk aria-hidden="true" size={16} /> Lưu bản nháp</>}
-            </Button>
-            <Button type="button" disabled={busy} onClick={() => { setError(""); setPending("publish"); }}>
-              {publishing ? <BusyLabel>Đang xuất bản</BusyLabel> : <><RocketLaunch aria-hidden="true" size={16} /> Xuất bản</>}
-            </Button>
-          </div>
+          <span className="text-sm text-[#53685a]">Có thay đổi chưa lưu</span>
+          <Button type="button" disabled={busy} onClick={() => { setError(""); setPending(true); }}>
+            {savingDraft ? <BusyLabel>Đang lưu</BusyLabel> : <><FloppyDisk aria-hidden="true" size={16} /> Lưu thay đổi</>}
+          </Button>
         </div>
       )}
-      <ConfirmActionDialog
-        open={pending !== null}
-        onOpenChange={(open) => { if (!open) setPending(null); }}
-        title={pending === "save" ? "Lưu bản nháp?" : pending === "publish" ? "Xuất bản giao diện?" : "Khôi phục giao diện?"}
-        description={pending === "save"
-          ? "Lưu thay đổi để bạn tiếp tục chỉnh sửa. Khách vẫn thấy giao diện đang công khai."
-          : pending === "publish"
-            ? "Giao diện này sẽ hiển thị ngay trên trang cửa hàng công khai."
-            : "Phiên bản được chọn sẽ thay thế giao diện công khai và bản nháp hiện tại."}
-        confirmLabel={pending === "save" ? "Xác nhận lưu" : pending === "publish" ? "Xác nhận xuất bản" : "Xác nhận khôi phục"}
-        busy={busy}
-        error={error}
-        onConfirm={() => {
-          if (pending === "save") void handleSaveDraft();
-          else if (pending === "publish") void handlePublish();
-          else if (typeof pending === "number") void handleRollback(pending);
-        }}
-      >
-        {pending === "publish" && (
-          <Field label="Ghi chú xuất bản (tùy chọn)">
-            <Input maxLength={255} value={publishNote} onChange={(event) => setPublishNote(event.target.value)} />
-          </Field>
-        )}
-      </ConfirmActionDialog>
+      <ConfirmActionDialog open={pending} onOpenChange={setPending} title="Lưu giao diện?"
+        description="Thay đổi sẽ hiển thị ngay trên trang cửa hàng công khai." confirmLabel="Xác nhận lưu"
+        busy={busy} error={error} onConfirm={() => void handleSave()} />
     </div>
   );
 }

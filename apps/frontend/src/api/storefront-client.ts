@@ -1,9 +1,5 @@
 import type {
-  MerchantStorefrontDraftResponse,
-  MerchantStorefrontPreviewResponse,
-  MerchantStorefrontPublishResponse,
   MerchantStorefrontStateResponse,
-  MerchantStorefrontVersionsResponse,
   PublicStorefrontResponse,
   StorefrontConfig,
   StoreProfile,
@@ -71,45 +67,8 @@ export function createStorefrontClient(baseUrl = DEFAULT_API_BASE, fetcher: Fetc
       return requestJson<MerchantStorefrontStateResponse>(fetcher, baseUrl, "/api/merchant/storefront", { token });
     },
 
-    saveDraft(config: StorefrontConfig, token: string) {
-      return requestJson<MerchantStorefrontDraftResponse>(fetcher, baseUrl, "/api/merchant/storefront/draft", {
-        method: "PUT",
-        token,
-        body: config,
-      });
-    },
-
-    getPreview(token: string) {
-      return requestJson<MerchantStorefrontPreviewResponse>(fetcher, baseUrl, "/api/merchant/storefront/preview", {
-        token,
-      });
-    },
-
-    publish(note: string | undefined, token: string) {
-      return requestJson<MerchantStorefrontPublishResponse>(fetcher, baseUrl, "/api/merchant/storefront/publish", {
-        method: "POST",
-        token,
-        body: note ? { note } : {},
-      });
-    },
-
-    listVersions(token: string) {
-      return requestJson<MerchantStorefrontVersionsResponse>(fetcher, baseUrl, "/api/merchant/storefront/versions", {
-        token,
-      });
-    },
-
-    rollbackVersion(versionId: number, note: string | undefined, token: string) {
-      return requestJson<MerchantStorefrontPublishResponse>(
-        fetcher,
-        baseUrl,
-        `/api/merchant/storefront/versions/${versionId}/rollback`,
-        {
-          method: "POST",
-          token,
-          body: note ? { note } : {},
-        },
-      );
+    saveConfig(config: StorefrontConfig, token: string) {
+      return requestJson<{ config: StorefrontConfig }>(fetcher, baseUrl, "/api/merchant/storefront", { method: "PUT", token, body: config });
     },
 
     async uploadMedia(file: File, token: string): Promise<UploadedMediaResponse> {

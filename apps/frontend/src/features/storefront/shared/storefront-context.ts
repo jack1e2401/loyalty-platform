@@ -14,7 +14,6 @@ export interface StorefrontShellData {
   featuredProducts: StorefrontProductDto[];
   categories: StorefrontCategoryDto[];
   upcomingEvents: StorefrontEventDto[];
-  isDraftPreview: boolean;
 }
 
 export interface StorefrontShellContext {

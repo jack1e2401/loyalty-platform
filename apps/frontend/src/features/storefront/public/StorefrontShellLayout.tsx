@@ -1,4 +1,4 @@
-import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   House,
   ShoppingCart,
@@ -26,28 +26,11 @@ const storefrontApi = createStorefrontClient(import.meta.env.VITE_API_BASE_URL ?
 
 export function StorefrontShellLayout() {
   const { slug = "" } = useParams();
-  const [searchParams] = useSearchParams();
-  const { user, accessToken } = useAuthSession();
+  const { user } = useAuthSession();
 
-  const wantsDraftPreview =
-    searchParams.get("preview") === "draft" && user?.role === "MERCHANT" && Boolean(accessToken);
-
-  useEnsureMembership({ slug, enabled: !wantsDraftPreview });
+  useEnsureMembership({ slug, enabled: true });
 
   const resource = useResource<StorefrontShellData>(async () => {
-    if (wantsDraftPreview && accessToken) {
-      const preview = await storefrontApi.getPreview(accessToken);
-      if (preview.merchant.slug === slug) {
-        return {
-          merchant: preview.merchant,
-          config: preview.config,
-          featuredProducts: preview.featuredProducts,
-          categories: preview.categories,
-          upcomingEvents: preview.upcomingEvents,
-          isDraftPreview: true,
-        };
-      }
-    }
     const pub = await storefrontApi.getPublicStorefront(slug);
     return {
       merchant: pub.merchant,
@@ -55,9 +38,8 @@ export function StorefrontShellLayout() {
       featuredProducts: pub.featuredProducts,
       categories: pub.categories,
       upcomingEvents: pub.upcomingEvents,
-      isDraftPreview: false,
     };
-  }, [slug, wantsDraftPreview, accessToken]);
+  }, [slug]);
 
   if (resource.loading && !resource.data) {
     return (
@@ -118,17 +100,6 @@ function StorefrontChrome({ storageKey, data }: { storageKey: string; data: Stor
 
   return (
     <div className="min-h-dvh bg-[#fcfcf8] pb-20 lg:pb-8">
-      {data.isDraftPreview && (
-        <div
-          role="status"
-          className="border-b border-[#e5d8b8] bg-[#fff4df] px-4 py-2 text-center text-xs font-semibold text-[#7a5a26]"
-        >
-          Đang xem trước bản nháp — chưa xuất bản.{" "}
-          <Link to="/merchant/storefront" className="font-bold underline">
-            Quay lại trình chỉnh sửa
-          </Link>
-        </div>
-      )}
 
       <header className="sticky top-0 z-20 border-b border-[#e5ece3] bg-[#fcfcf8]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-3 sm:px-6">
