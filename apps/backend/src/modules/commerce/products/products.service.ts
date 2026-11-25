@@ -27,7 +27,7 @@ function toProductDto(product: SelectedProduct, merchantView = false): ProductDt
     name: product.name,
     description: product.description,
     richDescription: product.richDescription,
-    imageUrl: product.imageUrl ?? product.images[0]?.url ?? null,
+    imageUrl: product.images[0]?.url ?? null,
     images: product.images,
     lowStockThreshold: product.lowStockThreshold,
     isLowStock: availableQuantity <= product.lowStockThreshold,

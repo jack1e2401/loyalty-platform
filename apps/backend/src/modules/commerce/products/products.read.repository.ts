@@ -10,7 +10,6 @@ export const productSelection = {
   name: true,
   description: true,
   richDescription: true,
-  imageUrl: true,
   images: {
     select: { id: true, url: true, altText: true, sortOrder: true },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],

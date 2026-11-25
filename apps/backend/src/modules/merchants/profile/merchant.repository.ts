@@ -23,14 +23,14 @@ export const merchantRepository = {
       select: {
         ...directoryFields,
         products: {
-          where: { kind: "SALE", status: "ACTIVE", imageUrl: { not: null } },
+          where: { kind: "SALE", status: "ACTIVE", images: { some: {} } },
           orderBy: { id: "asc" },
           take: 1,
-          select: { imageUrl: true },
+          select: { images: { select: { url: true }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }], take: 1 } },
         },
       },
     });
-    return stores.map(({ products, ...store }) => ({ ...store, coverImageUrl: products[0]?.imageUrl ?? null }));
+    return stores.map(({ products, ...store }) => ({ ...store, coverImageUrl: products[0]?.images[0]?.url ?? null }));
   },
 
   async findActiveStoreByOwner(ownerId: number): Promise<MerchantDto | null> {

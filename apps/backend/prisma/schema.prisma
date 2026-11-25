@@ -63,13 +63,6 @@ enum PaymentProvider {
   VNPAY
 }
 
-enum TierLevel {
-  BRONZE
-  SILVER
-  GOLD
-  PLATINUM
-}
-
 enum PointTransactionType {
   EARN
   REDEEM_DISCOUNT
@@ -237,7 +230,6 @@ model Product {
   description              String?             @db.Text
   richDescription          String?             @db.Text
   price                    Decimal             @db.Decimal(15, 0)
-  imageUrl                 String?             @db.VarChar(2048)
   lowStockThreshold        Int                 @default(5)
   status                   ProductStatus       @default(ACTIVE)
   kind                     ProductKind         @default(SALE)

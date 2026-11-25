@@ -143,7 +143,6 @@ export const productsRepository = {
                 ),
                 description: input.description ?? null,
                 richDescription: input.richDescription ?? null,
-                imageUrl: primaryImageUrl,
                 lowStockThreshold: input.lowStockThreshold ?? 5,
               },
               select: { id: true },
@@ -302,11 +301,6 @@ export const productsRepository = {
         await assertCategoryOwned(tx, merchantId, patch.categoryId);
       }
 
-      const primaryImageUrl =
-        patch.images !== undefined
-          ? (patch.images[0]?.url ?? null)
-          : patch.imageUrl;
-
       try {
         await tx.product.update({
           where: { id: productId },
@@ -320,9 +314,6 @@ export const productsRepository = {
               : {}),
             ...(patch.richDescription !== undefined
               ? { richDescription: patch.richDescription }
-              : {}),
-            ...(primaryImageUrl !== undefined
-              ? { imageUrl: primaryImageUrl }
               : {}),
             ...(patch.sku !== undefined ? { sku: patch.sku } : {}),
             ...(patch.categoryId !== undefined

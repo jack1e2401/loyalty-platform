@@ -228,6 +228,18 @@ test("SKU uniqueness per merchant, gallery sync, and lowStockThreshold flag", as
   assert.equal(updated.json.product.isLowStock, false);
   assert.equal(updated.json.product.imageUrl, "https://cdn.example.com/new-espresso.jpg");
   assert.equal(updated.json.product.images.length, 1);
+
+  const legacyImageUpdate = await request(`/api/merchant/products/${first.json.product.id}`, "PATCH", merchantAToken, {
+    imageUrl: "/images/legacy-primary.jpg",
+  });
+  assert.equal(legacyImageUpdate.response.status, 200);
+  assert.equal(legacyImageUpdate.json.product.imageUrl, "/images/legacy-primary.jpg");
+  assert.equal(legacyImageUpdate.json.product.images[0].url, "/images/legacy-primary.jpg");
+
+  const cleared = await request(`/api/merchant/products/${first.json.product.id}`, "PATCH", merchantAToken, { images: [] });
+  assert.equal(cleared.response.status, 200);
+  assert.equal(cleared.json.product.imageUrl, null);
+  assert.deepEqual(cleared.json.product.images, []);
 });
 
 test("pagination, filtering, sorting, and public slug routes", async () => {
