@@ -14,6 +14,7 @@ export interface VoucherDefinitionDto {
   discountAmount: string | null;
   rewardDescription: string | null;
   rewardProductId: number | null;
+  rewardProductName?: string | null;
   isActive: boolean;
   availableQuantity: number | null;
   issuedQuantity: number | null;
@@ -54,7 +55,7 @@ export interface MemberVoucherDto {
   cancellationReason?: string | null;
 }
 
-export type VoucherDefinitionsResponse = { definitions: VoucherDefinitionDto[]; pagination?: { page: number; limit: number; totalItems: number; totalPages: number } };
+export type VoucherDefinitionsResponse = { counts?: { all: number; discount: number; reward: number }; definitions: VoucherDefinitionDto[]; pagination?: { page: number; limit: number; totalItems: number; totalPages: number } };
 
 export type VoucherDefinitionResponse = { definition: VoucherDefinitionDto };
 

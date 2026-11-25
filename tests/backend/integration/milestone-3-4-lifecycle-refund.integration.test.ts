@@ -559,6 +559,11 @@ test("ledger reads stay merchant-scoped and pending orders remain cancellable", 
   assert.equal(pagedLedger.json.items.length, 1);
   assert.equal(pagedLedger.json.pagination.limit, 1);
   assert.ok(pagedLedger.json.pagination.totalItems >= 1);
+  const filteredVouchers = await request("/api/merchant/vouchers?page=1&limit=1&type=DISCOUNT&q=10k&status=active&sort=name", "GET", merchantAToken);
+  assert.equal(filteredVouchers.response.status, 200);
+  assert.ok(filteredVouchers.json.definitions.every((item: { type: string; title: string; isActive: boolean }) => item.type === "DISCOUNT" && item.title.includes("10k") && item.isActive));
+  assert.ok(filteredVouchers.json.counts.all >= filteredVouchers.json.pagination.totalItems);
+  assert.equal((await request("/api/merchant/vouchers?page=1&limit=20&type=INVALID", "GET", merchantAToken)).response.status, 400);
   const pagedVouchers = await request("/api/merchant/vouchers?page=1&limit=1", "GET", merchantAToken);
   assert.equal(pagedVouchers.response.status, 200);
   assert.equal(pagedVouchers.json.definitions.length, 1);

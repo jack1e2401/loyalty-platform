@@ -17,6 +17,7 @@ export interface DefinitionDto extends DefinitionInput {
   isActive: boolean;
   availableQuantity: number | null;
   issuedQuantity: number | null;
+  rewardProductName?: string | null;
 }
 export interface MemberVoucherDto {
   id: number;

@@ -41,8 +41,8 @@ export function MerchantVoucherTableRow({
   const isDiscount = definition.type === "DISCOUNT";
   const terms =
     isDiscount && definition.discountAmount
-      ? money(Number(definition.discountAmount))
-      : definition.rewardDescription;
+      ? `Giảm trực tiếp ${money(Number(definition.discountAmount))}`
+      : definition.rewardProductName ? `Sản phẩm kho: ${definition.rewardProductName}` : definition.rewardDescription;
 
   async function saveDefinition(patch: VoucherDefinitionPatch) {
     setDialogBusy(true);
@@ -73,22 +73,20 @@ export function MerchantVoucherTableRow({
           {definition.title}
           {terms && <span className="mt-1 block text-xs font-normal muted">{terms}</span>}
         </th>
-        <td className="px-4 py-4 text-sm">{isDiscount ? "Giảm giá" : "Quà tặng"}</td>
+        <td className="px-4 py-4 text-sm"><span className="rounded-full bg-[#edf4e9] px-2.5 py-1 text-xs font-semibold text-[#315e3c]">{isDiscount ? "Giảm giá" : "Quà tặng"}</span></td>
         <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold">
           {definition.pointsCost.toLocaleString("vi-VN")} điểm
         </td>
         <td className="px-4 py-4 text-sm">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <span className="whitespace-nowrap">
-              <b>{definition.availableQuantity ?? "—"}</b>{" "}
-              <span className="text-xs muted">{isDiscount ? "lượt còn lại" : "quà còn lại"}</span>
-            </span>
-            {isDiscount && (
-              <span className="whitespace-nowrap">
-                <b>{definition.issuedQuantity ?? "—"}</b> <span className="text-xs muted">đã phát hành</span>
-              </span>
-            )}
-          </div>
+          {isDiscount ? (
+            <div className="space-y-2">
+              <p>{definition.availableQuantity ?? "—"} / {definition.issuedQuantity ?? "—"} lượt</p>
+              <button type="button" className="text-xs font-semibold text-[#315e3c] underline underline-offset-2"
+                onClick={() => navigate(`/merchant/inventory/voucher/${definition.id}`)}>
+                + Nhập thêm lượt
+              </button>
+            </div>
+          ) : <span>{definition.availableQuantity ?? "—"} quà còn lại</span>}
         </td>
         <td className="px-4 py-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +96,7 @@ export function MerchantVoucherTableRow({
                 (definition.isActive ? "bg-[#edf4e9] text-[#357044]" : "bg-[#fff3dd] text-[#97682a]")
               }
             >
-              {definition.isActive ? "Đang hoạt động" : "Đã tắt"}
+              {definition.isActive ? "● Hoạt động" : "Đã tắt"}
             </span>
             <Button
               type="button"

@@ -15,10 +15,10 @@ export const vouchersService = {
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
     return vouchersRepository.listDefinitions(merchant.id, false);
   },
-  async listMerchantDefinitionsPage(ownerId: number, page: number, limit: number) {
+  async listMerchantDefinitionsPage(ownerId: number, filters: { page: number; limit: number; q?: string; type?: "DISCOUNT" | "REWARD"; status?: "active" | "inactive"; sort?: "newest" | "name" | "points" }) {
     const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
-    return vouchersRepository.listDefinitionsPage(merchant.id, page, limit);
+    return vouchersRepository.listDefinitionsPage(merchant.id, filters);
   },
   async updateDefinition(ownerId: number, id: number, patch: DefinitionPatch) {
     const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);

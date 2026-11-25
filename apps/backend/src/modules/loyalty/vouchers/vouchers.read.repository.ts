@@ -42,6 +42,7 @@ export function toDefinitionDto(
     discountAmount: item.discountAmount?.toFixed(0) ?? null,
     rewardDescription: item.rewardDescription,
     rewardProductId: item.rewardProductId,
+    rewardProductName: item.rewardProduct?.name ?? null,
     isActive: item.isActive,
     availableQuantity: stock
       ? stock.onHandQuantity - stock.reservedQuantity
@@ -111,15 +112,20 @@ export const definitionInclude = {
 export async function definitionDtos(
   merchantId: number,
   activeOnly: boolean,
-  paging?: { page: number; limit: number },
+  paging?: { page: number; limit: number; q?: string; type?: "DISCOUNT" | "REWARD"; status?: "active" | "inactive"; sort?: "newest" | "name" | "points" },
 ): Promise<DefinitionDto[]> {
   const records = await prisma.voucherDefinition.findMany({
     where: {
       merchantId,
       ...(activeOnly ? { isActive: true, ...availableRewardProduct } : {}),
+      ...(paging?.q ? { title: { contains: paging.q } } : {}),
+      ...(paging?.type ? { type: paging.type } : {}),
+      ...(paging?.status ? { isActive: paging.status === "active" } : {}),
     },
     include: definitionInclude,
-    orderBy: { id: "asc" },
+    orderBy: paging?.sort === "name" ? [{ title: "asc" }, { id: "asc" }]
+      : paging?.sort === "points" ? [{ pointsCost: "asc" }, { id: "asc" }]
+      : paging?.sort === "newest" ? [{ id: "desc" }] : [{ id: "asc" }],
     ...(paging ? { skip: (paging.page - 1) * paging.limit, take: paging.limit } : {}),
   });
   const ids = records
@@ -153,12 +159,22 @@ export const voucherReadRepository = {
   ): Promise<DefinitionDto[]> {
     return definitionDtos(merchantId, activeOnly);
   },
-  async listDefinitionsPage(merchantId: number, page: number, limit: number) {
-    const [definitions, totalItems] = await Promise.all([
-      definitionDtos(merchantId, false, { page, limit }),
-      prisma.voucherDefinition.count({ where: { merchantId } }),
+  async listDefinitionsPage(merchantId: number, filters: { page: number; limit: number; q?: string; type?: "DISCOUNT" | "REWARD"; status?: "active" | "inactive"; sort?: "newest" | "name" | "points" }) {
+    const common = {
+      merchantId,
+      ...(filters.q ? { title: { contains: filters.q } } : {}),
+      ...(filters.status ? { isActive: filters.status === "active" } : {}),
+    };
+    const [definitions, totalItems, groups] = await Promise.all([
+      definitionDtos(merchantId, false, filters),
+      prisma.voucherDefinition.count({ where: { ...common, ...(filters.type ? { type: filters.type } : {}) } }),
+      prisma.voucherDefinition.groupBy({ by: ["type"], where: common, _count: { _all: true } }),
     ]);
-    return { definitions, pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) } };
+    const discount = groups.find((group) => group.type === "DISCOUNT")?._count._all ?? 0;
+    const reward = groups.find((group) => group.type === "REWARD")?._count._all ?? 0;
+    return { definitions, counts: { all: discount + reward, discount, reward }, pagination: {
+      page: filters.page, limit: filters.limit, totalItems, totalPages: Math.ceil(totalItems / filters.limit),
+    } };
   },
   async getDefinition(id: number) {
     return prisma.voucherDefinition.findUnique({ where: { id } });

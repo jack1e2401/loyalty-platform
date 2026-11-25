@@ -11,7 +11,7 @@ type Props = {
 
 export function MerchantVouchersTable({ definitions, token, busyId, onToggle, onDefinitionChange }: Props) {
   return (
-    <div className="surface overflow-x-auto rounded-3xl">
+    <div className="surface -mt-px overflow-x-auto rounded-b-2xl border-t-0">
       <table
         aria-label="Danh sách voucher"
         className="w-full min-w-[760px] table-fixed border-collapse text-left"
@@ -27,7 +27,7 @@ export function MerchantVouchersTable({ definitions, token, busyId, onToggle, on
         <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
           <tr>
             <th scope="col" className="px-5 py-4">
-              Voucher
+              Tên voucher
             </th>
             <th scope="col" className="px-4 py-4">
               Loại
@@ -36,7 +36,7 @@ export function MerchantVouchersTable({ definitions, token, busyId, onToggle, on
               Điểm đổi
             </th>
             <th scope="col" className="px-4 py-4">
-              Số lượng
+              Tồn kho / Đã đổi
             </th>
             <th scope="col" className="px-4 py-4">
               Trạng thái
