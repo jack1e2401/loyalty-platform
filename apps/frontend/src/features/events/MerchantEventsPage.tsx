@@ -153,19 +153,7 @@ export function MerchantEventsPage() {
         description="Quản lý bài giới thiệu sự kiện và lịch trình hiển thị tại trang công khai của cửa hàng."
         action={
           <div className="flex flex-wrap gap-2">
-            {storeSlug && (
-              <Button asChild variant="outline">
-                <Link to={`/s/${storeSlug}/events`}>
-                  Trang sự kiện công khai <ArrowUpRight size={16} />
-                </Link>
-              </Button>
-            )}
-            <Button
-              onClick={() => {
-                setFormError("");
-                setFormTarget("new");
-              }}
-            >
+            <Button>
               <Plus size={16} /> Tạo sự kiện
             </Button>
           </div>

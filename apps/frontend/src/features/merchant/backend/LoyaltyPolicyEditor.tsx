@@ -83,9 +83,6 @@ export function LoyaltyPolicyEditor({
           <h1 className="text-xl font-semibold text-[#294833]">
             {isNewPolicy ? "Tạo chính sách mới" : "Chỉnh sửa chính sách hiện tại"}
           </h1>
-          <p className="mt-1 text-xs text-[#718075]">
-            Khi phát hành, hệ thống tạo phiên bản mới và giữ nguyên lịch sử trước đó.
-          </p>
         </div>
         <Link
           to="/merchant/loyalty/history"

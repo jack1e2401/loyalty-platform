@@ -148,7 +148,6 @@ export function MerchantProducts() {
         title="Sản phẩm"
         action={
           <Flex gap={8} wrap>
-            <Button onClick={() => navigate("/merchant/categories")}>Quản lý danh mục</Button>
             <Button type="primary" onClick={() => navigate("/merchant/products/new")}>
               Thêm sản phẩm
             </Button>
