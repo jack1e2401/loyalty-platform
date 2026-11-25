@@ -241,6 +241,7 @@ export const ordersRepository = {
   async getRefundPreview(
     merchantId: number,
     orderId: number,
+    challengePaging?: { page: number; limit: number },
   ): Promise<RefundPreviewDto> {
     return prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
@@ -277,13 +278,28 @@ export const ordersRepository = {
       const challengeEntries = await tx.challengeProgressEntry.findMany({
         where: { activity: { orderId: order.id, type: "ORDER_PAID" }, deltaValue: { gt: 0 } },
         include: { progress: { include: { challenge: true, grants: { where: { status: "GRANTED" }, orderBy: { cycle: "desc" }, take: 1 } } } },
+        ...(challengePaging ? { orderBy: { id: "asc" }, skip: (challengePaging.page - 1) * challengePaging.limit, take: challengePaging.limit } : {}),
       });
       const challenges = challengeEntries.map((entry) => {
         const progress = entry.progress; const challenge = progress.challenge; const grant = progress.grants[0] ?? null;
         const after = progress.currentValue.minus(entry.deltaValue); const belowTarget = after.lessThan(challenge.targetValue); const revoke = Boolean(grant && belowTarget);
         return { challengeId: challenge.id, title: challenge.title, type: challenge.type, targetValue: challenge.targetValue.toFixed(0), currentValueBefore: progress.currentValue.toFixed(0), currentValueAfter: after.toFixed(0), rewardStateBefore: progress.rewardState, rewardStateAfter: belowTarget ? "IN_PROGRESS" : progress.rewardState, grantStatusBefore: grant ? "GRANTED" as const : null, grantStatusAfter: revoke ? "REVERSED" as const : grant ? "GRANTED" as const : null, pointsToReverseExact: revoke && grant ? grant.pointsGranted.toFixed(12) : "0", budgetSpentBefore: challenge.budgetSpent.toFixed(12), budgetSpentAfter: revoke && grant ? challenge.budgetSpent.minus(grant.pointsGranted).toFixed(12) : challenge.budgetSpent.toFixed(12) };
       });
-      const challengeReversalTotal = challenges.reduce((sum, item) => sum.plus(item.pointsToReverseExact), points("0"));
+      const totals = challengePaging ? await tx.$queryRaw<{ totalItems: bigint; reversalTotal: Prisma.Decimal | null }[]>(Prisma.sql`
+        SELECT COUNT(*) AS totalItems, SUM(CASE WHEN progress.currentValue - entry.deltaValue < challenge.targetValue
+          THEN COALESCE((SELECT grantRow.pointsGranted FROM \`ChallengeRewardGrant\` grantRow
+            WHERE grantRow.progressId = progress.id AND grantRow.status = 'GRANTED'
+            ORDER BY grantRow.cycle DESC LIMIT 1), 0) ELSE 0 END) AS reversalTotal
+        FROM \`ChallengeProgressEntry\` entry
+        JOIN \`MemberActivity\` activity ON activity.id = entry.activityId
+        JOIN \`ChallengeProgress\` progress ON progress.id = entry.progressId
+        JOIN \`Challenge\` challenge ON challenge.id = progress.challengeId
+        WHERE activity.orderId = ${order.id} AND activity.type = 'ORDER_PAID' AND entry.deltaValue > 0
+      `) : null;
+      const challengeReversalTotal = totals
+        ? points(totals[0]?.reversalTotal ?? "0")
+        : challenges.reduce((sum, item) => sum.plus(item.pointsToReverseExact), points("0"));
+      const challengeTotal = Number(totals?.[0]?.totalItems ?? 0);
       const walletBefore = describeWallet(wallet);
       const projectedBalance = points(wallet?.exactBalance ?? "0").minus(originalEarned).minus(challengeReversalTotal);
       const projectedLifetime = points(wallet?.netLifetimeEarned ?? "0").minus(originalEarned).minus(challengeReversalTotal);
@@ -309,6 +325,9 @@ export const ordersRepository = {
           order.voucherId && order.voucher?.status === "USED",
         ),
         challenges,
+        ...(challengePaging ? { challengePagination: {
+          ...challengePaging, totalItems: challengeTotal, totalPages: Math.ceil(challengeTotal / challengePaging.limit),
+        } } : {}),
       };
     });
   },

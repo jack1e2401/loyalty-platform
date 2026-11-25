@@ -27,6 +27,7 @@ export interface ChallengeRefundImpactDto {
 
 export interface ExtendedRefundPreviewDto extends RefundPreviewDto {
   challenges?: ChallengeRefundImpactDto[];
+  challengePagination?: RefundRequestPaginationDto;
 }
 
 export interface RefundRequestDto {

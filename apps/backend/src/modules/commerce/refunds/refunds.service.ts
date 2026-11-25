@@ -89,7 +89,7 @@ export const refundsService = {
     return { items, pagination: pageInfo(page, limit, totalItems) };
   },
 
-  async detail(id: number, merchantId: number, paging?: { page: number; limit: number }) {
+  async detail(id: number, merchantId: number, paging?: { page: number; limit: number }, challengePaging?: { page: number; limit: number }) {
     const request = await prisma.refundRequest.findFirst({
       where: { id, merchantId },
       include: {
@@ -104,7 +104,7 @@ export const refundsService = {
     });
     if (!request) throw new HttpError(404, "REFUND_REQUEST_NOT_FOUND");
     const [preview, totalItems] = await Promise.all([
-      ordersRepository.getRefundPreview(request.merchantId, request.orderId),
+      ordersRepository.getRefundPreview(request.merchantId, request.orderId, challengePaging),
       paging ? prisma.orderItem.count({ where: { orderId: request.orderId, order: { merchantId } } }) : Promise.resolve(0),
     ]);
     const { order, merchant, member, reconciliationAttempts, ...refundRequest } = request;

@@ -136,6 +136,7 @@ export type RefundPreviewDto = {
   tierAfter: string;
   discountVoucherRestorable: boolean;
   challenges: ChallengeRefundImpactDto[];
+  challengePagination?: { page: number; limit: number; totalItems: number; totalPages: number };
 };
 export type ChallengeRefundImpactDto = {
   challengeId: number; title: string; type: string; targetValue: string; currentValueBefore: string; currentValueAfter: string;

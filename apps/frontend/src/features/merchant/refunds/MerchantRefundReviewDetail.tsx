@@ -36,6 +36,8 @@ type Props = {
 export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdated }: Props) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const [challengePage, setChallengePage] = useState(1);
+  const [challengeLimit, setChallengeLimit] = useState(20);
   const [data, setData] = useState<RefundRequestDetailResponse | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -47,7 +49,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
     setData(null);
     setError("");
     api
-      .getMerchantRefundRequest(requestId, token, { page, limit })
+      .getMerchantRefundRequest(requestId, token, { page, limit, challengePage, challengeLimit })
       .then((result) => {
         if (active) setData(result);
       })
@@ -58,7 +60,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
     return () => {
       active = false;
     };
-  }, [requestId, token, page, limit]);
+  }, [requestId, token, page, limit, challengePage, challengeLimit]);
 
   async function decide(action: "approve" | "reject") {
     if (busy || (action === "reject" && !note.trim())) return;
@@ -194,7 +196,9 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
               <Typography.Paragraph type="secondary" className="!mb-3">
                 Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
               </Typography.Paragraph>
-              <MerchantRefundPreview preview={data.preview} />
+              <MerchantRefundPreview preview={data.preview} onChallengePageChange={(nextPage, nextLimit) => {
+                setChallengePage(nextPage); setChallengeLimit(nextLimit);
+              }} />
             </>
           )}
         </Card>

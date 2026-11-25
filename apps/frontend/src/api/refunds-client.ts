@@ -62,8 +62,8 @@ export function createRefundsClient(
       );
     },
 
-    getMerchantRefundRequest(requestId: number, token: string, paging?: { page: number; limit: number }) {
-      const query = paging ? `?page=${paging.page}&limit=${paging.limit}` : "";
+    getMerchantRefundRequest(requestId: number, token: string, paging?: { page: number; limit: number; challengePage: number; challengeLimit: number }) {
+      const query = paging ? `?page=${paging.page}&limit=${paging.limit}&challengePage=${paging.challengePage}&challengeLimit=${paging.challengeLimit}` : "";
       return requestJson<RefundRequestDetailResponse>(
         fetcher,
         baseUrl,

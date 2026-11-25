@@ -1,5 +1,6 @@
 import { Space, type TableColumnsType } from "antd";
 import type { ExtendedRefundPreviewDto } from "../../../api/refunds-types";
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable } from "../cms";
 import { challengeRewardStateLabel } from "../challenges/challenge-labels";
 
@@ -7,7 +8,10 @@ type PreviewRow = { key: string; metric: string; before: string; after: string }
 const money = (value: string) => `${Number(value).toLocaleString("vi-VN")} ₫`;
 const formatPts = (value: string) => Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 4 });
 
-export function MerchantRefundPreview({ preview }: { preview: ExtendedRefundPreviewDto }) {
+export function MerchantRefundPreview({ preview, onChallengePageChange }: {
+  preview: ExtendedRefundPreviewDto;
+  onChallengePageChange: (page: number, limit: number) => void;
+}) {
   const rows: PreviewRow[] = [
     { key: "amount", metric: "Số tiền hoàn", before: "0 ₫", after: money(preview.refundAmountVnd) },
     {
@@ -48,6 +52,8 @@ export function MerchantRefundPreview({ preview }: { preview: ExtendedRefundPrev
       {challengeRows.length > 0 ? (
         <CmsDataTable label="Tác động đến nhiệm vụ" rows={challengeRows} columns={columns} rowKey="key" />
       ) : null}
+      {preview.challengePagination && preview.challengePagination.totalItems > 0 && <MerchantPagination
+        {...preview.challengePagination} onChange={onChallengePageChange} />}
     </Space>
   );
 }
