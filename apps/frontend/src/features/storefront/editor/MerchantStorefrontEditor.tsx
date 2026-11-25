@@ -238,12 +238,12 @@ export function MerchantStorefrontEditor() {
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link to={`/s/${merchant.slug}?preview=draft`}>
+              <Link to={`/s/${merchant.slug}?preview=draft`} target="_blank" rel="noopener noreferrer">
                 Xem trước bản nháp <ArrowUpRight aria-hidden="true" size={15} />
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link to={`/s/${merchant.slug}`}>
+              <Link to={`/s/${merchant.slug}`} target="_blank" rel="noopener noreferrer">
                 Trang công khai <ArrowUpRight aria-hidden="true" size={15} />
               </Link>
             </Button>

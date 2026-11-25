@@ -265,6 +265,30 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
     await screen.findByRole("link", { name: /Đơn hàng của tôi/i });
   });
 
+  it("keeps merchants in the storefront when they open a member page", async () => {
+    sessionStorage.setItem("loyalty.m2.session", JSON.stringify({
+      accessToken: "merchant-token",
+      user: { id: 10, email: "owner@test.local", role: "MERCHANT", isActive: true },
+    }));
+    storefrontFetchHandler = async () => Response.json(sampleStorefront);
+    render(
+      <AuthSessionProvider>
+        <MemoryRouter initialEntries={["/s/ca-phe-moc/wallet"]}>
+          <Routes>
+            <Route path="/s/:slug" element={<StorefrontShellLayout />}>
+              <Route element={<StorefrontAuthGate />}>
+                <Route path="wallet" element={<div>Ví điểm</div>} />
+              </Route>
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </AuthSessionProvider>,
+    );
+    expect(await screen.findByRole("dialog", { name: "Đăng nhập tài khoản Member" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tiếp tục xem cửa hàng" })).toBeInTheDocument();
+    sessionStorage.clear();
+  });
+
   it("keeps the profile and order list in the breadcrumb when opening order detail directly", () => {
     render(
       <MemoryRouter initialEntries={["/s/ca-phe-moc/orders/41"]}>

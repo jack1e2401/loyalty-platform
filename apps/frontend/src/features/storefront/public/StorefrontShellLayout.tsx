@@ -1,4 +1,4 @@
-import { Link, NavLink, Navigate, Outlet, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   House,
   ShoppingCart,
@@ -8,10 +8,11 @@ import {
   Wallet,
   Trophy,
 } from "@phosphor-icons/react";
-import { routeForRole, useAuthSession } from "../../../api/auth-session";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useAuthSession } from "../../../api/auth-session";
 import { createStorefrontClient, resolveStorefrontAssetUrl } from "../../../api/storefront-client";
 import { useResource } from "../../../api/useResource";
-import { ErrorState, LoadingState } from "../../../components/ui";
+import { Button, ErrorState, LoadingState } from "../../../components/ui";
 import { useEnsureMembership } from "../../customers/useEnsureMembership";
 import { useMemberCart } from "../../member/useMemberCart";
 import {
@@ -260,16 +261,35 @@ function StorefrontChrome({ storageKey, data }: { storageKey: string; data: Stor
 }
 
 export function StorefrontAuthGate() {
-  const { user } = useAuthSession();
+  const { user, logout } = useAuthSession();
   const location = useLocation();
+  const navigate = useNavigate();
+  const shell = useStorefrontShell();
   const returnTo = encodeURIComponent(`${location.pathname}${location.search}`);
+  const basePath = shell?.basePath ?? "/";
 
   if (!user) {
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
   }
   if (user.role !== "MEMBER") {
-    return <Navigate to={routeForRole(user.role)} replace />;
+    return (
+      <Dialog.Root open onOpenChange={(open) => { if (!open) navigate(basePath, { replace: true }); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl">
+            <Dialog.Title className="text-xl font-bold">Đăng nhập tài khoản Member</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-[#53685a]">
+              Bạn đang đăng nhập bằng tài khoản Merchant. Đăng nhập bằng tài khoản Member để sử dụng chức năng này.
+            </Dialog.Description>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={() => navigate(basePath, { replace: true })}>Tiếp tục xem cửa hàng</Button>
+              <Button onClick={() => { logout(); navigate(`/login?returnTo=${returnTo}`, { replace: true }); }}>Đăng nhập bằng tài khoản Member</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    );
   }
 
-  return <Outlet context={useStorefrontShell()} />;
+  return <Outlet context={shell} />;
 }
