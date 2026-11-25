@@ -235,7 +235,15 @@ describe("V4 Workstreams D & E UI", () => {
   it("renders MerchantAnalyticsPage KPIs, chart, tables, and validates range", async () => {
     setSession("MERCHANT");
     mockFetchHandler = vi.fn(async (input: RequestInfo | URL) => {
-      if (String(input).includes("/api/merchant/analytics")) {
+      const url = String(input);
+      if (url.includes("/api/merchant/analytics/products/")) {
+        const name = url.includes("/top?") ? "Cà phê sữa" : url.includes("/low-stock?") ? "Bánh mì" : "Trà đào";
+        return Response.json({
+          items: [{ productId: 1, productName: name, sku: null, unitsSold: 1, revenueVnd: "35000", availableQuantity: 2, lowStockThreshold: 5, lastSoldAt: null }],
+          pagination: { page: 1, limit: 20, totalItems: 1, totalPages: 1 },
+        });
+      }
+      if (url.includes("/api/merchant/analytics")) {
         return Response.json({
           range: { from: "2026-11-01", to: "2026-11-16", granularity: "day", timezone: "Asia/Ho_Chi_Minh" },
           kpis: {

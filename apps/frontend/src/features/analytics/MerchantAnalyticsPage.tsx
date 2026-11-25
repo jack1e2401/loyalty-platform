@@ -51,7 +51,7 @@ export function MerchantAnalyticsPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const resource = useResource(
-    () => analyticsApi.getMerchantAnalytics(applied, accessToken!),
+    () => analyticsApi.getMerchantAnalytics(applied, accessToken!, true),
     [accessToken, applied.from, applied.to, applied.granularity],
   );
 
@@ -200,12 +200,7 @@ export function MerchantAnalyticsPage() {
               )}
             </Card>
 
-            <AnalyticsProductTables
-              topProducts={data.topProducts}
-              slowMovingProducts={data.slowMovingProducts}
-              noSales90DaysProducts={data.noSales90DaysProducts}
-              lowStockProducts={data.lowStockProducts}
-            />
+            <AnalyticsProductTables key={JSON.stringify(applied)} query={applied} token={accessToken!} />
           </>
         )
       )}

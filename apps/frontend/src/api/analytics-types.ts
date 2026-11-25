@@ -179,3 +179,15 @@ export interface MerchantAnalyticsResponse {
   noSales90DaysProducts: NoSalesProductDto[];
   lowStockProducts: LowStockProductDto[];
 }
+
+
+export interface AnalyticsProductRow {
+  productId: number;
+  productName: string;
+  sku: string | null;
+  unitsSold: number;
+  revenueVnd: string;
+  availableQuantity: number;
+  lowStockThreshold: number;
+  lastSoldAt: string | null;
+}

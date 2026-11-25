@@ -1,3 +1,4 @@
+import type { AnalyticsProductRow, PaginationDto } from "./analytics-types";
 import type {
   CustomerDetailResponse,
   CustomerListQuery,
@@ -99,11 +100,22 @@ export function createAnalyticsClient(baseUrl: string, fetcher: FetchLike = fetc
       );
     },
 
-    getMerchantAnalytics(query: MerchantAnalyticsQuery, token: string) {
+    getAnalyticsProductTable(table: "top" | "slow" | "no-sales" | "low-stock", query: MerchantAnalyticsQuery & { page: number; limit: number }, token: string) {
+      const params = new URLSearchParams({ page: String(query.page), limit: String(query.limit) });
+      if (query.from) params.set("from", query.from);
+      if (query.to) params.set("to", query.to);
+      if (query.granularity) params.set("granularity", query.granularity);
+      return requestAnalyticsJson<{ items: AnalyticsProductRow[]; pagination: PaginationDto }>(
+        fetcher, baseUrl, `/api/merchant/analytics/products/${table}?${params}`, { token },
+      );
+    },
+
+    getMerchantAnalytics(query: MerchantAnalyticsQuery, token: string, summaryOnly = false) {
       const params = new URLSearchParams();
       if (query.from) params.set("from", query.from);
       if (query.to) params.set("to", query.to);
       if (query.granularity) params.set("granularity", query.granularity);
+      if (summaryOnly) params.set("summary", "1");
       const qs = params.toString();
       return requestAnalyticsJson<MerchantAnalyticsResponse>(
         fetcher,

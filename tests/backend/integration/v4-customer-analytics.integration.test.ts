@@ -452,6 +452,36 @@ test("Merchant Analytics V1 computes exact revenue, VN timezones, product rankin
     ],
   );
 
+  for (const [table, expected] of [
+    ["top", res.json.topProducts],
+    ["slow", res.json.slowMovingProducts],
+    ["no-sales", res.json.noSales90DaysProducts],
+    ["low-stock", res.json.lowStockProducts],
+  ] as const) {
+    const paged = await request<{ items: { productId: number }[]; pagination: { totalItems: number } }>(
+      `/api/merchant/analytics/products/${table}?from=2026-11-15&to=2026-11-17&page=1&limit=1`, "GET", store.ownerToken,
+    );
+    assert.equal(paged.status, 200);
+    assert.equal(paged.json.items[0]?.productId, expected[0]?.productId);
+    assert.ok(paged.json.pagination.totalItems >= expected.length);
+  }
+  const slowSecond = await request<{ items: { productId: number }[]; pagination: { totalItems: number; totalPages: number } }>(
+    "/api/merchant/analytics/products/slow?from=2026-11-15&to=2026-11-17&page=2&limit=1", "GET", store.ownerToken,
+  );
+  assert.equal(slowSecond.status, 200);
+  assert.equal(slowSecond.json.pagination.totalItems, 2);
+  assert.equal(slowSecond.json.pagination.totalPages, 2);
+  assert.equal(slowSecond.json.items[0]?.productId, res.json.slowMovingProducts[1]?.productId);
+  const invalidPage = await request("/api/merchant/analytics/products/top?page=0&limit=20", "GET", store.ownerToken);
+  assert.equal(invalidPage.status, 400);
+
+  const summary = await request<{ kpis: { qualifyingOrderRevenueVnd: string }; topProducts?: unknown }>(
+    "/api/merchant/analytics?from=2026-11-15&to=2026-11-17&summary=1", "GET", store.ownerToken,
+  );
+  assert.equal(summary.status, 200);
+  assert.equal(summary.json.kpis.qualifyingOrderRevenueVnd, res.json.kpis.qualifyingOrderRevenueVnd);
+  assert.equal(summary.json.topProducts, undefined);
+
   assert.equal(res.json.topProducts.length, 1);
   assert.equal(res.json.topProducts[0]!.productId, hotProd.json.product.id);
   assert.equal(res.json.topProducts[0]!.unitsSold, 3);
