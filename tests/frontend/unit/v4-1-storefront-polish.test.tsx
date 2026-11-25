@@ -97,7 +97,7 @@ const sampleStorefront = {
     branding: {
       logoUrl: null,
       bannerUrl: null,
-      primaryColor: "#335e3d",
+      primaryColor: "#49382d",
       heroTitle: "Hương vị cà phê nguyên bản",
       heroDescription: "Rang mộc mỗi sáng.",
       heroImageUrl: null,
@@ -235,6 +235,9 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
     );
 
     await screen.findByRole("heading", { name: "Hương vị cà phê nguyên bản" });
+    expect(document.querySelector(".storefront-theme")).toHaveStyle({ "--storefront-accent": "#49382d" });
+    expect(document.documentElement).toHaveAttribute("data-storefront-active");
+    expect(document.documentElement.style.getPropertyValue("--storefront-accent")).toBe("#49382d");
     expect(await screen.findByText("Thành viên Bronze")).toBeInTheDocument();
     const bottomNav = screen.getByRole("navigation", { name: "Điều hướng Mini App" });
     expect(bottomNav).toHaveTextContent("Trang chủ");
@@ -263,6 +266,22 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
     expect(within(breadcrumb).getByRole("link", { name: "Cá nhân" })).toHaveAttribute("href", "/s/ca-phe-moc/profile");
     fireEvent.click(screen.getByRole("link", { name: "Quay lại Cá nhân" }));
     await screen.findByRole("link", { name: /Đơn hàng của tôi/i });
+  });
+
+  it("cleans the storefront theme when leaving the store", async () => {
+    storefrontFetchHandler = async () => Response.json(sampleStorefront);
+    const view = render(
+      <AuthSessionProvider>
+        <MemoryRouter initialEntries={["/s/ca-phe-moc"]}>
+          <Routes><Route path="/s/:slug" element={<StorefrontShellLayout />}><Route index element={<p>Store content</p>} /></Route></Routes>
+        </MemoryRouter>
+      </AuthSessionProvider>,
+    );
+    await screen.findByText("Store content");
+    expect(document.documentElement.style.getPropertyValue("--storefront-accent")).toBe("#49382d");
+    view.unmount();
+    expect(document.documentElement).not.toHaveAttribute("data-storefront-active");
+    expect(document.documentElement.style.getPropertyValue("--storefront-accent")).toBe("");
   });
 
   it("keeps merchants in the storefront when they open a member page", async () => {

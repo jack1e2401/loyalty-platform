@@ -1,4 +1,5 @@
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, type CSSProperties } from "react";
 import {
   House,
   ShoppingCart,
@@ -21,6 +22,8 @@ import {
   type StorefrontShellData,
 } from "../shared/storefront-context";
 import { Breadcrumbs } from "../../../components/ui/Breadcrumbs";
+import { storefrontAccent } from "../shared/storefront-theme";
+import "../shared/storefront-theme.css";
 
 const storefrontApi = createStorefrontClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 
@@ -76,7 +79,24 @@ export function StorefrontShellLayout() {
 function StorefrontChrome({ storageKey, data }: { storageKey: string; data: StorefrontShellData }) {
   const location = useLocation();
   const cart = useMemberCart(storageKey, data.merchant.id);
-  const accent = data.config.branding.primaryColor || "#335e3d";
+  const accent = storefrontAccent(data.config.branding.primaryColor);
+  const themedStorefront = useMemo(() => ({
+    ...data,
+    config: { ...data.config, branding: { ...data.config.branding, primaryColor: accent } },
+  }), [data, accent]);
+  useEffect(() => {
+    const root = document.documentElement;
+    const previousAccent = root.style.getPropertyValue("--storefront-accent");
+    const previousActive = root.getAttribute("data-storefront-active");
+    root.style.setProperty("--storefront-accent", accent);
+    root.setAttribute("data-storefront-active", "");
+    return () => {
+      if (previousAccent) root.style.setProperty("--storefront-accent", previousAccent);
+      else root.style.removeProperty("--storefront-accent");
+      if (previousActive === null) root.removeAttribute("data-storefront-active");
+      else root.setAttribute("data-storefront-active", previousActive);
+    };
+  }, [accent]);
   const basePath = `/s/${data.merchant.slug}`;
   const logoSrc = resolveStorefrontAssetUrl(data.config.branding.logoUrl);
   const cartCount = cart.quantity;
@@ -94,12 +114,12 @@ function StorefrontChrome({ storageKey, data }: { storageKey: string; data: Stor
     basePath,
     slug: data.merchant.slug,
     accent,
-    storefront: data,
+    storefront: themedStorefront,
     cart,
   };
 
   return (
-    <div className="min-h-dvh bg-[#fcfcf8] pb-20 lg:pb-8">
+    <div className="storefront-theme min-h-dvh bg-[#fcfcf8] pb-20 lg:pb-8" style={{ "--storefront-accent": accent } as CSSProperties}>
 
       <header className="sticky top-0 z-20 border-b border-[#e5ece3] bg-[#fcfcf8]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-3 sm:px-6">

@@ -64,7 +64,7 @@ export function LoyaltyWalletContent({
       <div className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
         <Card
           className="relative overflow-hidden p-5 text-white sm:p-8"
-          style={{ backgroundColor: "#2f583a", color: "white" }}
+          style={{ backgroundColor: "var(--storefront-accent, #2f583a)", color: "white" }}
         >
           <p className="text-sm font-semibold text-white/70">Điểm có thể sử dụng</p>
           <p className="mt-2 break-words text-3xl font-extrabold tracking-[-.05em] sm:text-5xl lg:text-6xl">

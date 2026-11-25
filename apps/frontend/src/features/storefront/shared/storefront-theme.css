@@ -1,0 +1,28 @@
+/* Scoped to customer storefront routes; merchant and admin keep their own palette. */
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="bg-[#335e3d]"], [class~="bg-[#315c3c]"], [class~="bg-[#315e3c]"], [class~="bg-[#357044]"], [class~="bg-[#244c34]"], [class~="bg-[#4d8057]"], [class~="bg-[#3e754a]"]) {
+  background-color: var(--storefront-accent);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="text-[#335e3d]"], [class~="text-[#315c3c]"], [class~="text-[#315e3c]"], [class~="text-[#24452f]"], [class~="text-[#356343]"], [class~="text-[#274b34]"], [class~="text-[#294a32]"], [class~="text-[#3e754a]"], [class~="text-[#4d8057]"]) {
+  color: var(--storefront-accent);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) [class~="text-[#c5e89b]"] {
+  color: white;
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="bg-[#e8f1e2]"], [class~="bg-[#edf4e9]"], [class~="bg-[#e8efe2]"], [class~="bg-[#edf2e9]"], [class~="bg-[#e8efe4]"]) {
+  background-color: color-mix(in srgb, var(--storefront-accent) 10%, white);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="border-[#335e3d]"], [class~="border-[#3e754a]"]) {
+  border-color: var(--storefront-accent);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="hover:bg-[#264c30]"], [class~="hover:bg-[#315c3c]"]):hover {
+  background-color: color-mix(in srgb, var(--storefront-accent) 85%, black);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="hover:bg-[#edf4e9]"], [class~="hover:bg-[#eff5eb]"], [class~="hover:bg-[#e1ecd9]"], [class~="hover:bg-[#d9e9d1]"]):hover {
+  background-color: color-mix(in srgb, var(--storefront-accent) 16%, white);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="hover:text-[#24452f]"], [class~="hover:text-[#2f583a]"]):hover {
+  color: var(--storefront-accent);
+}
+:is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="focus-visible:ring-[#335e3d]"], [class~="focus-visible:ring-[#b6dabc]"]):focus-visible {
+  --tw-ring-color: var(--storefront-accent);
+}
