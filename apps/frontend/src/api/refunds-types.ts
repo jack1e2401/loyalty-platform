@@ -68,6 +68,7 @@ export interface RefundRequestListResponse {
 }
 
 export interface RefundRequestDetailResponse {
+  itemPagination?: RefundRequestPaginationDto;
   refundRequest: RefundRequestDto;
   order: OrderDto;
   merchant?: { id: number; name: string; slug: string };

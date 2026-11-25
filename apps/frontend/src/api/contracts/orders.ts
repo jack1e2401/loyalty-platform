@@ -80,7 +80,7 @@ interface OrderLineInput {
 
 export type CreateOrderInput = (OrderLineInput | { items: OrderLineInput[] }) & { voucherId?: number };
 
-export type OrderResponse = { order: OrderDto };
+export type OrderResponse = { order: OrderDto; itemPagination?: { page: number; limit: number; totalItems: number; totalPages: number } };
 
 export interface CancelOrderResponse {
   order: OrderDto;

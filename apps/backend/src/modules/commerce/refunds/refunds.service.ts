@@ -89,11 +89,11 @@ export const refundsService = {
     return { items, pagination: pageInfo(page, limit, totalItems) };
   },
 
-  async detail(id: number, merchantId: number) {
+  async detail(id: number, merchantId: number, paging?: { page: number; limit: number }) {
     const request = await prisma.refundRequest.findFirst({
       where: { id, merchantId },
       include: {
-        order: { include: { items: true, refund: true, refundRequest: true, pointTransactions: true } },
+        order: { include: { items: paging ? { orderBy: { id: "asc" }, skip: (paging.page - 1) * paging.limit, take: paging.limit } : true, refund: true, refundRequest: true, pointTransactions: true } },
         merchant: { select: { id: true, name: true, slug: true } },
         member: { select: { id: true, email: true } },
         reconciliationAttempts: {
@@ -103,7 +103,10 @@ export const refundsService = {
       },
     });
     if (!request) throw new HttpError(404, "REFUND_REQUEST_NOT_FOUND");
-    const preview = await ordersRepository.getRefundPreview(request.merchantId, request.orderId);
+    const [preview, totalItems] = await Promise.all([
+      ordersRepository.getRefundPreview(request.merchantId, request.orderId),
+      paging ? prisma.orderItem.count({ where: { orderId: request.orderId, order: { merchantId } } }) : Promise.resolve(0),
+    ]);
     const { order, merchant, member, reconciliationAttempts, ...refundRequest } = request;
     const settlement = order.refund ? {
       status: order.refund.status,
@@ -113,6 +116,7 @@ export const refundsService = {
     return {
       refundRequest,
       order: toOrderDto(order),
+      ...(paging ? { itemPagination: pageInfo(paging.page, paging.limit, totalItems) } : {}),
       merchant,
       member,
       preview,

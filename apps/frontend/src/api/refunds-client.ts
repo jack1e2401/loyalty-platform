@@ -62,11 +62,12 @@ export function createRefundsClient(
       );
     },
 
-    getMerchantRefundRequest(requestId: number, token: string) {
+    getMerchantRefundRequest(requestId: number, token: string, paging?: { page: number; limit: number }) {
+      const query = paging ? `?page=${paging.page}&limit=${paging.limit}` : "";
       return requestJson<RefundRequestDetailResponse>(
         fetcher,
         baseUrl,
-        `/api/merchant/refund-requests/${requestId}`,
+        `/api/merchant/refund-requests/${requestId}${query}`,
         { token },
       );
     },

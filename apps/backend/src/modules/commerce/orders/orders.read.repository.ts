@@ -93,16 +93,18 @@ export const orderReadRepository = {
     };
   },
 
-  async findMerchantOrder(merchantId: number, orderId: number) {
+  async findMerchantOrder(merchantId: number, orderId: number, paging?: { page: number; limit: number }) {
     const order = await prisma.order.findFirst({
       where: { id: orderId, merchantId },
       include: {
-        items: true,
+        items: paging ? { orderBy: { id: "asc" }, skip: (paging.page - 1) * paging.limit, take: paging.limit } : true,
         pointTransactions: true,
         refund: true,
         refundRequest: true,
       },
     });
-    return order ? toOrderReadDto(order) : null;
+    if (!order) return null;
+    const totalItems = paging ? await prisma.orderItem.count({ where: { orderId, order: { merchantId } } }) : 0;
+    return { order: toOrderReadDto(order), ...(paging ? { itemPagination: { ...paging, totalItems, totalPages: Math.ceil(totalItems / paging.limit) } } : {}) };
   },
 };

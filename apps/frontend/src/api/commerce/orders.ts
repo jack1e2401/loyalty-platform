@@ -37,8 +37,9 @@ export function createOrdersClient(baseUrl = "", fetcher: typeof fetch = fetch) 
       const query = filters ? `?${new URLSearchParams({ page: String(filters.page), limit: String(filters.limit), q: filters.q ?? "", status: filters.status ?? "" })}` : "";
       return requestJson<MerchantOrdersResponse>(fetcher, baseUrl, `/api/merchant/orders${query}`, { token });
     },
-    getMerchantOrder(orderId: number, token: string) {
-      return requestJson<OrderResponse>(fetcher, baseUrl, `/api/merchant/orders/${orderId}`, { token });
+    getMerchantOrder(orderId: number, token: string, paging?: { page: number; limit: number }) {
+      const query = paging ? `?page=${paging.page}&limit=${paging.limit}` : "";
+      return requestJson<OrderResponse>(fetcher, baseUrl, `/api/merchant/orders/${orderId}${query}`, { token });
     },
     cancelOrder(orderId: number, token: string) {
       return requestJson<CancelOrderResponse>(fetcher, baseUrl, `/api/orders/${orderId}/cancel`, {

@@ -52,8 +52,11 @@ export const listMerchantOrders: RequestHandler = async (request, response) => {
 
 export const getMerchantOrder: RequestHandler = async (request, response) => {
   const orderId = readRouteId(request.params.orderId!);
-  const order = await ordersService.getMerchantOrder(response.locals.user.id, orderId);
-  response.json({ order });
+  const paging = request.query.page === undefined && request.query.limit === undefined ? undefined : {
+    page: readRouteId(request.query.page ?? "1"), limit: readRouteId(request.query.limit ?? "20"),
+  };
+  if (paging && (paging.page > 1_000_000 || paging.limit > 100)) throw new HttpError(400, "INVALID_INPUT");
+  response.json(await ordersService.getMerchantOrder(response.locals.user.id, orderId, paging));
 };
 
 export const cancelOrder: RequestHandler = async (request, response) => {

@@ -238,6 +238,15 @@ test("mock payment freezes the immutable published policy snapshot in member and
   assert.equal(merchantDetail.status, 200);
   assert.equal(merchantDetail.json.order.appliedLoyaltyPolicy?.policyVersionId, versionOne.id);
   assert.equal((await request(`/api/merchant/orders/${order.id}`, "GET", otherShop.token)).status, 404);
+  const pagedOrder = await request<{ order: { items: { productId: number }[]; appliedLoyaltyPolicy: { policyVersionId: number } | null }; itemPagination: { totalItems: number } }>(
+    `/api/merchant/orders/${order.id}?page=1&limit=1`, "GET", shop.token,
+  );
+  assert.equal(pagedOrder.status, 200);
+  assert.equal(pagedOrder.json.itemPagination.totalItems, 1);
+  assert.equal(pagedOrder.json.order.items.length, 1);
+  assert.equal(pagedOrder.json.order.appliedLoyaltyPolicy?.policyVersionId, versionOne.id);
+  assert.equal((await request(`/api/merchant/orders/${order.id}?page=1&limit=1`, "GET", otherShop.token)).status, 404);
+
 
   await savePolicy(shop, { publishAsNewVersion: true });
   const explicitNewPolicyHistory = await request<{ versions: { version: number; vndPerPoint: number; qualificationMode: string | null; reset: unknown }[] }>(

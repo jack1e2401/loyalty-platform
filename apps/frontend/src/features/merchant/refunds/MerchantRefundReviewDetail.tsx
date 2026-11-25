@@ -17,6 +17,7 @@ import type {
   RefundRequestDetailResponse,
   RefundRequestStatus,
 } from "../../../api/refunds-types";
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable, CmsDetailLayout, CmsStatusTag } from "../cms";
 import { isRefundAwaitingMerchant, refundRequestStatusLabel } from "../../refunds/refund-status";
 import { MerchantRefundReconciliationPanel } from "./MerchantRefundReconciliationPanel";
@@ -33,6 +34,8 @@ type Props = {
 };
 
 export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdated }: Props) {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [data, setData] = useState<RefundRequestDetailResponse | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -44,7 +47,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
     setData(null);
     setError("");
     api
-      .getMerchantRefundRequest(requestId, token)
+      .getMerchantRefundRequest(requestId, token, { page, limit })
       .then((result) => {
         if (active) setData(result);
       })
@@ -55,7 +58,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
     return () => {
       active = false;
     };
-  }, [requestId, token]);
+  }, [requestId, token, page, limit]);
 
   async function decide(action: "approve" | "reject") {
     if (busy || (action === "reject" && !note.trim())) return;
@@ -174,6 +177,8 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
           columns={orderColumns}
           rowKey="productId"
         />
+        {data.itemPagination && <MerchantPagination {...data.itemPagination}
+          onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
       </Card>
       {pending ? (
         <Card title="Tác động dự kiến khi hoàn tiền" size="small">

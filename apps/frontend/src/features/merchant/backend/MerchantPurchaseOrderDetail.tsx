@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Card, Descriptions, Flex, Typography, type TableColumnsType } from "antd";
 import { Link } from "react-router-dom";
+import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable, CmsDetailLayout, CmsStatusTag } from "../cms";
 import { refundRequestStatusLabel } from "../../refunds/refund-status";
 import { formatPrice, orderStatusLabel } from "../merchant-page-support";
@@ -17,8 +18,12 @@ function statusTone(status: MerchantOrderRow["status"]) {
 
 export function MerchantPurchaseOrderDetail({
   order,
+  pagination,
+  onPageChange,
 }: {
   order: MerchantOrderRow;
+  pagination?: { page: number; limit: number; totalItems: number };
+  onPageChange: (page: number, limit: number) => void;
 }) {
   const [showPolicy, setShowPolicy] = useState(false);
   const itemColumns: TableColumnsType<MerchantOrderRow["items"][number]> = [
@@ -73,6 +78,7 @@ export function MerchantPurchaseOrderDetail({
       </Card>
       <Card title="Sản phẩm trong đơn" size="small">
         <CmsDataTable label="Sản phẩm trong đơn" rows={order.items} columns={itemColumns} rowKey="productId" />
+        {pagination && <MerchantPagination {...pagination} onChange={onPageChange} />}
       </Card>
       {order.paidAt ? (
         <Card

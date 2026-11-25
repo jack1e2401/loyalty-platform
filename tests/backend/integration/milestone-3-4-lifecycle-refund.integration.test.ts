@@ -441,6 +441,12 @@ test("9. wrong merchant 403: Merchant B cannot preview or refund Merchant A's or
   const { json } = await request(`/api/orders/${orderId}/refund-request`, "POST", memberAToken, { reason: "Wrong item" });
   const refundPath = `/api/merchant/refund-requests/${json.refundRequest.id}`;
   assert.equal((await request(refundPath, "GET", merchantBToken)).response.status, 404);
+  const pagedDetail = await request(`${refundPath}?page=1&limit=1`, "GET", merchantAToken);
+  assert.equal(pagedDetail.response.status, 200);
+  assert.equal(pagedDetail.json.itemPagination.totalItems, 1);
+  assert.equal(pagedDetail.json.order.items.length, 1);
+  assert.equal((await request(`${refundPath}?page=1&limit=1`, "GET", merchantBToken)).response.status, 404);
+
   assert.equal((await request(`${refundPath}/approve`, "POST", merchantBToken)).response.status, 404);
   assert.equal((await request(`${refundPath}/reject`, "POST", merchantBToken, { reason: "Not ours" })).response.status, 404);
   const [approved, rejected] = await Promise.all([

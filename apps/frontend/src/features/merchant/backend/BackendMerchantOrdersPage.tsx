@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Flex, Input, Segmented, Select, Spin, Typography } from "antd";
+import type { OrderDto } from "../../../api/commerce-types";
 import { useResource } from "../../../api/useResource";
 import { EmptyState, ErrorState } from "../../../components/ui";
 import { MerchantPagination } from "../cms/MerchantPagination";
@@ -67,11 +68,17 @@ function MerchantPurchaseOrders({ orderId }: { orderId: number | null }) {
   const [status, setStatus] = useState("ALL");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
-  const resource = useResource(
+  const [itemPage, setItemPage] = useState(1);
+  const [itemLimit, setItemLimit] = useState(20);
+  const resource = useResource<{
+    orders: (OrderDto & { memberEmail?: string })[];
+    pagination?: { page: number; limit: number; totalItems: number; totalPages: number };
+    itemPagination?: { page: number; limit: number; totalItems: number; totalPages: number };
+  }>(
     () => orderId === null
-      ? api.listMerchantOrders(token, { page, limit, q: query.trim(), status: status === "ALL" ? "" : status })
-      : api.getMerchantOrder(orderId, token).then(({ order }) => ({ orders: [order], pagination: undefined })),
-    [token, orderId, page, limit, query, status],
+      ? api.listMerchantOrders(token, { page, limit, q: query.trim(), status: status === "ALL" ? "" : status }).then((response) => ({ ...response, itemPagination: undefined }))
+      : api.getMerchantOrder(orderId, token, { page: itemPage, limit: itemLimit }).then(({ order, itemPagination }) => ({ orders: [order], pagination: undefined, itemPagination })),
+    [token, orderId, page, limit, query, status, itemPage, itemLimit],
   );
   const orders = resource.data?.orders ?? [];
 
@@ -79,7 +86,8 @@ function MerchantPurchaseOrders({ orderId }: { orderId: number | null }) {
     if (resource.loading) return <Flex justify="center" className="py-10"><Spin description="Đang tải đơn hàng…" /></Flex>;
     if (resource.error) return <ErrorState message={resource.error} retry={resource.reload} />;
     const order = orders[0];
-    return order ? <MerchantPurchaseOrderDetail order={order} /> : <EmptyState title="Chưa có đơn hàng" description="Không tìm thấy đơn hàng." />;
+    return order ? <MerchantPurchaseOrderDetail order={order} pagination={resource.data?.itemPagination}
+      onPageChange={(page, limit) => { setItemPage(page); setItemLimit(limit); }} /> : <EmptyState title="Chưa có đơn hàng" description="Không tìm thấy đơn hàng." />;
   }
 
   return (

@@ -33,12 +33,12 @@ export const ordersService = {
     return ordersRepository.listMerchantOrdersPage(merchant.id, page, limit, search, status);
   },
 
-  async getMerchantOrder(ownerId: number, orderId: number) {
+  async getMerchantOrder(ownerId: number, orderId: number, paging?: { page: number; limit: number }) {
     const merchant = await merchantRepository.findActiveStoreByOwner(ownerId);
     if (!merchant) throw new HttpError(403, "MERCHANT_NOT_ACTIVE");
-    const order = await ordersRepository.findMerchantOrder(merchant.id, orderId);
-    if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
-    return order;
+    const result = await ordersRepository.findMerchantOrder(merchant.id, orderId, paging);
+    if (!result) throw new HttpError(404, "ORDER_NOT_FOUND");
+    return result;
   },
 
   async createOrder(memberId: number, input: CreateOrderInput, idempotencyKey: string): Promise<{ order: OrderDto; replayed: boolean }> {
