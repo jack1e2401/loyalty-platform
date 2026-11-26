@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import type { TableColumnsType } from "antd";
 import * as Dialog from "@radix-ui/react-dialog";
+import { CmsDataTable } from "./cms/CmsDataTable";
 import { MerchantPagination } from "./cms/MerchantPagination";
 import { useAuthSession } from "../../api/auth-session";
 import { createCommerceClient } from "../../api/commerce-http";
@@ -84,6 +86,49 @@ export function MerchantLoyaltyTransactions() {
     });
   }
 
+  const columns: TableColumnsType<MerchantLedgerItemDto> = [
+    {
+      title: "Thời gian",
+      key: "createdAt",
+      render: (_, tx) => <span className="whitespace-nowrap">{formatVietnamDateTime(tx.createdAt)}</span>,
+    },
+    {
+      title: "Giao dịch",
+      key: "type",
+      render: (_, tx) => (
+        <span className="whitespace-nowrap font-medium">
+          #{tx.id} · {transactionTypeLabel(tx.type)}
+        </span>
+      ),
+    },
+    {
+      title: "Thành viên",
+      key: "member",
+      render: (_, tx) => <span>{tx.memberEmail ?? `#${tx.memberId}`}</span>,
+    },
+    {
+      title: "Điểm (+/−)",
+      key: "delta",
+      render: (_, tx) => (
+        <span className="whitespace-nowrap tabular-nums">
+          <StatusText tone={tx.delta.startsWith("-") ? "red" : "green"}>
+            {signedPoints(tx.delta)}
+          </StatusText>
+        </span>
+      ),
+    },
+    {
+      title: "Số dư sau",
+      key: "balanceAfter",
+      render: (_, tx) => <span className="whitespace-nowrap tabular-nums">{tx.balanceAfter}</span>,
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_, tx) => <PointTransactionDetail transaction={tx} />,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <Card className="p-5">
@@ -163,41 +208,12 @@ export function MerchantLoyaltyTransactions() {
       ) : (
         <div className="space-y-3">
           {resource.error && <ErrorState message={resource.error} retry={resource.reload} />}
-          <Card className="overflow-x-auto">
-            <table className="w-full text-left text-sm" aria-label="Sổ giao dịch điểm">
-              <thead className="bg-[#edf3ee] text-xs font-bold text-[#344b3b]">
-                <tr>
-                  {["Thời gian", "Giao dịch", "Thành viên", "Điểm (+/−)", "Số dư sau", "Thao tác"].map(
-                    (heading) => (
-                      <th key={heading} scope="col" className="whitespace-nowrap px-4 py-3">
-                        {heading}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="border-t border-[#edf2eb]">
-                    <td className="whitespace-nowrap px-4 py-3">{formatVietnamDateTime(tx.createdAt)}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      #{tx.id} · {transactionTypeLabel(tx.type)}
-                    </td>
-                    <td className="px-4 py-3">{tx.memberEmail ?? `#${tx.memberId}`}</td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                      <StatusText tone={tx.delta.startsWith("-") ? "red" : "green"}>
-                        {signedPoints(tx.delta)}
-                      </StatusText>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums">{tx.balanceAfter}</td>
-                    <td className="px-4 py-3">
-                      <PointTransactionDetail transaction={tx} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+          <CmsDataTable<MerchantLedgerItemDto>
+            label="Sổ giao dịch điểm"
+            rows={transactions}
+            columns={columns}
+            rowKey="id"
+          />
 
         </div>
       )}

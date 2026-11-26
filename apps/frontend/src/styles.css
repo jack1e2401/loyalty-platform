@@ -8,9 +8,48 @@
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&subset=vietnamese&display=swap");
 
 :root {
-  font-family: "Plus Jakarta Sans", sans-serif;
-  color: #26352f;
-  background: #f7f8f4;
+  /* ==========================================================================
+     IncomSG Centralized Design Tokens (Single Source of Truth)
+     ========================================================================== */
+  --color-brand: #356b43;
+  --color-brand-hover: #295735;
+  --color-brand-active: #20452a;
+  --color-brand-subtle: #edf4ec;
+
+  --color-ink: #20392a;
+  --color-ink-secondary: #26352f;
+  --color-muted: #68776d;
+  --color-muted-light: #7d8a80;
+
+  --color-canvas: #f7f8f4;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f7f9f4;
+  --color-surface-hover: #f4f9f4;
+
+  --color-border: #e3e9e2;
+  --color-border-subtle: #e9ede6;
+  --color-border-focus: #a8cdb0;
+
+  --color-success: #28734d;
+  --color-success-bg: #edf6f0;
+  --color-warning: #97682a;
+  --color-warning-bg: #fff8eb;
+  --color-error: #a4473a;
+  --color-error-bg: #fdf2f0;
+
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-serif: Fraunces, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  font-family: var(--font-sans);
+  color: var(--color-ink-secondary);
+  background: var(--color-canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -131,3 +170,37 @@ a {
     transition-delay: 0s !important;
   }
 }
+
+/* ==========================================================================
+   Merchant CMS - IncomSG Unified Ant Design Table Styling
+   ========================================================================== */
+.merchant-cms .ant-table {
+  font-family: var(--font-sans);
+  color: var(--color-ink-secondary);
+  background: var(--color-surface);
+}
+
+.merchant-cms .ant-table-thead > tr > th {
+  background-color: #edf3ee !important;
+  color: var(--color-ink) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  letter-spacing: -0.01em;
+}
+
+.merchant-cms .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #edf2eb !important;
+  font-size: 13.5px;
+  padding: 12px 16px !important;
+}
+
+.merchant-cms .ant-table-tbody > tr:hover > td {
+  background-color: var(--color-surface-hover) !important;
+}
+
+.merchant-cms .ant-table-placeholder .ant-empty-description {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
