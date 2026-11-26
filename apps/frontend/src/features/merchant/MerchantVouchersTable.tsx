@@ -11,7 +11,7 @@ type Props = {
 
 export function MerchantVouchersTable({ definitions, token, busyId, onToggle, onDefinitionChange }: Props) {
   return (
-    <div className="surface -mt-px overflow-x-auto rounded-b-2xl border-t-0">
+    <div className="surface overflow-x-auto rounded-2xl border border-[var(--color-border,#e3e9e1)] shadow-sm">
       <table
         aria-label="Danh sách voucher"
         className="w-full min-w-[760px] table-fixed border-collapse text-left"
@@ -24,7 +24,7 @@ export function MerchantVouchersTable({ definitions, token, busyId, onToggle, on
           <col className="w-[16%]" />
           <col className="w-[8%]" />
         </colgroup>
-        <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
+        <thead className="bg-[#edf3ee] text-xs font-semibold text-[#344b3b]">
           <tr>
             <th scope="col" className="px-5 py-4">
               Tên voucher
