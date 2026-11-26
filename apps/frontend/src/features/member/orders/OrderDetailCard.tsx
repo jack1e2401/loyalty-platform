@@ -24,8 +24,8 @@ function transactionTypeLabel(type: PointTransactionType) {
       return "Thu hồi tích điểm";
     case "REDEMPTION_REVERSAL":
       return "Hoàn điểm đổi thưởng";
-    case "ADMIN_ADJUSTMENT":
-      return "Điều chỉnh quản trị";
+    case "MERCHANT_ADJUSTMENT":
+      return "Điều chỉnh từ cửa hàng";
     case "LEGACY_BACKFILL":
       return "Khởi tạo ban đầu";
     default:
@@ -120,19 +120,15 @@ export function OrderDetailCard({
             </StatusText>
           </div>
           <p className="mt-2 text-sm">Lý do: {activeRefundRequest.reason}</p>
-          {activeRefundRequest.status === "REJECTED" &&
-            (activeRefundRequest.merchantDecisionReason || activeRefundRequest.adminDecisionReason) && (
-              <p className="mt-2 text-sm text-[#a4473a]">
-                Lý do từ chối:{" "}
-                {activeRefundRequest.adminDecisionReason || activeRefundRequest.merchantDecisionReason}
-              </p>
-            )}
+          {activeRefundRequest.status === "REJECTED" && activeRefundRequest.merchantDecisionReason && (
+            <p className="mt-2 text-sm text-[#a4473a]">
+              Lý do từ chối: {activeRefundRequest.merchantDecisionReason}
+            </p>
+          )}
           <p className="mt-2 text-xs muted">
             Gửi lúc {new Date(activeRefundRequest.requestedAt).toLocaleString("vi-VN")}
             {activeRefundRequest.merchantReviewedAt &&
               ` · Cửa hàng xử lý ${new Date(activeRefundRequest.merchantReviewedAt).toLocaleString("vi-VN")}`}
-            {activeRefundRequest.adminReviewedAt &&
-              ` · Admin đã xử lý ở luồng cũ ${new Date(activeRefundRequest.adminReviewedAt).toLocaleString("vi-VN")}`}
           </p>
         </div>
       ) : canRequestRefund ? (

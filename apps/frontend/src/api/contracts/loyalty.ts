@@ -60,7 +60,7 @@ export type PointTransactionType =
   | "REDEEM_REWARD"
   | "EARN_REVERSAL"
   | "REDEMPTION_REVERSAL"
-  | "ADMIN_ADJUSTMENT"
+  | "MERCHANT_ADJUSTMENT"
   | "LEGACY_BACKFILL";
 
 export interface WalletTransactionDto {

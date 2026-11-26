@@ -59,11 +59,10 @@ export const refundsService = {
         status: true,
         requestedAt: true,
         merchantDecisionReason: true,
-        adminDecisionReason: true,
       },
     });
     if (!request || request.status === "REJECTED") return request;
-    return { ...request, merchantDecisionReason: null, adminDecisionReason: null };
+    return { ...request, merchantDecisionReason: null };
   },
 
   async listMerchant(ownerId: number, query: Record<string, unknown>) {

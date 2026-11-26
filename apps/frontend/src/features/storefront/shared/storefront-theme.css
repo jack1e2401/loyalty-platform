@@ -1,4 +1,4 @@
-/* Scoped to customer storefront routes; merchant and admin keep their own palette. */
+/* Scoped to customer storefront routes; merchant keeps its own palette. */
 :is(.storefront-theme, [data-storefront-active] [data-radix-portal]) :is([class~="bg-[#335e3d]"], [class~="bg-[#315c3c]"], [class~="bg-[#315e3c]"], [class~="bg-[#357044]"], [class~="bg-[#244c34]"], [class~="bg-[#4d8057]"], [class~="bg-[#3e754a]"]) {
   background-color: var(--storefront-accent);
 }

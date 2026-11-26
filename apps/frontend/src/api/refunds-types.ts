@@ -41,9 +41,6 @@ export interface RefundRequestDto {
   merchantReviewedById: number | null;
   merchantReviewedAt: string | null;
   merchantDecisionReason: string | null;
-  adminReviewedById: number | null;
-  adminReviewedAt: string | null;
-  adminDecisionReason: string | null;
   createdAt: string;
   updatedAt: string;
 }

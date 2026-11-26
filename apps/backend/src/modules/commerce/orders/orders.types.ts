@@ -64,9 +64,7 @@ export type RefundRequestSummaryDto = {
   requestedAt: string;
   reason: string;
   merchantReviewedAt: string | null;
-  adminReviewedAt: string | null;
   merchantDecisionReason: string | null;
-  adminDecisionReason: string | null;
 };
 
 export type OrderLoyaltyEventDto = {

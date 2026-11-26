@@ -32,7 +32,7 @@ function renderPage() {
 function Context() { return <Outlet context={{ merchantId: 5, basePath: "/s/coffee", cart: {} as never }} />; }
 
 describe("V4 member refund requests", () => {
-  beforeEach(() => { sessionStorage.clear(); getOrder.mockResolvedValue({ order }); createRequest.mockResolvedValue({ refundRequest: { id: 4, orderId: 42, memberId: 1, merchantId: 5, reason: "Sản phẩm bị lỗi", status: "PENDING_MERCHANT", requestedAt: "2026-11-17T10:00:00.000Z", merchantReviewedById: null, merchantReviewedAt: null, merchantDecisionReason: null, adminReviewedById: null, adminReviewedAt: null, adminDecisionReason: null, createdAt: "2026-11-17T10:00:00.000Z", updatedAt: "2026-11-17T10:00:00.000Z" } }); });
+  beforeEach(() => { sessionStorage.clear(); getOrder.mockResolvedValue({ order }); createRequest.mockResolvedValue({ refundRequest: { id: 4, orderId: 42, memberId: 1, merchantId: 5, reason: "Sản phẩm bị lỗi", status: "PENDING_MERCHANT", requestedAt: "2026-11-17T10:00:00.000Z", merchantReviewedById: null, merchantReviewedAt: null, merchantDecisionReason: null, createdAt: "2026-11-17T10:00:00.000Z", updatedAt: "2026-11-17T10:00:00.000Z" } }); });
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
   it("submits a required reason and renders the returned request status", async () => {
     renderPage();

@@ -24,9 +24,7 @@ const request = {
   reason: "Sản phẩm bị lỗi",
   requestedAt: "2026-11-18T00:00:00Z",
   merchantReviewedAt: null,
-  adminReviewedAt: null,
   merchantDecisionReason: null,
-  adminDecisionReason: null,
 };
 
 it("links real member refund requests to the merchant review page", () => {

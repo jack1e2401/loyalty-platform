@@ -41,8 +41,8 @@ export function transactionTypeLabel(type: PointTransactionType): string {
       return "Thu hồi tích điểm";
     case "REDEMPTION_REVERSAL":
       return "Hoàn điểm đổi thưởng";
-    case "ADMIN_ADJUSTMENT":
-      return "Điều chỉnh quản trị";
+    case "MERCHANT_ADJUSTMENT":
+      return "Điều chỉnh từ cửa hàng";
     case "LEGACY_BACKFILL":
       return "Khởi tạo ban đầu";
     default:

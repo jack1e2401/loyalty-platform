@@ -77,7 +77,7 @@ enum PointTransactionSource {
   MEMBER_REDEMPTION
   MERCHANT_REFUND
   MERCHANT_REWARD_CANCELLATION
-  ADMIN_ADJUSTMENT
+  MERCHANT_ADJUSTMENT
   LEGACY_BACKFILL
   SYSTEM
   CHALLENGE_REWARD
@@ -850,9 +850,6 @@ model RefundRequest {
   merchantReviewedById   Int?
   merchantReviewedAt     DateTime?
   merchantDecisionReason String?             @db.VarChar(255)
-  adminReviewedById      Int?
-  adminReviewedAt        DateTime?
-  adminDecisionReason    String?             @db.VarChar(255)
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
   order                  Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)

@@ -13,7 +13,7 @@ export function pointTransactionLabel(type: PointTransactionType) {
     REDEEM_REWARD: "Đổi quà",
     EARN_REVERSAL: "Thu hồi tích điểm",
     REDEMPTION_REVERSAL: "Hoàn điểm đổi thưởng",
-    ADMIN_ADJUSTMENT: "Điều chỉnh quản trị",
+    MERCHANT_ADJUSTMENT: "Điều chỉnh từ cửa hàng",
     LEGACY_BACKFILL: "Khởi tạo ban đầu",
   };
   return labels[type] ?? type;

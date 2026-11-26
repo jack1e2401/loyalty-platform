@@ -39,9 +39,7 @@ type OrderRecord = {
     requestedAt: Date;
     reason: string;
     merchantReviewedAt: Date | null;
-    adminReviewedAt: Date | null;
     merchantDecisionReason: string | null;
-    adminDecisionReason: string | null;
   } | null;
   pointTransactions?: {
     id: number;
@@ -157,9 +155,7 @@ export function toOrderDto(order: OrderRecord): OrderDto {
       requestedAt: refundRequest.requestedAt.toISOString(),
       reason: refundRequest.reason,
       merchantReviewedAt: refundRequest.merchantReviewedAt?.toISOString() ?? null,
-      adminReviewedAt: refundRequest.adminReviewedAt?.toISOString() ?? null,
       merchantDecisionReason: refundRequest.status === "REJECTED" ? refundRequest.merchantDecisionReason : null,
-      adminDecisionReason: refundRequest.status === "REJECTED" ? refundRequest.adminDecisionReason : null,
     } : null,
     loyaltyEvents,
     actions: computeOrderActions(order.status, refund, refundRequest),

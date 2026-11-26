@@ -205,8 +205,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       ) : (
         <Card title="Kết quả xử lý" size="small">
           <Typography.Paragraph className="!mb-0">
-            {data.refundRequest.adminDecisionReason ??
-              data.refundRequest.merchantDecisionReason ??
+            {data.refundRequest.merchantDecisionReason ??
               refundRequestStatusLabel(data.refundRequest.status)}
           </Typography.Paragraph>
         </Card>
