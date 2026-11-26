@@ -143,7 +143,7 @@ export function MerchantChallengesPage() {
         />
       )}
 
-      <div className="surface rounded-3xl p-4 sm:p-5">
+      <div className="surface rounded-2xl border border-[var(--color-border,#e3e9e1)] p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[minmax(14rem,1.3fr)_minmax(12rem,1fr)_minmax(12rem,1fr)]">
           <Input
             aria-label="Tìm nhiệm vụ"

@@ -35,7 +35,7 @@ export function ChallengeParticipantsPanel({
 
       <div className="hidden md:block">
         <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-[#edf3ee] text-xs uppercase tracking-[.06em] text-[#344b3b]">
+          <thead className="bg-[#edf3ee] text-xs font-semibold text-[#344b3b]">
             <tr>
               <th className="w-[38%] px-5 py-3 font-bold">Thành viên</th>
               <th className="w-[24%] px-3 py-3 font-bold">Tiến độ</th>

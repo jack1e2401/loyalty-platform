@@ -39,7 +39,7 @@ export function MerchantChallengeCard({
     total > 0 && Number.isFinite(spent / total) ? Math.min(100, Math.max(0, (spent / total) * 100)) : 0;
 
   return (
-    <Card className="group flex h-full flex-col overflow-hidden p-5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_46px_rgba(39,62,42,.09)] sm:p-6">
+    <Card className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border,#e3e9e1)] p-5 shadow-sm transition sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="rounded-full bg-[#eff4ec] px-3 py-1 text-xs font-bold text-[#49654e]">
@@ -69,7 +69,7 @@ export function MerchantChallengeCard({
       </p>
 
       <div className="mt-5 rounded-2xl bg-[#f7f9f5] p-4">
-        <p className="text-xs font-bold uppercase tracking-[.08em] text-[#738276]">Mục tiêu</p>
+        <p className="text-xs font-semibold text-[#738276]">Mục tiêu</p>
         <p className="mt-1.5 text-base font-extrabold text-[#294733]">{goalText(challenge)}</p>
         <p className="mt-3 flex items-center gap-2 text-xs text-[#68776d]">
           <CalendarBlank size={15} />
