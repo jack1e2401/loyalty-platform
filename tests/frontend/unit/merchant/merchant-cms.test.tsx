@@ -2,9 +2,11 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CmsCard } from "../../../../apps/frontend/src/features/merchant/cms/CmsCard";
 import { CmsConfirmAction } from "../../../../apps/frontend/src/features/merchant/cms/CmsConfirmAction";
 import { CmsDataTable } from "../../../../apps/frontend/src/features/merchant/cms/CmsDataTable";
 import { CmsPageHeader } from "../../../../apps/frontend/src/features/merchant/cms/CmsPageHeader";
+import { CmsPageShell } from "../../../../apps/frontend/src/features/merchant/cms/CmsPageShell";
 import { CmsStatCard } from "../../../../apps/frontend/src/features/merchant/cms/CmsStatCard";
 import { CmsStatusTag } from "../../../../apps/frontend/src/features/merchant/cms/CmsStatusTag";
 import { MerchantCmsProvider } from "../../../../apps/frontend/src/features/merchant/cms/merchantCmsTheme";
@@ -58,5 +60,52 @@ describe("Merchant CMS components", () => {
     render(<CmsPageHeader title="Danh mục sản phẩm" description="Quản lý danh mục." />);
     expect(screen.getByRole("heading", { name: "Danh mục sản phẩm" })).toBeInTheDocument();
     expect(screen.getByText("Quản lý danh mục.")).toBeInTheDocument();
+  });
+
+  it("renders CmsPageShell with header, stats, filters, and body", () => {
+    render(
+      <CmsPageShell
+        title="Quản lý Voucher"
+        description="Danh sách các mã ưu đãi."
+        stats={<div data-testid="stats">Thống kê voucher</div>}
+        filters={<div data-testid="filters">Bộ lọc tìm kiếm</div>}
+      >
+        <div data-testid="content">Bảng danh sách voucher</div>
+      </CmsPageShell>,
+    );
+    expect(screen.getByRole("heading", { name: "Quản lý Voucher" })).toBeInTheDocument();
+    expect(screen.getByText("Danh sách các mã ưu đãi.")).toBeInTheDocument();
+    expect(screen.getByTestId("stats")).toBeInTheDocument();
+    expect(screen.getByTestId("filters")).toBeInTheDocument();
+    expect(screen.getByTestId("content")).toBeInTheDocument();
+  });
+
+  it("renders loading and error states in CmsPageShell", () => {
+    const { rerender } = render(
+      <CmsPageShell title="Báo cáo" loading>
+        <div>Dữ liệu</div>
+      </CmsPageShell>,
+    );
+    expect(screen.getByText("Đang tải dữ liệu...")).toBeInTheDocument();
+    expect(screen.queryByText("Dữ liệu")).not.toBeInTheDocument();
+
+    rerender(
+      <CmsPageShell title="Báo cáo" error="Lỗi tải dữ liệu">
+        <div>Dữ liệu</div>
+      </CmsPageShell>,
+    );
+    expect(screen.getByText("Lỗi tải dữ liệu")).toBeInTheDocument();
+    expect(screen.queryByText("Dữ liệu")).not.toBeInTheDocument();
+  });
+
+  it("renders CmsCard with title, description, and children", () => {
+    render(
+      <CmsCard title="Cấu hình tích điểm" description="Tỉ lệ quy đổi VNĐ sang điểm">
+        <p>10.000đ = 1 điểm</p>
+      </CmsCard>,
+    );
+    expect(screen.getByText("Cấu hình tích điểm")).toBeInTheDocument();
+    expect(screen.getByText("Tỉ lệ quy đổi VNĐ sang điểm")).toBeInTheDocument();
+    expect(screen.getByText("10.000đ = 1 điểm")).toBeInTheDocument();
   });
 });
