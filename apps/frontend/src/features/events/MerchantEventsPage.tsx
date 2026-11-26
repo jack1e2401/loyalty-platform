@@ -152,7 +152,12 @@ export function MerchantEventsPage() {
         description="Quản lý bài giới thiệu sự kiện và lịch trình hiển thị tại trang công khai của cửa hàng."
         action={
           <div className="flex flex-wrap gap-2">
-            <Button>
+            <Button
+              onClick={() => {
+                setFormError("");
+                setFormTarget("new");
+              }}
+            >
               <Plus size={16} /> Tạo sự kiện
             </Button>
           </div>

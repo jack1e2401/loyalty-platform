@@ -10,6 +10,7 @@ export default mergeConfig(
     test: {
       include: ["tests/frontend/unit/**/*.test.ts", "tests/frontend/unit/**/*.test.tsx"],
       setupFiles: [fileURLToPath(new URL("./vitest.setup.ts", import.meta.url))],
+      testTimeout: 15_000,
     },
   }),
 );

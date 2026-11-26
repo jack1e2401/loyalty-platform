@@ -235,9 +235,11 @@ describe("V4.1 Storefront UI Polish & Routing", () => {
     );
 
     await screen.findByRole("heading", { name: "Hương vị cà phê nguyên bản" });
-    expect(document.querySelector(".storefront-theme")).toHaveStyle({ "--storefront-accent": "#49382d" });
-    expect(document.documentElement).toHaveAttribute("data-storefront-active");
-    expect(document.documentElement.style.getPropertyValue("--storefront-accent")).toBe("#49382d");
+    await waitFor(() => {
+      expect(document.querySelector(".storefront-theme")).toHaveStyle({ "--storefront-accent": "#49382d" });
+      expect(document.documentElement).toHaveAttribute("data-storefront-active");
+      expect(document.documentElement.style.getPropertyValue("--storefront-accent")).toBe("#49382d");
+    });
     expect(await screen.findByText("Thành viên Bronze")).toBeInTheDocument();
     const bottomNav = screen.getByRole("navigation", { name: "Điều hướng Mini App" });
     expect(bottomNav).toHaveTextContent("Trang chủ");
