@@ -38,9 +38,9 @@ function ProductTable({ kind, label, title, query, token }: typeof tables[number
       {resource.loading ? <LoadingState cards={1} /> : resource.error ? <ErrorState message={resource.error} retry={resource.reload} />
         : rows.length === 0 ? <EmptyState title="Chưa có dữ liệu" description="Không có sản phẩm phù hợp." />
         : (
-          <Card className="overflow-x-auto rounded-3xl">
+          <Card className="overflow-x-auto rounded-2xl border border-[var(--color-border,#e3e9e1)] shadow-sm">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
+              <thead className="bg-[#edf3ee] text-xs font-semibold text-[#344b3b]">
                 <tr>
                   <th scope="col" className="px-5 py-3.5">Sản phẩm</th>
                   <th scope="col" className="px-4 py-3.5 text-right">{kind === "top" || kind === "slow" ? "Đã bán" : "Tồn khả dụng"}</th>

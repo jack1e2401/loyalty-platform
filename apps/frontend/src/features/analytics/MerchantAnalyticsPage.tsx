@@ -84,39 +84,46 @@ export function MerchantAnalyticsPage() {
         title="Phân tích cửa hàng"
       />
 
-      <form
-        className="grid gap-3 sm:grid-cols-[1fr_1fr_11rem_auto] sm:items-end"
-        onSubmit={applyFilters}
-      >
-        <Field label="Từ ngày">
-          <Input
-            type="date"
-            aria-label="Từ ngày"
-            value={draftFrom}
-            onChange={(event) => setDraftFrom(event.target.value)}
-          />
-        </Field>
-        <Field label="Đến ngày">
-          <Input
-            type="date"
-            aria-label="Đến ngày"
-            value={draftTo}
-            onChange={(event) => setDraftTo(event.target.value)}
-          />
-        </Field>
-        <Field label="Độ phân giải">
-          <Select
-            aria-label="Độ phân giải"
-            value={draftGranularity}
-            onChange={(event) => setDraftGranularity(event.target.value as AnalyticsGranularity)}
-          >
-            <option value="day">Theo ngày</option>
-            <option value="month">Theo tháng</option>
-          </Select>
-        </Field>
-        <Button type="submit" className="h-11">
-          Xem báo cáo
-        </Button>
+      <form onSubmit={applyFilters}>
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-border,#e3e9e1)] bg-white p-4 shadow-sm">
+          <div className="min-w-40 flex-1">
+            <label className="text-xs font-semibold text-[#526458]">Từ ngày</label>
+            <Input
+              type="date"
+              aria-label="Từ ngày"
+              value={draftFrom}
+              onChange={(event) => setDraftFrom(event.target.value)}
+              className="mt-1 min-h-9 w-full rounded-lg border border-[var(--color-border,#dbe3d9)] text-sm"
+            />
+          </div>
+          <div className="min-w-40 flex-1">
+            <label className="text-xs font-semibold text-[#526458]">Đến ngày</label>
+            <Input
+              type="date"
+              aria-label="Đến ngày"
+              value={draftTo}
+              onChange={(event) => setDraftTo(event.target.value)}
+              className="mt-1 min-h-9 w-full rounded-lg border border-[var(--color-border,#dbe3d9)] text-sm"
+            />
+          </div>
+          <div className="min-w-36">
+            <label className="text-xs font-semibold text-[#526458]">Độ phân giải</label>
+            <Select
+              aria-label="Độ phân giải"
+              value={draftGranularity}
+              onChange={(event) => setDraftGranularity(event.target.value as AnalyticsGranularity)}
+              className="mt-1 min-h-9 w-full rounded-lg border border-[var(--color-border,#dbe3d9)] bg-white px-3 text-sm text-[var(--color-ink,#20392a)]"
+            >
+              <option value="day">Theo ngày</option>
+              <option value="month">Theo tháng</option>
+            </Select>
+          </div>
+          <div className="self-end pb-0.5">
+            <Button type="submit" className="min-h-9 px-4">
+              Xem báo cáo
+            </Button>
+          </div>
+        </div>
       </form>
 
       {validationError && (
