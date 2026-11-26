@@ -118,10 +118,9 @@ after(async () => {
   const merchantIds = merchants.map((m) => m.id);
 
   await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
-  await prisma.refundReconciliationAttempt.deleteMany({ where: { refundRequest: { merchantId: { in: merchantIds } } } });
   await prisma.refundRequest.deleteMany({ where: { merchantId: { in: merchantIds } } });
-  await prisma.orderRefund.deleteMany({ where: { requestedById: { in: userIds } } });
-  await prisma.orderVoucherReservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
+  await prisma.refundOrder.deleteMany({ where: { requestedById: { in: userIds } } });
+  await prisma.reservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
   await prisma.pointTransaction.deleteMany({ where: { wallet: { membership: { merchantId: { in: merchantIds } } } } });
   await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.memberVoucher.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });

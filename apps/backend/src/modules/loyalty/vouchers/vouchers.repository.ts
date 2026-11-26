@@ -335,8 +335,6 @@ export const vouchersRepository = {
               membership: { include: { member: { select: { email: true } } } },
               definition: true,
               activeReservation: true,
-              fulfillment: true,
-              cancellation: true,
             },
           });
           if (!voucher) return "missing";
@@ -357,7 +355,13 @@ export const vouchersRepository = {
               id: voucher.id,
               status: { in: ["PENDING_FULFILLMENT", "AVAILABLE"] },
             },
-            data: { status: "FULFILLED", rewardInventoryReserved: false },
+            data: {
+              status: "FULFILLED",
+              rewardInventoryReserved: false,
+              fulfilledAt: new Date(),
+              fulfilledById: ownerId,
+              fulfillmentNote: note ?? null,
+            },
           });
           if (changed.count !== 1) return "already_fulfilled";
           if (
@@ -376,21 +380,12 @@ export const vouchersRepository = {
               actorId: ownerId,
             });
           }
-          await tx.rewardFulfillment.create({
-            data: {
-              voucherId: voucher.id,
-              fulfilledById: ownerId,
-              note: note ?? null,
-            },
-          });
           const updated = await tx.memberVoucher.findUniqueOrThrow({
             where: { id: voucher.id },
             include: {
               membership: { include: { member: { select: { email: true } } } },
               definition: true,
               activeReservation: true,
-              fulfillment: true,
-              cancellation: true,
             },
           });
           return toRewardItemDto(updated);
@@ -424,8 +419,6 @@ export const vouchersRepository = {
               membership: { include: { member: { select: { email: true } } } },
               definition: true,
               activeReservation: true,
-              fulfillment: true,
-              cancellation: true,
             },
           });
           if (!voucher) return "missing";
@@ -442,7 +435,13 @@ export const vouchersRepository = {
               id: voucher.id,
               status: { in: ["PENDING_FULFILLMENT", "AVAILABLE"] },
             },
-            data: { status: "CANCELLED", rewardInventoryReserved: false },
+            data: {
+              status: "CANCELLED",
+              rewardInventoryReserved: false,
+              cancelledAt: new Date(),
+              cancelledById: ownerId,
+              cancelReason: reason,
+            },
           });
           if (changed.count !== 1) return "already_cancelled";
 
@@ -462,14 +461,6 @@ export const vouchersRepository = {
               actorId: ownerId,
             });
           }
-
-          await tx.rewardCancellation.create({
-            data: {
-              voucherId: voucher.id,
-              cancelledById: ownerId,
-              reason,
-            },
-          });
 
           const wallet = await tx.loyaltyWallet.findUniqueOrThrow({
             where: { membershipId: voucher.membershipId },
@@ -513,8 +504,6 @@ export const vouchersRepository = {
                 },
                 definition: true,
                 activeReservation: true,
-                fulfillment: true,
-                cancellation: true,
               },
             }),
             tx.loyaltyWallet.findUniqueOrThrow({ where: { id: wallet.id } }),

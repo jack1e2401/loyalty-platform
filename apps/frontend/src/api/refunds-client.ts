@@ -1,8 +1,6 @@
 import { requestJson, translateApiError } from "./commerce/shared";
 import type {
   MerchantApproveRefundResponse,
-  MerchantReconcileRefundResponse,
-  ManualRefundEvidenceInput,
   ListRefundRequestsParams,
   RefundRequestDetailResponse,
   RefundRequestDto,
@@ -78,15 +76,6 @@ export function createRefundsClient(
         baseUrl,
         `/api/merchant/refund-requests/${requestId}/approve`,
         { method: "POST", body: note ? { note } : {}, token },
-      );
-    },
-
-    reconcileMerchantRefundRequest(requestId: number, evidence: ManualRefundEvidenceInput, token: string) {
-      return requestJson<MerchantReconcileRefundResponse>(
-        fetcher,
-        baseUrl,
-        `/api/merchant/refund-requests/${requestId}/reconcile`,
-        { method: "POST", body: evidence, token },
       );
     },
 

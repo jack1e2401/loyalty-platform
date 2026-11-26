@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireRole } from "../../../middleware/auth.js";
-import { createRefundRequest, getMemberRefundRequest, listMerchantRefundRequests, merchantRefundRequestDetail, merchantApproveRefundRequest, merchantReconcileRefundRequest, merchantRejectRefundRequest } from "./refunds.controller.js";
+import { createRefundRequest, getMemberRefundRequest, listMerchantRefundRequests, merchantRefundRequestDetail, merchantApproveRefundRequest, merchantRejectRefundRequest } from "./refunds.controller.js";
 export const memberRefundRequestRoutes = Router();
 memberRefundRequestRoutes.use(authenticate, requireRole("MEMBER"));
 memberRefundRequestRoutes.get("/:orderId/refund-request", getMemberRefundRequest);
@@ -12,5 +12,4 @@ merchantRefundRequestRoutes.use(authenticate, requireRole("MERCHANT"));
 merchantRefundRequestRoutes.get("/", listMerchantRefundRequests);
 merchantRefundRequestRoutes.get("/:requestId", merchantRefundRequestDetail);
 merchantRefundRequestRoutes.post("/:requestId/approve", merchantApproveRefundRequest);
-merchantRefundRequestRoutes.post("/:requestId/reconcile", merchantReconcileRefundRequest);
 merchantRefundRequestRoutes.post("/:requestId/reject", merchantRejectRefundRequest);

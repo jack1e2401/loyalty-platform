@@ -1,4 +1,4 @@
-import type { OrderRefund, Prisma } from "../../../generated/prisma/client.js";
+import type { Prisma, RefundOrder } from "../../../generated/prisma/client.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { reverseOrderChallenges } from "../../loyalty/challenges/challenges.engine.js";
 import { describeWallet } from "../../loyalty/program/loyalty.balance.js";
@@ -11,40 +11,12 @@ export async function completeMockRefund(
   tx: Prisma.TransactionClient,
   input: { merchantId: number; ownerId: number; orderId: number; reason: string; replay: boolean },
 ): Promise<RefundResponseDto & { challengeReversals: number }> {
-  return completeRefund(tx, input, "MOCK");
-}
-
-export async function completeReconciledRefund(
-  tx: Prisma.TransactionClient,
-  input: { merchantId: number; ownerId: number; orderId: number; reason: string; providerReference: string; replay: boolean },
-): Promise<RefundResponseDto & { challengeReversals: number }> {
-  return completeRefund(tx, input, "MANUAL");
-}
-
-async function completeRefund(
-  tx: Prisma.TransactionClient,
-  input: {
-    merchantId: number;
-    ownerId: number;
-    orderId: number;
-    reason: string;
-    replay: boolean;
-    providerReference?: string;
-  },
-  settlement: "MOCK" | "MANUAL",
-): Promise<RefundResponseDto & { challengeReversals: number }> {
   const { merchantId, ownerId, orderId, reason, replay } = input;
   const order = await tx.order.findFirst({
     where: { id: orderId, merchantId },
     include: { items: true, refund: true, refundRequest: true, pointTransactions: true },
   });
   if (!order) throw new HttpError(404, "ORDER_NOT_FOUND");
-  if (!replay && settlement === "MOCK" && order.paymentProvider !== "MOCK") {
-    throw new HttpError(409, "REFUND_REQUIRES_MANUAL_RECONCILIATION");
-  }
-  if (!replay && settlement === "MANUAL" && order.paymentProvider === "MOCK") {
-    throw new HttpError(409, "REFUND_PROVIDER_DOES_NOT_REQUIRE_MANUAL_RECONCILIATION");
-  }
 
   const memberId = order.memberId;
   const getWallet = () => tx.loyaltyWallet.findFirst({ where: { membership: { memberId, merchantId } } });
@@ -52,15 +24,12 @@ async function completeRefund(
     if (order.status !== "REFUNDED" || order.refund?.status !== "COMPLETED") {
       throw new HttpError(409, "ORDER_NOT_REFUNDABLE");
     }
-    if (input.providerReference && order.refund.providerReference !== input.providerReference) {
-      throw new HttpError(409, "REFUND_SETTLEMENT_REFERENCE_CONFLICT");
-    }
     return refundResult(order, order.refund, describeWallet(await getWallet()), 0);
   }
   if (order.status !== "PAID" || order.refund) throw new HttpError(409, "ORDER_NOT_REFUNDABLE");
 
   const completedAt = new Date();
-  const refund = await tx.orderRefund.create({
+  const refund = await tx.refundOrder.create({
     data: {
       orderId: order.id,
       status: "COMPLETED",
@@ -68,7 +37,7 @@ async function completeRefund(
       reason,
       requestedById: ownerId,
       completedAt,
-      providerReference: input.providerReference ?? null,
+      providerReference: null,
     },
   });
 
@@ -86,7 +55,7 @@ async function completeRefund(
 
 function refundResult(
   order: Parameters<typeof toOrderDto>[0],
-  refund: OrderRefund,
+  refund: RefundOrder,
   walletImpact: RefundResponseDto["walletImpact"],
   challengeReversals: number,
 ): RefundResponseDto & { challengeReversals: number } {

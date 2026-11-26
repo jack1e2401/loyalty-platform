@@ -20,8 +20,6 @@ type RewardRecord = Prisma.MemberVoucherGetPayload<{
     membership: { include: { member: { select: { email: true } } } };
     definition: true;
     activeReservation: true;
-    fulfillment: true;
-    cancellation: true;
   };
 }>;
 
@@ -87,12 +85,12 @@ export function toRewardItemDto(item: RewardRecord): RewardItemDto {
     redeemedAt: item.redeemedAt.toISOString(),
     requestedAt: item.redeemedAt.toISOString(),
     usedAt: item.usedAt?.toISOString() ?? null,
-    fulfilledAt: item.fulfillment?.fulfilledAt?.toISOString() ?? null,
-    fulfilledById: item.fulfillment?.fulfilledById ?? null,
-    note: item.fulfillment?.note ?? null,
-    cancelledAt: item.cancellation?.cancelledAt?.toISOString() ?? null,
-    cancelledById: item.cancellation?.cancelledById ?? null,
-    cancellationReason: item.cancellation?.reason ?? null,
+    fulfilledAt: item.fulfilledAt?.toISOString() ?? null,
+    fulfilledById: item.fulfilledById ?? null,
+    note: item.fulfillmentNote ?? null,
+    cancelledAt: item.cancelledAt?.toISOString() ?? null,
+    cancelledById: item.cancelledById ?? null,
+    cancellationReason: item.cancelReason ?? null,
   };
 }
 
@@ -217,8 +215,6 @@ export const voucherReadRepository = {
         membership: { include: { member: { select: { email: true } } } },
         definition: true,
         activeReservation: true,
-        fulfillment: true,
-        cancellation: true,
       },
       orderBy: [{ redeemedAt: "asc" }, { id: "asc" }],
     });

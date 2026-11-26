@@ -13,14 +13,12 @@ import {
 } from "antd";
 import { createRefundsClient, translateRefundRequestError } from "../../../api/refunds-client";
 import type {
-  ManualRefundEvidenceInput,
   RefundRequestDetailResponse,
   RefundRequestStatus,
 } from "../../../api/refunds-types";
 import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable, CmsDetailLayout, CmsStatusTag } from "../cms";
 import { isRefundAwaitingMerchant, refundRequestStatusLabel } from "../../refunds/refund-status";
-import { MerchantRefundReconciliationPanel } from "./MerchantRefundReconciliationPanel";
 import { MerchantRefundPreview } from "./MerchantRefundPreview";
 
 const api = createRefundsClient();
@@ -79,20 +77,6 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
     }
   }
 
-  async function recordReconciliationOutcome(evidence: ManualRefundEvidenceInput) {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const response = await api.reconcileMerchantRefundRequest(requestId, evidence, token);
-      onUpdated(response.refundRequest.status);
-    } catch (cause) {
-      setError(translateRefundRequestError(cause instanceof Error ? cause.message : "INVALID_INPUT"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (!data && !error)
     return (
       <Flex justify="center" className="py-12">
@@ -112,8 +96,6 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
   if (!data) return null;
 
   const pending = isRefundAwaitingMerchant(data.refundRequest.status);
-  const requiresManualReconciliation = data.order.paymentProvider !== "MOCK";
-  const awaitingReconciliation = data.refundRequest.status === "PROCESSING" && requiresManualReconciliation;
   const paymentProviderLabel = data.order.paymentProvider === "VNPAY"
     ? "VNPay (lịch sử)"
     : data.order.paymentProvider === "MOCK"
@@ -184,23 +166,12 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       </Card>
       {pending ? (
         <Card title="Tác động dự kiến khi hoàn tiền" size="small">
-          {requiresManualReconciliation ? (
-            <Alert
-              type="warning"
-              showIcon
-              title="Cần đối soát hoàn tiền thủ công"
-              description="Duyệt yêu cầu chỉ chuyển sang đối soát. Hệ thống không xác nhận hoàn tiền, hoàn điểm hoặc khôi phục voucher trước khi nhà cung cấp xác nhận."
-            />
-          ) : (
-            <>
-              <Typography.Paragraph type="secondary" className="!mb-3">
-                Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
-              </Typography.Paragraph>
-              <MerchantRefundPreview preview={data.preview} onChallengePageChange={(nextPage, nextLimit) => {
-                setChallengePage(nextPage); setChallengeLimit(nextLimit);
-              }} />
-            </>
-          )}
+          <Typography.Paragraph type="secondary" className="!mb-3">
+            Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
+          </Typography.Paragraph>
+          <MerchantRefundPreview preview={data.preview} onChallengePageChange={(nextPage, nextLimit) => {
+            setChallengePage(nextPage); setChallengeLimit(nextLimit);
+          }} />
         </Card>
       ) : (
         <Card title="Kết quả xử lý" size="small">
@@ -210,13 +181,6 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
           </Typography.Paragraph>
         </Card>
       )}
-      {awaitingReconciliation ? (
-        <MerchantRefundReconciliationPanel
-          attempts={data.reconciliationAttempts ?? []}
-          busy={busy}
-          onSubmit={(evidence) => void recordReconciliationOutcome(evidence)}
-        />
-      ) : null}
       {pending ? (
         <Card title="Quyết định" size="small">
           <Space orientation="vertical" size={12} className="w-full">
@@ -235,16 +199,12 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                 showIcon
                 title={
                   confirming === "approve"
-                    ? requiresManualReconciliation
-                      ? `Chuyển yêu cầu của đơn #${data.order.id} sang đối soát thủ công?`
-                      : `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
+                    ? `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
                     : "Xác nhận từ chối yêu cầu hoàn tiền?"
                 }
                 description={
                   confirming === "approve"
-                    ? requiresManualReconciliation
-                      ? "Yêu cầu sẽ chuyển sang trạng thái đối soát. Hệ thống chưa xác nhận hoàn tiền hoặc điều chỉnh điểm, voucher."
-                      : "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
+                    ? "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
                     : `Yêu cầu sẽ bị từ chối với lý do: “${note.trim()}”.`
                 }
                 action={
@@ -258,9 +218,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                       loading={busy}
                       onClick={() => void decide(confirming)}
                     >
-                      {confirming === "approve"
-                        ? requiresManualReconciliation ? "Xác nhận đối soát" : "Xác nhận hoàn tiền"
-                        : "Xác nhận từ chối"}
+                      {confirming === "approve" ? "Xác nhận hoàn tiền" : "Xác nhận từ chối"}
                     </Button>
                   </Flex>
                 }
@@ -275,7 +233,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
                   disabled={busy}
                   onClick={() => setConfirming("approve")}
                 >
-                  {requiresManualReconciliation ? "Chuyển đối soát" : "Duyệt hoàn tiền"}
+                  Duyệt hoàn tiền
                 </Button>
               </Flex>
             )}

@@ -98,7 +98,7 @@ export async function releaseExpiredMockOrders(batchSize = 100) {
       if (!order) return false;
       await releaseOrderInventory(tx, order, null, "Order stock reservation expired after five minutes");
       await tx.order.updateMany({ where: { id, status: "PENDING" }, data: { status: "CANCELLED" } });
-      await tx.orderVoucherReservation.deleteMany({ where: { orderId: id } });
+      await tx.reservation.deleteMany({ where: { orderId: id } });
       return true;
     }, { isolationLevel: "Serializable" }));
     if (didRelease) released += 1;

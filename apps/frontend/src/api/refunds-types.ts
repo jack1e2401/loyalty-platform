@@ -1,4 +1,4 @@
-import type { OrderDto, PaymentProvider, RefundDto, RefundPreviewDto } from "./contracts/orders";
+import type { OrderDto, RefundDto, RefundPreviewDto } from "./contracts/orders";
 import type { ChallengeRewardGrantStatus, ChallengeRewardState, ChallengeType } from "./challenges-types";
 
 export type RefundRequestStatus =
@@ -73,34 +73,6 @@ export interface RefundRequestDetailResponse {
   member?: { id: number; email: string };
   preview: ExtendedRefundPreviewDto;
   settlement?: Pick<RefundDto, "status" | "amountVnd" | "completedAt"> | null;
-  reconciliationAttempts?: RefundReconciliationAttemptDto[];
-}
-
-export interface RefundReconciliationAttemptDto {
-  id: number;
-  recordedById: number;
-  providerReference: string;
-  providerTransactionNo: string | null;
-  outcome: "FAILED" | "SETTLED";
-  failureReason: string | null;
-  createdAt: string;
-}
-
-export interface ManualRefundEvidenceInput {
-  outcome: "FAILED" | "SETTLED";
-  providerReference: string;
-  providerTransactionNo?: string;
-  failureReason?: string;
-}
-
-export interface MerchantReconcileRefundResponse {
-  refundRequest: RefundRequestDto;
-  reconciliationAttempt: RefundReconciliationAttemptDto;
-  manualReconciliationRequired: boolean;
-  refund?: RefundDto;
-  order?: OrderDto;
-  walletImpact?: unknown;
-  challengeReversals?: number;
 }
 
 export interface MockMerchantApproveRefundResponse {
@@ -111,17 +83,7 @@ export interface MockMerchantApproveRefundResponse {
   challengeReversals: number;
 }
 
-export interface ManualReconciliationResponse {
-  refundRequest: RefundRequestDto;
-  manualReconciliationRequired: true;
-  paymentProvenance: {
-    provider: PaymentProvider;
-    providerReference: string | null;
-    providerTransactionNo: string | null;
-  };
-}
-
-export type MerchantApproveRefundResponse = MockMerchantApproveRefundResponse | ManualReconciliationResponse;
+export type MerchantApproveRefundResponse = MockMerchantApproveRefundResponse;
 
 export interface ListRefundRequestsParams {
   status?: RefundRequestStatus | "";

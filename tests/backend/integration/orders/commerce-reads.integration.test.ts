@@ -99,7 +99,6 @@ after(async () => {
     const voucherIds = vouchers.map((voucher) => voucher.id);
     const orders = await prisma.order.findMany({ where: { memberId: { in: userIds } }, select: { id: true } });
     const orderIds = orders.map((order) => order.id);
-    await prisma.rewardFulfillment.deleteMany({ where: { voucherId: { in: voucherIds } } });
     await prisma.order.updateMany({ where: { id: { in: orderIds }, voucherId: { in: voucherIds } }, data: { voucherId: null } });
     await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.pointTransaction.deleteMany({ where: { OR: [{ walletId: { in: walletIds } }, { memberVoucherId: { in: voucherIds } }] } });

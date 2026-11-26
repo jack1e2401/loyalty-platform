@@ -108,7 +108,7 @@ export const ordersRepository = {
               items: created.items,
             });
             if (input.voucherId !== null) {
-              await tx.orderVoucherReservation.create({
+              await tx.reservation.create({
                 data: {
                   voucherId: input.voucherId,
                   orderId: created.id,
@@ -174,7 +174,7 @@ export const ordersRepository = {
               where: { id: orderId, memberId, status: "PENDING" },
               data: { status: "CANCELLED" },
             });
-            await tx.orderVoucherReservation.deleteMany({ where: { orderId } });
+            await tx.reservation.deleteMany({ where: { orderId } });
             return "reservation_expired";
           }
           return completePaidOrder(tx, orderId, memberId);
@@ -212,7 +212,7 @@ export const ordersRepository = {
           );
 
           const deletedReservation =
-            await tx.orderVoucherReservation.deleteMany({
+            await tx.reservation.deleteMany({
               where: { orderId },
             });
           const voucherReleased = deletedReservation.count > 0;

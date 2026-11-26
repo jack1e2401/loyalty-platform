@@ -15,7 +15,7 @@ export async function consumeOrderVoucher(
       where: { id: voucher.id, status: "AVAILABLE" }, data: { status: "USED", usedAt: new Date() },
     });
     if (used.count !== 1) throw new HttpError(409, "VOUCHER_NOT_AVAILABLE");
-    await tx.orderVoucherReservation.deleteMany({ where: { orderId: order.id } });
+    await tx.reservation.deleteMany({ where: { orderId: order.id } });
   }
 }
 

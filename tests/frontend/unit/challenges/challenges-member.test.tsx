@@ -4,15 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 
-const { publicChallenges, memberChallenges, checkIn, publicDetail, memberDetail, publicVouchers, memberVouchers, wallet, unreadNotice, markRead } = vi.hoisted(() => ({
+const { publicChallenges, memberChallenges, checkIn, publicDetail, memberDetail, publicVouchers, memberVouchers, wallet } = vi.hoisted(() => ({
   publicChallenges: vi.fn(), memberChallenges: vi.fn(), checkIn: vi.fn(), publicDetail: vi.fn(), memberDetail: vi.fn(),
   publicVouchers: vi.fn(), memberVouchers: vi.fn(), wallet: vi.fn(),
-  unreadNotice: vi.fn(), markRead: vi.fn(),
 }));
 vi.mock("../../../../apps/frontend/src/api/challenges-client", () => ({ createChallengesClient: () => ({
   listPublicStoreChallenges: publicChallenges, listMemberStoreChallenges: memberChallenges, checkInStore: checkIn,
   getPublicStoreChallenge: publicDetail, getMemberStoreChallenge: memberDetail,
-  getUnreadChallengeLimitNotice: unreadNotice, markChallengeLimitNoticeRead: markRead,
 }) }));
 vi.mock("../../../../apps/frontend/src/api/commerce-http", () => ({ createCommerceClient: () => ({
   listPublicVoucherDefinitions: publicVouchers, listMemberVouchers: memberVouchers, getMemberWallet: wallet,
@@ -24,7 +22,6 @@ import { ChallengeHeroCard } from "../../../../apps/frontend/src/features/challe
 import { ChallengesPage } from "../../../../apps/frontend/src/features/challenges/ChallengesPage";
 import { ChallengeDetailPage } from "../../../../apps/frontend/src/features/challenges/ChallengeDetailPage";
 import { ChallengeMilestonePath } from "../../../../apps/frontend/src/features/challenges/ChallengeMilestonePath";
-import { ChallengeLimitAnnouncement } from "../../../../apps/frontend/src/features/challenges/ChallengeLimitAnnouncement";
 import { MemberVouchers } from "../../../../apps/frontend/src/features/member/MemberLoyaltyPages";
 
 const challenge = { id: 9, merchantId: 5, title: "Mua cà phê", description: "Mua đủ đơn", type: "ORDER_COUNT" as const, effectiveStatus: "ACTIVE" as const, targetValue: "3", rewardPoints: "150", startsAt: "2026-11-01T00:00:00Z", endsAt: "2026-12-01T00:00:00Z", isFeatured: true, milestones: [], maxRewardRecipients: null, rewardSlotsRemaining: null };
@@ -65,20 +62,6 @@ describe("V4 member challenges and public discovery", () => {
     expect(screen.getByText("Thưởng cho 100 người đầu tiên hoàn thành · Đã hết suất")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tiếp tục tích lũy" })).not.toBeInTheDocument();
     expect(screen.getByText("3 đơn").closest("li")).toHaveAttribute("data-state", "limit-reached");
-  });
-
-  it("displays a global notice without querying store membership and acknowledges it", async () => {
-    unreadNotice.mockResolvedValueOnce({ notice: {
-      id: 12, title: challenge.title, previousLimit: 100, newLimit: 120, storeSlug: "coffee", challengeId: 9,
-    } }).mockResolvedValue({ notice: null });
-    markRead.mockResolvedValue({ read: true });
-    tree("/s/other-store", <ChallengeLimitAnnouncement />, member);
-    expect(await screen.findByText(/tăng từ 100 lên 120 suất thưởng/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Xem nhiệm vụ" })).toHaveAttribute("href", "/s/coffee/challenges/9");
-    expect(unreadNotice).toHaveBeenCalledWith("member-token");
-    fireEvent.click(screen.getByRole("button", { name: "Đã đọc" }));
-    await waitFor(() => expect(screen.queryByLabelText("Thông báo nhiệm vụ")).not.toBeInTheDocument());
-    expect(markRead).toHaveBeenCalledWith(12, "member-token");
   });
 
   it("renders labeled milestone nodes instead of a generic progress bar", () => {

@@ -58,9 +58,8 @@ before(async () => {
 
 after(async () => {
   if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
-  await prisma.challengeLimitNotice.deleteMany({ where: { challenge: { merchantId } } });
   await prisma.refundRequest.deleteMany({ where: { merchantId } });
-  await prisma.orderRefund.deleteMany({ where: { order: { merchantId } } });
+  await prisma.refundOrder.deleteMany({ where: { order: { merchantId } } });
   await prisma.challengeProgressEntry.deleteMany({ where: { progress: { challenge: { merchantId } } } });
   await prisma.challengeRewardGrant.deleteMany({ where: { progress: { challenge: { merchantId } } } });
   await prisma.challengeProgress.deleteMany({ where: { challenge: { merchantId } } });
@@ -157,20 +156,6 @@ test("recipient caps preserve completion order, budget waiting and global notice
   assert.equal((await progress(id, third.id)).rewardState, "REWARDED");
   assert.equal((await req(`/api/merchant/challenges/${id}`, "PATCH", merchantToken, { maxRewardRecipients: 2 })).status, 409);
   assert.equal((await req(`/api/merchant/challenges/${id}`, "PATCH", merchantToken, { maxRewardRecipients: 3 })).status, 200);
-  assert.equal(await prisma.challengeLimitNotice.count({ where: { challengeId: id } }), 2);
-  const unreadPath = "/api/member/challenge-limit-notices/unread";
-  assert.equal((await req(unreadPath, "GET", merchantToken)).status, 403);
-  const unread = await req(unreadPath, "GET", outside.token);
-  assert.equal(unread.status, 200);
-  const notice = unread.json.notice as { id: number; challengeId: number; newLimit: number };
-  assert.equal(notice.challengeId, id);
-  assert.equal(notice.newLimit, 2);
-  const readPath = `/api/member/challenge-limit-notices/${notice.id}/read`;
-  assert.equal((await req(readPath, "POST", outside.token)).status, 200);
-  assert.equal((await req(readPath, "POST", outside.token)).status, 200);
-  assert.equal(((await req(unreadPath, "GET", outside.token)).json.notice as { newLimit: number }).newLimit, 3);
-  assert.equal(((await req(unreadPath, "GET", first.token)).json.notice as { id: number }).id, notice.id);
-  await prisma.challengeLimitNotice.deleteMany({ where: { challengeId: id } });
   await req(`/api/merchant/challenges/${id}/archive`, "POST", merchantToken);
   await req(`/api/merchant/challenges/${unlimitedId}/archive`, "POST", merchantToken);
 });

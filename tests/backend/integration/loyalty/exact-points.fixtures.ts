@@ -51,8 +51,6 @@ export async function cleanup() {
     const membershipIds = memberships.map(({ id }) => id);
     const merchants = await prisma.merchant.findMany({ where: { ownerId: { in: fixtureUserIds } }, select: { id: true } });
     const merchantIds = merchants.map(({ id }) => id);
-    await prisma.rewardFulfillment.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
-    await prisma.rewardCancellation.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
     await prisma.pointTransaction.deleteMany({ where: { wallet: { membershipId: { in: membershipIds } } } });
     await prisma.orderItem.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
     await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });

@@ -37,10 +37,8 @@ async function cleanup() {
     });
     const merchantIds = merchants.map(({ id }) => id);
 
-    await prisma.orderRefund.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
-    await prisma.orderVoucherReservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
-    await prisma.rewardFulfillment.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
-    await prisma.rewardCancellation.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
+    await prisma.refundOrder.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
+    await prisma.reservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
     await prisma.pointTransaction.deleteMany({ where: { wallet: { membershipId: { in: membershipIds } } } });
     await prisma.refundRequest.deleteMany({ where: { merchantId: { in: merchantIds } } });
     await prisma.challengeProgressEntry.deleteMany({ where: { progress: { membership: { id: { in: membershipIds } } } } });
