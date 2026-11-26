@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from "../components/ui";
 import { cn } from "../lib/utils";
 import { Breadcrumb, type BreadcrumbProps } from "antd";
 import { MerchantCmsProvider } from "../features/merchant/cms";
+import { HikariLogo } from "../components/brand/HikariLogo";
 
 const commerce = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 
@@ -93,21 +94,21 @@ export function BackendConsoleLayout() {
           menuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-2">
-          <Link to="/" className="text-[23px] font-extrabold tracking-[-0.06em] text-white">
-            loyalty<span className="text-[#c7ec9f]">.</span>
+        <div className="flex items-center justify-between px-3 pt-1">
+          <Link to="/merchant" className="transition hover:opacity-95">
+            <HikariLogo theme="dark" size={32} />
           </Link>
           <button aria-label="Đóng menu" className="grid size-9 place-items-center rounded-xl text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7ec9f] lg:hidden" onClick={() => setMenuOpen(false)}>
             <X size={19} />
           </button>
         </div>
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#c7ec9f] text-[#203d2c]">
-            <Storefront size={20} weight="duotone" />
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#315e3c]/60 text-[#c7ec9f]">
+            <Storefront size={18} weight="duotone" />
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-bold text-white">Không gian cửa hàng</span>
-            <span className="mt-0.5 block text-xs text-white/55">Quản lý hoạt động</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-semibold text-white">Cửa hàng & Loyalty</span>
+            <span className="mt-0.5 block text-[11px] text-white/55">Quản lý hoạt động</span>
           </span>
         </div>
         <nav aria-label="Điều hướng chính" className="merchant-sidebar-scroll mt-3 min-h-0 flex-1 space-y-0 overflow-y-auto pb-2 pr-1">

@@ -1,5 +1,6 @@
 import { useResource } from "../../../api/useResource";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "../../../components/ui";
+import { EmptyState, ErrorState, LoadingState } from "../../../components/ui";
+import { CmsPageHeader } from "../cms";
 import { MerchantStoreDetails } from "../MerchantStoreDetails";
 import { createStorefrontClient } from "../../../api/storefront-client";
 import { useToken } from "../merchant-page-support";
@@ -11,7 +12,7 @@ export function MerchantStore() {
   const resource = useResource(() => api.getStoreProfile(token), [token]);
   return (
     <>
-      <PageHeader title="Thông tin cửa hàng" />
+      <CmsPageHeader title="Thông tin cửa hàng" />
       {resource.loading ? (
         <LoadingState cards={1} />
       ) : resource.error ? (

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Flex, Input, Segmented, Select, Spin, Typography } from "antd";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { OrderDto } from "../../../api/commerce-types";
 import { useResource } from "../../../api/useResource";
 import { EmptyState, ErrorState } from "../../../components/ui";
 import { MerchantPagination } from "../cms/MerchantPagination";
 import { MerchantRewardQueue } from "../MerchantRewardQueue";
-import { CmsPageHeader } from "../cms";
+import { CmsFilterBar, CmsPageHeader } from "../cms";
 import { MerchantPurchaseOrdersTable } from "./MerchantPurchaseOrdersTable";
 import { MerchantPurchaseOrderDetail } from "./MerchantPurchaseOrderDetail";
 import { api, useToken } from "../merchant-page-support";
@@ -92,17 +93,38 @@ function MerchantPurchaseOrders({ orderId }: { orderId: number | null }) {
 
   return (
     <div className="grid gap-4">
-      <Flex gap={12} wrap>
-        <Input aria-label="Tìm đơn hàng" placeholder="Mã đơn hoặc thành viên" value={query}
-          onChange={(event) => { setPage(1); setQuery(event.target.value); }} style={{ width: 260, maxWidth: "100%" }} allowClear />
-        <Select aria-label="Lọc trạng thái đơn hàng" value={status}
-          onChange={(value) => { setPage(1); setStatus(value); }} style={{ width: 180 }} options={[
-            { value: "ALL", label: "Tất cả trạng thái" }, { value: "PENDING", label: "Chờ thanh toán" },
-            { value: "PAID", label: "Đã thanh toán" }, { value: "FAILED", label: "Thất bại" },
-            { value: "CANCELLED", label: "Đã hủy" }, { value: "REFUND_PENDING", label: "Đang hoàn tiền" },
+      <CmsFilterBar label="Lọc đơn hàng" className="mb-0">
+        <Input
+          aria-label="Tìm đơn hàng"
+          placeholder="Mã đơn hoặc email thành viên..."
+          prefix={<MagnifyingGlass size={16} className="text-[#7d8a80]" />}
+          value={query}
+          onChange={(event) => {
+            setPage(1);
+            setQuery(event.target.value);
+          }}
+          className="h-9 min-w-[260px] flex-1 sm:max-w-xs"
+          allowClear
+        />
+        <Select
+          aria-label="Lọc trạng thái đơn hàng"
+          value={status}
+          onChange={(value) => {
+            setPage(1);
+            setStatus(value);
+          }}
+          className="h-9 min-w-[170px]"
+          options={[
+            { value: "ALL", label: "Trạng thái: Tất cả" },
+            { value: "PENDING", label: "Chờ thanh toán" },
+            { value: "PAID", label: "Đã thanh toán" },
+            { value: "FAILED", label: "Thất bại" },
+            { value: "CANCELLED", label: "Đã hủy" },
+            { value: "REFUND_PENDING", label: "Đang hoàn tiền" },
             { value: "REFUNDED", label: "Đã hoàn tiền" },
-          ]} />
-      </Flex>
+          ]}
+        />
+      </CmsFilterBar>
       {resource.loading ? <Flex justify="center" className="py-10"><Spin description="Đang tải đơn hàng…" /></Flex>
         : resource.error ? <ErrorState message={resource.error} retry={resource.reload} />
         : <MerchantPurchaseOrdersTable orders={orders} />}

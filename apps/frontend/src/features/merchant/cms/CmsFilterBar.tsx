@@ -13,9 +13,9 @@ export function CmsFilterBar({
   return (
     <section
       aria-label={label}
-      className={`rounded-xl border border-[#e3e9e2] bg-white p-4 shadow-[0_1px_3px_rgba(32,57,42,0.04)] ${className ?? "mb-5"}`}
+      className={`rounded-xl border border-[#e3e9e2] bg-white p-3.5 shadow-[0_1px_3px_rgba(32,57,42,0.04)] ${className ?? "mb-5"}`}
     >
-      <Flex align="end" gap={12} wrap className="w-full">
+      <Flex align="center" gap={12} wrap className="w-full">
         {children}
       </Flex>
     </section>
