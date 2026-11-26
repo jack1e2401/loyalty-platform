@@ -46,7 +46,7 @@
   - Chỉ thực thi ghi dữ liệu khi người dùng xác nhận rõ ràng; nếu hủy hoặc bấm ra ngoài, giữ nguyên hiện trạng.
 - **Quy tắc về Chuyển động & Animation (Rive & Motion):**
   - Hoạt ảnh Rive (`.riv`) CHỈ ĐƯỢC PHÉP sử dụng trong trải nghiệm **Khách hàng/Hội viên (Member Portal / Zalo Mini App)** – ví dụ: đóng dấu thẻ tem (stamp animation), mở quà voucher.
-  - Các màn hình Quản trị (Admin) và Đối tác/Thu ngân (Merchant/Cashier) MUST sử dụng hình ảnh và giao diện tĩnh (Static Artwork).
+  - Các màn hình Đối tác/Thu ngân (Merchant/Cashier) MUST sử dụng hình ảnh và giao diện tĩnh (Static Artwork).
   - Mọi hiệu ứng chuyển động MUST có phương án thay thế tĩnh (Static Fallback) và tôn trọng thiết lập `prefers-reduced-motion` của hệ điều hành.
 - **Không tự bịa đặt dữ liệu (No Fake / Sample Commerce Data):**
   - Tuyệt đối không dùng dữ liệu mock tự chế trên các màn hình sản phẩm. Chỉ kết nối các endpoint API thực tế từ backend; ẩn hoặc vô hiệu hóa các nút nếu endpoint chưa khả dụng.

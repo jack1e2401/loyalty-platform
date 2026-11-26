@@ -2,7 +2,7 @@
 
 **Dự án:** IncomSG — Loyalty & Commerce Platform  
 **Vị trí tài liệu:** `agent-docs/UI_UX_GUIDELINES.md`  
-**Vai trò:** Single Source of Truth quy định tiêu chuẩn thiết kế giao diện, trải nghiệm người dùng (UX Principles), quy tắc hoạt ảnh (Rive/Motion), bảo vệ dữ liệu và chuẩn hóa màn hình cho 3 nhóm đối tượng: Khách hàng (Member), Đối tác/Thu ngân (Merchant/Cashier) và Quản trị viên (Admin).
+**Vai trò:** Single Source of Truth quy định tiêu chuẩn thiết kế giao diện, trải nghiệm người dùng (UX Principles), quy tắc hoạt ảnh (Rive/Motion), bảo vệ dữ liệu và chuẩn hóa màn hình cho 2 nhóm đối tượng: Khách hàng (Member / Zalo Mini App) và Đối tác/Thu ngân (Merchant / Store Manager / Cashier).
 
 ---
 
@@ -43,9 +43,6 @@ Nền tảng IncomSG phục vụ các thao tác tài chính, tích điểm và v
   - **Bảo đảm phạm vi chi nhánh (Branch Context):** Luôn hiển thị rõ ràng chỉ báo chi nhánh hiện tại (ví dụ: "Chi nhánh A - Hikari Trung Tâm" vs "Chi nhánh B"). Thu ngân không được phép nhầm lẫn chi nhánh khi thao tác.
   - **Chống bấm đúp (Double-click Prevention):** Mọi nút bấm tạo đơn, thanh toán hoặc đổi voucher phải bị vô hiệu hóa ngay khi click để chống ghi nhận trùng.
 
-### 2.3. Trải nghiệm Quản trị Hệ thống (Admin Portal)
-- Sử dụng giao diện chuẩn của Ant Design: Bảng dữ liệu mật độ vừa phải, bộ lọc rõ ràng, phân trang tường minh, nhật ký kiểm toán (Audit Logs) cho các hành động phê duyệt merchant hay can thiệp hệ thống.
-
 ---
 
 ## 3. Quy Tắc Bắt Buộc: Modal Xác Nhận (Confirmation Modal)
@@ -79,6 +76,6 @@ Mọi màn hình hoặc danh sách hiển thị dữ liệu MUST xử lý đủ 
 
 - ❌ **CẤM** hiển thị thông báo thành công hoặc số dư mới trước khi API backend trả về kết quả 200 OK.
 - ❌ **CẤM** sử dụng dữ liệu mẫu (mock/seed ảo) cắm cứng trong các màn hình sản phẩm.
-- ❌ **CẤM** đặt hoạt ảnh Rive trong màn hình CMS của Merchant hoặc Admin.
+- ❌ **CẤM** đặt hoạt ảnh Rive trong màn hình CMS của Merchant hoặc quầy Thu ngân.
 - ❌ **CẤM** bỏ qua Modal xác nhận đối với các nút xóa, hủy đơn, hoàn tiền hoặc xuất bản chính sách.
 - ❌ **CẤM** tự ý sáng tác URL ảnh hoặc tài nguyên remote từ bên ngoài; chỉ tái sử dụng tài nguyên đã có trong dự án.

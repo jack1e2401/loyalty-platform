@@ -31,8 +31,7 @@ IncomSG/ (Root Workspace)
 ```text
 [ GIAO DIỆN NGƯỜI DÙNG (FRONTEND) ]
    ├── Member Portal & Zalo Mini App (Điện thoại, thẻ tem tích điểm, ví voucher)
-   ├── Merchant CMS & Cashier Counter (Quầy thu ngân, quản lý sản phẩm, đối soát)
-   └── Admin Portal (Quản trị hệ thống, duyệt merchant)
+   └── Merchant CMS & Cashier Counter (Quầy thu ngân, quản lý sản phẩm, đối soát)
             │  (HTTPS / RESTful JSON / Idempotency Key)
             ▼
 [ APPLICATION & API LAYER (BACKEND EXPRESS) ]

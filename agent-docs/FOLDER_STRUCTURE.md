@@ -47,7 +47,7 @@ apps/frontend/src/
 │   ├── orders/          # Giỏ hàng, tạo đơn, quản lý hàng chờ đơn hàng
 │   ├── refunds/         # Quy trình duyệt & đối soát hoàn tiền
 │   └── storefront/      # Giao diện cửa hàng, cấu hình giao diện & theme
-├── layouts/             # Khung bố cục các cổng (MerchantLayout, MemberLayout, AdminLayout)
+├── layouts/             # Khung bố cục các cổng (MerchantLayout, MemberLayout, StorefrontLayout)
 ├── lib/                 # Core HTTP client, Axios/Fetch instance, cấu hình môi trường
 ├── routes/              # Bảng định tuyến routes toàn ứng dụng (AppRoutes.tsx)
 ├── types/               # Kiểu dữ liệu TypeScript dùng chung

@@ -8,7 +8,7 @@
 
 ## 1. Mô hình Kiến trúc Tương tác API
 
-Toàn bộ tương tác giữa Frontend (Member, Merchant, Admin, Zalo Mini App) và Backend Express API được phân tầng nghiêm ngặt:
+Toàn bộ tương tác giữa Frontend (Member, Merchant, Cashier, Zalo Mini App) và Backend Express API được phân tầng nghiêm ngặt:
 
 ```text
 React Component / Custom Hook (apps/frontend/src/features/<domain>/)
@@ -39,9 +39,8 @@ Prisma ORM & MySQL Transaction (apps/backend/src/lib/prisma.ts)
 ### 2.1. Phân nhóm Route theo vai trò (Role-based Scoping)
 - `/api/v1/auth/*`: Đăng nhập, đăng ký, refresh session, logout.
 - `/api/v1/member/*`: Tra cứu thẻ thành viên, số tem (stamp card), ví voucher, lịch sử tích điểm, đổi thưởng.
-- `/api/v1/merchant/*`: Quản lý danh mục sản phẩm, cấu hình chính sách điểm/tem, duyệt hoàn đơn, xem báo cáo chi nhánh.
+- `/api/v1/merchant/*`: Quản lý danh mục sản phẩm, cấu hình chính sách điểm/tem, duyệt hoàn tiền, xem báo cáo chi nhánh.
 - `/api/v1/cashier/*` (hoặc `/api/v1/merchant/counter/*`): Thao tác quầy thu ngân (ghi nhận đơn, đếm ly latte/bánh, tra cứu hội viên, quét và đổi voucher theo chi nhánh).
-- `/api/v1/admin/*`: Quản trị hệ thống, phê duyệt merchant, quản lý cấu hình toàn sàn.
 
 ### 2.2. Chi nhánh & Merchant Context Headers
 - `Authorization: Bearer <access_token>`: Bắt buộc cho mọi route yêu cầu xác thực.
