@@ -11,7 +11,7 @@ import { useToken } from "../merchant-page-support";
 import { MerchantRefundReviewDetail } from "./MerchantRefundReviewDetail";
 
 const api = createRefundsClient();
-const states: (RefundRequestStatus | "ALL")[] = ["ALL", "PENDING_MERCHANT", "APPROVED", "COMPLETED", "FAILED", "REJECTED"];
+const states: (RefundRequestStatus | "ALL")[] = ["ALL", "PENDING_MERCHANT", "COMPLETED", "REJECTED"];
 
 function statusTone(status: RefundRequestStatus) {
   if (status === "COMPLETED") return "success" as const;
@@ -144,7 +144,7 @@ export function MerchantRefundRequestsPage() {
           value={status}
           options={states.map((value) => ({
             value,
-            label: value === "ALL" ? "Tất cả trạng thái" : value === "APPROVED" ? "Đã duyệt" : refundRequestStatusLabel(value),
+            label: value === "ALL" ? "Tất cả trạng thái" : refundRequestStatusLabel(value),
           }))}
           onChange={(value: RefundRequestStatus | "ALL") => {
             setStatus(value);

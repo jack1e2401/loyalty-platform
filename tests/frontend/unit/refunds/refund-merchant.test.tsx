@@ -122,12 +122,12 @@ describe("merchant refund request approvals", () => {
     );
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "Lọc trạng thái" }));
     expect(await screen.findByTitle("Tất cả trạng thái")).toBeInTheDocument();
-    expect(screen.getByTitle("Đã duyệt")).toBeInTheDocument();
     expect(screen.getByTitle("Đã hoàn tiền")).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle("Đã duyệt"));
+    expect(screen.getByTitle("Từ chối hoàn tiền")).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle("Đã hoàn tiền"));
     await waitFor(() =>
       expect(mocks.list).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "APPROVED" }),
+        expect.objectContaining({ status: "COMPLETED" }),
         "merchant-token",
       ),
     );
