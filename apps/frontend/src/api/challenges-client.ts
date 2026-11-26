@@ -1,7 +1,6 @@
 import { requestJson, translateApiError } from "./commerce/shared";
 import type {
   CreateChallengeInput,
-  ChallengeLimitNotice,
   ListMerchantChallengesParams,
   MemberCheckinResponse,
   MemberStoreChallengeDetailResponse,
@@ -37,18 +36,6 @@ export function createChallengesClient(
   fetcher: typeof fetch = fetch,
 ) {
   return {
-    getUnreadChallengeLimitNotice(token: string) {
-      return requestJson<{ notice: ChallengeLimitNotice | null }>(
-        fetcher, baseUrl, "/api/member/challenge-limit-notices/unread", { token },
-      );
-    },
-
-    markChallengeLimitNoticeRead(noticeId: number, token: string) {
-      return requestJson<{ read: true }>(
-        fetcher, baseUrl, `/api/member/challenge-limit-notices/${noticeId}/read`, { method: "POST", token },
-      );
-    },
-
     listMerchantChallenges(params: ListMerchantChallengesParams = {}, token: string) {
       const search = new URLSearchParams();
       if (params.status) search.set("status", params.status);

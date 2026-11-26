@@ -13,10 +13,6 @@ export function translateRefundRequestError(code: string): string {
     REFUND_REQUEST_NOT_FOUND: "Không tìm thấy yêu cầu hoàn tiền.",
     ORDER_NOT_REFUNDABLE: "Đơn hàng không ở trạng thái có thể hoàn tiền.",
     REFUND_REQUEST_NOT_PENDING: "Yêu cầu này đã được xử lý. Hãy tải lại để xem kết quả.",
-    REFUND_REQUEST_NOT_PROCESSING: "Yêu cầu chưa ở trạng thái đối soát.",
-    REFUND_SETTLEMENT_REFERENCE_CONFLICT: "Mã giao dịch đã được ghi nhận với dữ liệu khác.",
-    PROVIDER_REFERENCE_REQUIRED: "Vui lòng nhập mã giao dịch hoàn tiền từ nhà cung cấp.",
-    FAILURE_REASON_REQUIRED: "Vui lòng nhập lý do thất bại từ nhà cung cấp.",
     USE_REFUND_APPROVAL_WORKFLOW: "Vui lòng xử lý hoàn tiền thông qua quy trình phê duyệt yêu cầu hoàn tiền.",
     REASON_REQUIRED: "Vui lòng nhập lý do.",
   };

@@ -88,16 +88,6 @@ export interface MerchantChallengeDetailResponse {
     pagination: ChallengePaginationDto;
   };
   recentGrants: ChallengeGrantHistoryDto[];
-  limitChanges: Array<{ id: number; previousLimit: number; newLimit: number; actorId: number; createdAt: string }>;
-}
-
-export interface ChallengeLimitNotice {
-  id: number;
-  title: string;
-  previousLimit: number;
-  newLimit: number;
-  challengeId: number | null;
-  storeSlug: string | null;
 }
 
 export interface MerchantChallengeMutationResponse {

@@ -6,13 +6,12 @@ import { MemoryRouter } from "react-router-dom";
 import { AuthSessionProvider } from "../../../../apps/frontend/src/api/auth-session";
 import { MerchantRefundRequestsPage } from "../../../../apps/frontend/src/features/merchant/refunds/MerchantRefundRequestsPage";
 
-const mocks = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn(), approve: vi.fn(), reconcile: vi.fn(), reject: vi.fn() }));
+const mocks = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn(), approve: vi.fn(), reject: vi.fn() }));
 vi.mock("../../../../apps/frontend/src/api/refunds-client", () => ({
   createRefundsClient: () => ({
     listMerchantRefundRequests: mocks.list,
     getMerchantRefundRequest: mocks.get,
     approveMerchantRefundRequest: mocks.approve,
-    reconcileMerchantRefundRequest: mocks.reconcile,
     rejectMerchantRefundRequest: mocks.reject,
   }),
 }));
@@ -104,11 +103,6 @@ describe("merchant refund request approvals", () => {
     });
     mocks.get.mockResolvedValue(detail);
     mocks.approve.mockResolvedValue({ refundRequest: { ...item, status: "COMPLETED" } });
-    mocks.reconcile.mockResolvedValue({
-      refundRequest: { ...item, status: "COMPLETED" },
-      reconciliationAttempt: { id: 1, providerReference: "refund-456", providerTransactionNo: null, outcome: "SETTLED", failureReason: null, createdAt: "" },
-      manualReconciliationRequired: false,
-    });
     mocks.reject.mockResolvedValue({ refundRequest: { ...item, status: "REJECTED" } });
   });
   afterEach(() => {
@@ -129,7 +123,7 @@ describe("merchant refund request approvals", () => {
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "Lọc trạng thái" }));
     expect(await screen.findByTitle("Tất cả trạng thái")).toBeInTheDocument();
     expect(screen.getByTitle("Đã duyệt")).toBeInTheDocument();
-    expect(screen.getByTitle("Chờ đối soát hoàn tiền thủ công")).toBeInTheDocument();
+    expect(screen.getByTitle("Đã hoàn tiền")).toBeInTheDocument();
     fireEvent.click(screen.getByTitle("Đã duyệt"));
     await waitFor(() =>
       expect(mocks.list).toHaveBeenCalledWith(

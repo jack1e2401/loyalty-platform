@@ -11,12 +11,12 @@ import { useToken } from "../merchant-page-support";
 import { MerchantRefundReviewDetail } from "./MerchantRefundReviewDetail";
 
 const api = createRefundsClient();
-const states: (RefundRequestStatus | "ALL")[] = ["ALL", "PENDING_MERCHANT", "APPROVED", "PROCESSING", "COMPLETED", "FAILED", "REJECTED"];
+const states: (RefundRequestStatus | "ALL")[] = ["ALL", "PENDING_MERCHANT", "APPROVED", "COMPLETED", "FAILED", "REJECTED"];
 
 function statusTone(status: RefundRequestStatus) {
   if (status === "COMPLETED") return "success" as const;
   if (status === "REJECTED" || status === "FAILED") return "error" as const;
-  if (status === "PENDING_MERCHANT" || status === "PROCESSING") return "warning" as const;
+  if (status === "PENDING_MERCHANT") return "warning" as const;
   return "info" as const;
 }
 

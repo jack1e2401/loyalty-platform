@@ -203,7 +203,6 @@ export const challengesService = {
     ]);
     return {
       challenge: this.toMerchantDto({ ...challenge, inProgressCount, completedCount, waitingBudgetCount }),
-      limitChanges: [],
       participants: {
         items: items.map((p) => ({
           progressId: p.id,

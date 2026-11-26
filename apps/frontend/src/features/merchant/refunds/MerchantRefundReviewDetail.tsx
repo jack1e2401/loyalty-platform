@@ -106,7 +106,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       ? "success"
       : data.refundRequest.status === "REJECTED" || data.refundRequest.status === "FAILED"
         ? "error"
-        : pending || data.refundRequest.status === "PROCESSING"
+        : pending
           ? "warning"
           : "info";
   const orderColumns: TableColumnsType<RefundRequestDetailResponse["order"]["items"][number]> = [
