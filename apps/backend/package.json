@@ -10,7 +10,7 @@
     "typecheck": "npm run db:generate && tsc --noEmit",
     "test": "npm run db:generate && tsx --test ../../tests/backend/unit/**/*.test.ts",
     "test:db": "npm run db:generate && tsx --test --test-concurrency=1 ../../tests/backend/integration/*.integration.test.ts",
-    "test:milestone2": "npm run db:generate && tsx --test ../../tests/backend/integration/milestone-2.integration.test.ts",
+    "test:auth": "npm run db:generate && tsx --test ../../tests/backend/integration/auth-session.integration.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",

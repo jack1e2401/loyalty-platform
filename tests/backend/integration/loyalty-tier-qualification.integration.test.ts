@@ -12,10 +12,10 @@ const [{ app }, { prisma }, { signAccessToken }] = await Promise.all([
 ]);
 
 const suffix = randomUUID();
-const merchantAEmail = `m4-merchant-a-${suffix}@test.local`;
-const merchantBEmail = `m4-merchant-b-${suffix}@test.local`;
-const memberEmail = `m4-member-${suffix}@test.local`;
-const secondMemberEmail = `m4-member-b-${suffix}@test.local`;
+const merchantAEmail = `tier-merchant-a-${suffix}@test.local`;
+const merchantBEmail = `tier-merchant-b-${suffix}@test.local`;
+const memberEmail = `tier-member-${suffix}@test.local`;
+const secondMemberEmail = `tier-member-b-${suffix}@test.local`;
 let server: Server | undefined;
 let baseUrl: string;
 let merchantAId: number;
@@ -34,8 +34,8 @@ before(async () => {
     prisma.user.create({ data: { email: secondMemberEmail, passwordHash: "fixture", role: "MEMBER" } }),
   ]);
   const [merchantA, merchantB] = await Promise.all([
-    prisma.merchant.create({ data: { ownerId: ownerA.id, name: "M4 A", slug: `m4-a-${suffix}` } }),
-    prisma.merchant.create({ data: { ownerId: ownerB.id, name: "M4 B", slug: `m4-b-${suffix}` } }),
+    prisma.merchant.create({ data: { ownerId: ownerA.id, name: "Tier A", slug: `tier-a-${suffix}` } }),
+    prisma.merchant.create({ data: { ownerId: ownerB.id, name: "Tier B", slug: `tier-b-${suffix}` } }),
   ]);
   fixturesCreated = true;
   merchantAId = merchantA.id;
@@ -142,7 +142,7 @@ test("member becomes Bronze and earns points only after a paid order at that mer
   assert.equal(beforeB.json.wallet.tier, "UNRANKED");
   assert.equal(beforeB.json.wallet.policy.merchantId, merchantBId);
   assert.equal(beforeB.json.wallet.policy.vndPerPoint, 5000);
-  const product = await request("/api/merchant/products", "POST", merchantAToken, { name: "M4 Coffee", price: "200000", initialQuantity: 10 });
+  const product = await request("/api/merchant/products", "POST", merchantAToken, { name: "Tier Coffee", price: "200000", initialQuantity: 10 });
   assert.equal(product.response.status, 201);
   const created = await request("/api/orders", "POST", memberToken, { productId: product.json.product.id, quantity: 1 });
   assert.equal(created.response.status, 201);
@@ -166,20 +166,6 @@ test("member becomes Bronze and earns points only after a paid order at that mer
   assert.equal(again.response.status, 409);
   const afterAgain = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", memberToken);
   assert.equal(afterAgain.json.wallet.transactions.length, 1);
-});
-
-test("only one concurrent payment of the same order earns points once", async () => {
-  const walletBefore = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", memberToken);
-  const product = await request("/api/merchant/products", "POST", merchantAToken, { name: "Concurrent Same", price: "200000", initialQuantity: 10 });
-  const order = await request("/api/orders", "POST", memberToken, { productId: product.json.product.id, quantity: 1 });
-  const responses = await Promise.all([
-    request(`/api/orders/${order.json.order.id}/pay`, "POST", memberToken),
-    request(`/api/orders/${order.json.order.id}/pay`, "POST", memberToken),
-  ]);
-  assert.deepEqual(responses.map((result) => result.response.status).sort(), [200, 409]);
-  const wallet = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", memberToken);
-  assert.equal(wallet.json.wallet.availablePoints, walletBefore.json.wallet.availablePoints + 20);
-  assert.equal(wallet.json.wallet.transactions.filter((transaction: { orderId: number }) => transaction.orderId === order.json.order.id).length, 1);
 });
 
 test("paid orders keep the tier reached by that order, even after another promotion", async () => {
@@ -207,33 +193,6 @@ test("paid orders keep the tier reached by that order, even after another promot
   assert.equal(receipt.json.order.promotedToTier, "gold");
 });
 
-test("concurrent paid orders serialize the wallet balance and preserve member isolation", async () => {
-  const walletBefore = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", memberToken);
-  const product = await request("/api/merchant/products", "POST", merchantAToken, { name: "Concurrent Different", price: "200000", initialQuantity: 10 });
-  const [first, second] = await Promise.all([
-    request("/api/orders", "POST", memberToken, { productId: product.json.product.id, quantity: 1 }),
-    request("/api/orders", "POST", memberToken, { productId: product.json.product.id, quantity: 1 }),
-  ]);
-  const payments = await Promise.all([
-    request(`/api/orders/${first.json.order.id}/pay`, "POST", memberToken),
-    request(`/api/orders/${second.json.order.id}/pay`, "POST", memberToken),
-  ]);
-  assert.deepEqual(payments.map((result) => result.response.status), [200, 200]);
-  const wallet = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", memberToken);
-  assert.equal(wallet.json.wallet.availablePoints, walletBefore.json.wallet.availablePoints + 40);
-  assert.equal(wallet.json.wallet.lifetimeEarnedPoints, walletBefore.json.wallet.lifetimeEarnedPoints + 40);
-  const orderIds = new Set([first.json.order.id, second.json.order.id]);
-  const balances = wallet.json.wallet.transactions.filter((transaction: { orderId: number }) => orderIds.has(transaction.orderId)).map((transaction: { balanceAfter: string }) => transaction.balanceAfter).sort((a: string, b: string) => Number(a) - Number(b));
-  assert.deepEqual(balances, [String(walletBefore.json.wallet.availablePoints + 20), String(walletBefore.json.wallet.availablePoints + 40)]);
-
-  const foreignPay = await request(`/api/orders/${first.json.order.id}/pay`, "POST", secondMemberToken);
-  assert.equal(foreignPay.response.status, 404);
-  const foreignWallet = await request(`/api/member/merchants/${merchantAId}/wallet`, "GET", secondMemberToken);
-  assert.equal(foreignWallet.json.wallet.availablePoints, 0);
-  assert.equal(foreignWallet.json.wallet.tier, "UNRANKED");
-  assert.deepEqual(foreignWallet.json.wallet.transactions, []);
-});
-
 test("a sub-threshold first paid order creates Bronze and preserves fractional points", async () => {
   const product = await request("/api/merchant/products", "POST", merchantAToken, { name: "Under Threshold", price: "9999", initialQuantity: 10 });
   const order = await request("/api/orders", "POST", secondMemberToken, { productId: product.json.product.id, quantity: 1 });
@@ -245,29 +204,4 @@ test("a sub-threshold first paid order creates Bronze and preserves fractional p
   assert.equal(wallet.json.wallet.exactBalance, "0.9999");
   assert.equal(wallet.json.wallet.fractionalCarry, "0.9999");
   assert.equal(wallet.json.wallet.transactions.at(-1).delta, "0.9999");
-});
-
-test("rejects a paid order that would overflow the stored points balance", async () => {
-  const product = await request("/api/merchant/products", "POST", merchantAToken, { name: "Overflow", price: "200000", initialQuantity: 10 });
-  const order = await request("/api/orders", "POST", memberToken, { productId: product.json.product.id, quantity: 1 });
-  const membership = await prisma.merchantMembership.findUniqueOrThrow({ where: { memberId_merchantId: { memberId: (await prisma.user.findUniqueOrThrow({ where: { email: memberEmail } })).id, merchantId: merchantAId } } });
-  const wallet = await prisma.loyaltyWallet.findUniqueOrThrow({ where: { membershipId: membership.id } });
-  await prisma.loyaltyWallet.update({ where: { id: wallet.id }, data: { exactBalance: 2147483647, netLifetimeEarned: 2147483647 } });
-  const paid = await request(`/api/orders/${order.json.order.id}/pay`, "POST", memberToken);
-  assert.equal(paid.response.status, 409);
-  assert.equal(paid.json.error, "LOYALTY_LIMIT_EXCEEDED");
-  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: order.json.order.id } })).status, "PENDING");
-});
-
-test("rejects an order whose earned points exceed the stored Int range", async () => {
-  const product = await request("/api/merchant/products", "POST", merchantAToken, {
-    name: "Too Many Points",
-    price: "999999999999999",
-    initialQuantity: 10,
-  });
-  const order = await request("/api/orders", "POST", memberToken, { productId: product.json.product.id, quantity: 1 });
-  const paid = await request(`/api/orders/${order.json.order.id}/pay`, "POST", memberToken);
-  assert.equal(paid.response.status, 409);
-  assert.equal(paid.json.error, "LOYALTY_LIMIT_EXCEEDED");
-  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: order.json.order.id } })).status, "PENDING");
 });

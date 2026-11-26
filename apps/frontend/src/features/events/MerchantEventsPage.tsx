@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowUpRight, Plus } from "@phosphor-icons/react";
-import { Link } from "react-router-dom";
+import { Plus } from "@phosphor-icons/react";
 import { useAuthSession } from "../../api/auth-session";
 import { createCommerceClient } from "../../api/commerce-http";
 import { createEventsClient, translateEventError } from "../../api/events-client";

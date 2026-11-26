@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCommerceClient } from "../../../../apps/frontend/src/api/commerce-http";
 
-describe("M6 & M7 commerce HTTP client", () => {
+describe("Commerce HTTP client", () => {
   it("cancels an unpaid pending order with Bearer auth", async () => {
     const cancelResponse = {
       order: {

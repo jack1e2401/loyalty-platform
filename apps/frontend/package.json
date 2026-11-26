@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config ../../tests/frontend/vitest.config.ts",
     "test:e2e": "playwright test --config ../../tests/frontend/playwright.config.ts",
-    "test:e2e:m2": "playwright test --config ../../tests/frontend/playwright.m2.config.ts",
+    "test:e2e:auth": "playwright test --config ../../tests/frontend/playwright.m2.config.ts",
     "test:e2e:commerce": "playwright test --config ../../tests/frontend/playwright.commerce.config.ts",
     "test:e2e:ux": "playwright test --config ../../tests/frontend/playwright.ux.config.ts",
     "format": "prettier --config .prettierrc.json --write src ../../tests/frontend *.ts",

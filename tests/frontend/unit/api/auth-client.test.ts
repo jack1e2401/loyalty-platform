@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createAuthClient } from "../../../../apps/frontend/src/api/auth-client";
 
-describe("Milestone 2 HTTP client", () => {
+describe("Auth HTTP client", () => {
   it("sends Member registration to the backend contract", async () => {
     let requestUrl = "";
     let requestInit: RequestInit | undefined;
@@ -47,5 +47,4 @@ describe("Milestone 2 HTTP client", () => {
       "MERCHANT_PENDING",
     );
   });
-
 });

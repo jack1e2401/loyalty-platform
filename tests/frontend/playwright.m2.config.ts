@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "milestone2.spec.ts",
+  testMatch: "auth-registration.spec.ts",
   fullyParallel: false,
   reporter: "list",
   timeout: 25_000,
