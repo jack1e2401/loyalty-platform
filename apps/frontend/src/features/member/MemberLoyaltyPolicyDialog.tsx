@@ -23,9 +23,6 @@ export function MemberLoyaltyPolicyDialog({ policy }: { policy: LoyaltyConfigDto
           <Dialog.Title className="pr-10 text-xl font-extrabold text-[#20392a]">
             Chính sách tích điểm
           </Dialog.Title>
-          <Dialog.Description className="mt-2 pr-8 text-sm leading-6 text-[#53685a]">
-            {policy.qualificationMode === "SPEND" ? "Hạng được xét theo chi tiêu đủ điều kiện tại cửa hàng này." : "Hạng được xét theo tổng điểm tích lũy tại cửa hàng này."}
-          </Dialog.Description>
           <Dialog.Close asChild>
             <Button aria-label="Đóng" variant="ghost" size="icon" className="absolute right-3 top-3">
               <X aria-hidden="true" size={20} />

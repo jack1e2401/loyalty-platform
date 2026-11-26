@@ -113,7 +113,6 @@ export function MerchantChallengesPage() {
     <section className="space-y-6">
       <PageHeader
         title="Nhiệm vụ"
-        description="Tạo chiến dịch, theo dõi tiến độ và quản lý ngân sách điểm thưởng."
         action={
           <Button asChild>
             <Link to="/merchant/challenges/new">Tạo nhiệm vụ</Link>

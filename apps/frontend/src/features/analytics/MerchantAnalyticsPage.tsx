@@ -82,7 +82,6 @@ export function MerchantAnalyticsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Phân tích cửa hàng"
-        description="Doanh thu, đơn hàng, khách hàng và cảnh báo tồn kho theo giờ Việt Nam."
       />
 
       <form
