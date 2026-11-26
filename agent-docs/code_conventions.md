@@ -1,88 +1,96 @@
 # QUY CHUẨN MÃ NGUỒN (CODE CONVENTIONS)
 
-**Dự án:** NexGear-SFE  
-**Vị trí tài liệu:** `agent-docs/CODE_CONVENTIONS.md`  
-**Vai trò:** Single Source of Truth duy nhất cho các quy định viết mã nguồn React, TypeScript, Tailwind CSS, quy ước đặt tên và xử lý lỗi trong dự án NexGear-SFE.
+**Dự án:** IncomSG — Loyalty & Commerce Platform  
+**Vị trí tài liệu:** `agent-docs/code_conventions.md`  
+**Vai trò:** Single Source of Truth cho các tiêu chuẩn lập trình React 19, TypeScript, Express, Prisma ORM, kiến trúc module nhỏ (SOLID) và an toàn tài chính trong monorepo IncomSG.
 
 ---
 
 ## 1. Mức độ Quy tắc (Rule Levels)
 
-- **MUST (BẮT BỘC):** Quy định bắt buộc phải tuân thủ. Vi phạm sẽ không được duyệt PR hoặc bị linter/compiler chặn build.
-- **SHOULD (KHUYẾN NGHỊ):** Tiêu chuẩn khuyến khích áp dụng cao nhằm duy trì tính nhất quán.
-- **MAY (TÙY CHỌN):** Lựa chọn bổ sung tùy thuộc vào ngữ cảnh cụ thể.
+- **MUST (BẮT BỘC):** Quy chuẩn cốt lõi không thể vi phạm. Code vi phạm sẽ bị từ chối commit hoặc chặn trong CI.
+- **SHOULD (KHUYẾN NGHỊ):** Tiêu chuẩn thiết kế tốt cần ưu tiên tuân thủ nhằm bảo đảm khả năng bảo trì.
+- **MAY (TÙY CHỌN):** Hướng xử lý linh hoạt tùy ngữ cảnh cụ thể.
 
 ---
 
-## 2. Quy tắc React & Component Design
+## 2. Kích thước Module & Nguyên tắc SOLID
 
 ### Bắt buộc (MUST)
-- **Functional Components:** MUST sử dụng 100% Functional Components kết hợp với React Hooks.
-- **Single Responsibility:** Mỗi component MUST chỉ giữ một trách nhiệm duy nhất. Component vượt quá 150-200 dòng code SHOULD được cân nhắc tách nhỏ.
-- **Prop Interface/Type:** Mọi Component MUST khai báo type tường minh cho Props.
-- **No Direct API calls in UI Components:** Components KHÔNG ĐƯỢC gọi trực tiếp Axios/Fetch hay định nghĩa API endpoints. Logic gọi API MUST đặt tập trung tại `src/apis/`.
-
-### Khuyến nghị (SHOULD)
-- **Reusable UI:** Đưa các UI component có khả năng tái sử dụng (Button, Input, Modal, ProductCard) vào `src/components/`.
-- **Custom Hooks Isolation:** Khi component có logic state hoặc side-effect phức tạp, SHOULD tách logic đó ra Custom Hook đặt tại `src/hooks/`.
+- **Giới hạn dòng code:** Mỗi file mã nguồn thủ công mục tiêu **150 – 250 dòng**. Khi file vượt quá **300 dòng**, đây là tín hiệu bắt buộc phải tái cấu trúc (refactor signal).
+- **Trách nhiệm đơn nhất (Single Responsibility):**
+  - Frontend: Tách rõ Component giao diện, Custom Hook quản lý state/side-effects, và API helper.
+  - Backend: Tách biệt rõ ràng giữa Transport/Route handler, Validation, Domain calculation, và Persistence/Prisma query.
+- **Không trừu tượng hóa vội vã:** Giữ helper và sub-components gần feature sở hữu nó; không tạo tầng trừu tượng dùng chung nếu mới chỉ có 1 nơi sử dụng.
 
 ---
 
-## 3. Quy tắc TypeScript
+## 3. Quy chuẩn TypeScript & An Toàn Dữ Liệu
 
 ### Bắt buộc (MUST)
-- **Strict Mode:** MUST tuân thủ strict mode (`strict: true` trong `tsconfig.json`).
-- **Cấm `any`:** BẮT BUỘC KHÔNG sử dụng kiểu `any`. Trong trường hợp chưa xác định rõ kiểu dữ liệu, MUST dùng `unknown` kết hợp với Type Narrowing hoặc Type Guards.
-- **Props Typing:** Ưu tiên sử dụng `type` cho Props và State cục bộ của Component; dùng `interface` khi định nghĩa Data Models (sản phẩm, đơn hàng, người dùng).
-
-### Khuyến nghị (SHOULD)
-- **Union Types:** Giữ union types gọn gàng, rõ nghĩa (ví dụ: `type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled'`).
-- **Exporting Types:** Types/Interfaces dùng chung toàn app MUST được định nghĩa tập trung tại `src/types/`.
+- **Chế độ nghiêm ngặt (Strict Mode):** Luôn tuân thủ `strict: true`.
+- **CẤM tuyệt đối `any`:** Không sử dụng `any`. Khi dữ liệu chưa xác định rõ (ví dụ: payload bên thứ 3 hoặc JSON động), MUST dùng `unknown` kết hợp Zod schema hoặc Type Guards để thu hẹp kiểu.
+- **Số học chính xác (Exact Arithmetic):**
+  - Điểm thưởng (loyalty points), số tem, và số tiền (VND) MUST được mô hình hóa bằng `Prisma.Decimal`, chuỗi định dạng chính xác hoặc số nguyên.
+  - KHÔNG BAO GIỜ dùng phép toán số thực nhị phân của JavaScript (`number` float) cho các phép tính số dư ví, điểm thưởng hay hoàn trả.
+- **Type tường minh cho Props và Return Values:** Mọi React component và hàm nghiệp vụ backend quan trọng MUST khai báo kiểu trả về tường minh.
 
 ---
 
-## 4. Quy ước Đặt tên (Naming Conventions)
+## 4. Quy chuẩn Frontend (React 19 & Ant Design)
 
 ### Bắt buộc (MUST)
-- **React Components & Files:** MUST dùng **PascalCase** cho tên component và tên file (ví dụ: `ProductCard.tsx`, `CartDrawer.tsx`).
-- **Biến, Hàm, Utils, API files:** MUST dùng **camelCase** (ví dụ: `formatCurrency.ts`, `product.api.ts`, `calculateTotal`).
-- **Custom Hooks:** MUST bắt đầu bằng tiền tố `use` theo chuẩn **camelCase** (ví dụ: `useDebounce.ts`, `useCartStore.ts`).
-- **Sự kiện Handler:** Props nhận callback handler SHOULD có tiền tố `on` (ví dụ: `onClick`, `onSelectCategory`); hàm xử lý sự kiện trong component SHOULD có tiền tố `handle` (ví dụ: `handleClick`, `handleSubmit`).
-
-### Khuyên dùng đối với Tên nghiệp vụ (SHOULD)
-- **Tránh tên chung chung:** KHÔNG dùng tên biến vô nghĩa như `data`, `item`, `temp`, `info`. MUST dùng tên gắn liền với nghiệp vụ e-commerce (ví dụ: `cartItem`, `productSpecs`, `shippingAddress`).
+- **100% Functional Components:** Sử dụng hoàn toàn React Hooks tiêu chuẩn.
+- **Modal Xác nhận cho thao tác thay đổi dữ liệu (Confirmation Modal):**
+  - Trước bất kỳ thao tác nào tạo mới, sửa, xóa, đặt lại, xuất bản hoặc thay đổi dữ liệu nghiệp vụ (ví dụ: hủy đơn, duyệt hoàn tiền, xuất bản chính sách, đổi voucher), MUST hiển thị Modal xác nhận rõ ràng tác động.
+  - Chỉ thực thi ghi dữ liệu khi người dùng xác nhận rõ ràng; nếu hủy hoặc bấm ra ngoài, giữ nguyên hiện trạng.
+- **Quy tắc về Chuyển động & Animation (Rive & Motion):**
+  - Hoạt ảnh Rive (`.riv`) CHỈ ĐƯỢC PHÉP sử dụng trong trải nghiệm **Khách hàng/Hội viên (Member Portal / Zalo Mini App)** – ví dụ: đóng dấu thẻ tem (stamp animation), mở quà voucher.
+  - Các màn hình Quản trị (Admin) và Đối tác/Thu ngân (Merchant/Cashier) MUST sử dụng hình ảnh và giao diện tĩnh (Static Artwork).
+  - Mọi hiệu ứng chuyển động MUST có phương án thay thế tĩnh (Static Fallback) và tôn trọng thiết lập `prefers-reduced-motion` của hệ điều hành.
+- **Không tự bịa đặt dữ liệu (No Fake / Sample Commerce Data):**
+  - Tuyệt đối không dùng dữ liệu mock tự chế trên các màn hình sản phẩm. Chỉ kết nối các endpoint API thực tế từ backend; ẩn hoặc vô hiệu hóa các nút nếu endpoint chưa khả dụng.
 
 ---
 
-## 5. Quy tắc Styling (Tailwind CSS)
+## 5. Quy chuẩn Backend (Express, Prisma, MySQL)
 
 ### Bắt buộc (MUST)
-- **Utility Classes:** MUST sử dụng Tailwind CSS cho layout, spacing và styling thông thường.
-- **Gọn gàng Class list:** Giữ danh sách Tailwind class gọn gàng, dễ đọc. Khi một tổ hợp class lặp lại quá nhiều lần, MUST đóng gói thành Reusable UI Component.
-
-### Khuyến nghị (SHOULD)
-- **Theme Tokens:** Sử dụng các token màu sắc, font chữ và spacing từ cấu hình Tailwind chung thay vì hardcode mảng màu hex/rgb ngẫu nhiên trong code.
-
----
-
-## 6. Xử lý Lỗi & Trạng thái UI (Error Handling & Loading States)
-
-### Bắt buộc (MUST)
-- **Async Error Handling:** Mọi thao tác bất đồng bộ (gọi API) MUST có cơ chế bắt lỗi (`try...catch` hoặc interceptor error handler).
-- **Trạng thái UI:** Khi hiển thị danh sách sản phẩm hay form thanh toán, MUST hỗ trợ xử lý 3 trạng thái căn bản:
-  1. **Loading State:** Hiển thị skeleton hoặc spinner khi đang tải.
-  2. **Empty State:** Hiển thị thông báo thân thiện khi không tìm thấy sản phẩm/dữ liệu rỗng.
-  3. **Error State:** Hiển thị thông báo lỗi rõ ràng kèm nút thử lại (retry) nếu gọi API thất bại.
+- **Validate dữ liệu đầu vào:** Mọi route nhận `body`, `query`, hoặc `params` MUST được validate bằng Zod schema trước khi chuyển sang tầng Service.
+- **Giao dịch Cơ sở dữ liệu (Database Transactions):**
+  - Mọi thao tác thay đổi số dư ví, cấp/trừ tem, đổi voucher, hoàn tiền hoặc xác nhận đơn hàng MUST được bọc trong `prisma.$transaction`.
+- **Nguyên tử & Chống Race-condition (Atomic & Concurrency-safe):**
+  - Khi thu ngân đổi voucher hoặc khách hàng nhận quà mốc thử thách, MUST sử dụng điều kiện cập nhật nguyên tử (ví dụ: `updateMany where status = 'ACTIVE'`) hoặc khóa dòng để ngăn việc 2 quầy quét cùng 1 voucher cùng lúc.
+- **Ghi chép Sổ cái Kiểm toán (Auditable Ledger):**
+  - Mọi thay đổi điểm hay tem đều phải sinh ra bản ghi Ledger tương ứng, lưu lại `memberId`, `merchantId`, `branchId`, `orderId`, `pointsDelta`, `balanceAfter`, `reason`.
 
 ---
 
-## 7. Quy trình Kiểm tra Code trước khi Hoàn thành (Working Checklist)
+## 6. Quy ước Đặt tên (Naming Conventions)
 
-Trước khi coi công việc đã hoàn tất, lập trình viên/AI Agent MUST thực hiện:
-1. Xác định đúng file/folder sở hữu logic theo [`agent-docs/FOLDER_STRUCTURE.md`](./FOLDER_STRUCTURE.md).
-2. Kiểm tra type safety (không còn cảnh báo TypeScript).
-3. Chạy lệnh kiểm tra Lint & Build:
+### 6.1. Quy ước chung
+- **React Components & Files:** `PascalCase` (ví dụ: `MerchantOrdersQueue.tsx`, `CashierStampScanner.tsx`).
+- **Prisma Models & Types:** `PascalCase` (ví dụ: `Order`, `OrderItem`, `MemberVoucher`, `Branch`).
+- **Biến, Hàm, Routes, Services:** `camelCase` (ví dụ: `calculatePointsEarned`, `loyaltyService.ts`).
+- **Custom Hooks:** Tiền tố `use` theo `camelCase` (ví dụ: `useStampCard`, `useBranchContext`).
+- **Hằng số toàn cục:** `UPPER_SNAKE_CASE` (ví dụ: `MAX_STAMPS_PER_CARD = 5`).
+
+### 6.2. Tiền tố Tên theo Nghiệp vụ (Domain-driven Prefixes)
+- Các file hoặc component thuộc nhóm Hoàn tiền / Hoàn đơn MUST có tiền tố `Refund` (ví dụ: `RefundOrderModal.tsx`, `RefundRequestService.ts`).
+- Các hàm / model giữ chỗ voucher hoặc đơn hàng MUST thể hiện rõ ngữ nghĩa (ví dụ: `voucherReservation` nếu chỉ giữ chỗ voucher; `orderHold` nếu giữ chỗ cả đơn).
+
+---
+
+## 7. Quy trình Kiểm tra trước khi Commit (Working Checklist)
+
+Trước khi coi công việc hoàn thành và tạo commit:
+1. Đọc lại `git status --short` để rà soát thay đổi.
+2. Kiểm tra TypeScript:
    ```bash
-   npm run lint
-   npm run build
+   npm run typecheck
    ```
+3. Chạy unit tests:
+   ```bash
+   npm test
+   ```
+4. Kiểm tra diff (`git diff`), đảm bảo không có console.log debug thừa, không có file nhạy cảm (`.env`, secrets).

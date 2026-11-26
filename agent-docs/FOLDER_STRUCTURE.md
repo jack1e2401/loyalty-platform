@@ -1,132 +1,145 @@
 # CẤU TRÚC THƯ MỤC DỰ ÁN (FOLDER STRUCTURE)
 
-**Dự án:** NexGear-SFE  
+**Dự án:** IncomSG — Loyalty & Commerce Platform  
 **Vị trí tài liệu:** `agent-docs/FOLDER_STRUCTURE.md`  
-**Vai trò:** Single Source of Truth duy nhất quy định vị trí đặt file, phân chia trách nhiệm thư mục và cấu hình đường dẫn cho toàn bộ dự án Frontend.
+**Vai trò:** Single Source of Truth duy nhất quy định cấu trúc thư mục Monorepo, vị trí đặt module nghiệp vụ, phân chia các tầng Frontend/Backend và quy tắc tổ chức Test Suite cho IncomSG.
 
 ---
 
-## 1. Sơ đồ Tổng quan Thư mục (`src/`)
+## 1. Sơ đồ Tổng quan Cây Thư mục
 
 ```text
-src/
-├── apis/          # Hàm tương tác API backend phân theo từng domain nghiệp vụ
-├── assets/        # Tài nguyên tĩnh nội bộ (images, icons, fonts)
-├── components/    # Component UI tái sử dụng (Dumb / Presentational components)
-├── constants/     # Hằng số toàn cục, regex, route paths, storage keys
-├── hooks/         # Custom React Hooks chứa logic tái sử dụng
-├── layouts/       # Khung bố cục trang (MainLayout, AuthLayout, CheckoutLayout...)
-├── lib/           # Cấu hình & khởi tạo các thư viện bên thứ 3 (Axios client, SDK...)
-├── pages/         # Màn hình giao diện ứng với từng Route sản phẩm/tính năng
-├── providers/     # React Context Providers bao bọc ứng dụng
-├── schemas/       # Zod / Yup validation schemas cho forms và payloads
-├── stores/        # State toàn cục (Client state / Shared state)
-├── styles/        # CSS/SCSS toàn cục, Tailwind tokens, CSS variables
-├── types/         # Định nghĩa TypeScript Types, Interfaces, Enums toàn cục
-├── utils/         # Hàm tiện ích thuần túy (Pure Functions - format tiền, ngày...)
-├── App.tsx        # Root component khởi chạy Router và Provider wrapper
-├── routes.tsx     # Cấu hình bảng định tuyến Route và bọc Layout
-├── main.tsx       # Entry point kết nối với HTML DOM (`index.html`)
-└── index.css      # Custom styles và Tailwind directives toàn ứng dụng
+IncomSG/
+├── apps/
+│   ├── frontend/             # Ứng dụng Giao diện (React 19, Vite, Ant Design)
+│   └── backend/              # Ứng dụng Máy chủ (Express, Prisma, MySQL)
+├── tests/
+│   ├── frontend/unit/        # Unit tests Frontend (Vitest + React Testing Library)
+│   ├── frontend/e2e/         # Browser E2E tests (Playwright)
+│   ├── backend/unit/         # Unit tests Backend (Vitest - Business & Policy logic)
+│   └── backend/integration/  # Integration tests Backend với MySQL thực tế
+├── docs/
+│   ├── superpowers/          # Kế hoạch sprint, specs kiến trúc, tài liệu nghiên cứu
+│   ├── frontend/             # Tài liệu kiến trúc & hướng dẫn riêng cho Frontend
+│   └── backend/              # Tài liệu kiến trúc & hướng dẫn riêng cho Backend
+├── agent-docs/               # Quy chuẩn hệ thống dành cho AI Coding Agents
+├── package.json              # Root npm workspaces config & scripts điều phối
+└── AGENTS.md                 # Quy tắc ứng xử và an toàn toàn repo
 ```
 
 ---
 
-## 2. Chi tiết Trách nhiệm & Quy tắc phân chia File
+## 2. Chi tiết Thư mục `apps/frontend/`
 
-### `src/apis/`
-- **Nhiệm vụ:** Định nghĩa các hàm gửi HTTP request (GET, POST, PUT, DELETE) gọi tới backend microservices.
-- **Những gì NÊN ở đây:** các hàm API phân theo domain nghiệp vụ (`auth.api.ts`, `product.api.ts`, `cart.api.ts`, `order.api.ts`).
-- **Những gì KHÔNG NÊN ở đây:** Logic xử lý UI, React State, hay gọi direct `axios` trong component mà không thông qua file API.
-- **Quy ước tên file:** `camelCase` với hậu tố `.api.ts` (ví dụ: `product.api.ts`).
+Ứng dụng Frontend được tổ chức theo kiến trúc **Feature-driven**:
 
-### `src/assets/`
-- **Nhiệm vụ:** Chứa các tài nguyên tĩnh nội bộ không thay đổi qua API.
-- **Cấu trúc:**
-  - `assets/images/`: Logo, banner mặc định, placeholder hình ảnh sản phẩm.
-  - `assets/icons/`: SVG icon assets hoặc icon bộ sưu tập.
-  - `assets/fonts/`: Font chữ web custom.
-
-### `src/components/`
-- **Nhiệm vụ:** Chứa các UI components dùng chung xuất hiện từ 2 vị trí/trang trở lên.
-- **Ví dụ:** `Button.tsx`, `Input.tsx`, `Modal.tsx`, `ProductCard.tsx`, `Pagination.tsx`, `Breadcrumb.tsx`.
-- **Quy tắc:**
-  - Là Presentational / Dumb Component: Nhận dữ liệu qua `props` và phát sự kiện qua callback props.
-  - Không gọi trực tiếp API backend.
-- **Quy ước tên file:** `PascalCase` (ví dụ: `ProductCard.tsx`).
-
-### `src/constants/`
-- **Nhiệm vụ:** Lưu trữ hằng số bất biến, giá trị cấu hình cố định nhằm tránh magic strings/numbers.
-- **Ví dụ:** `routes.ts` (URL paths), `storage.ts` (Local/SessionStorage keys), `regex.ts` (Form validation regex patterns).
-- **Quy ước tên file:** `camelCase` (ví dụ: `storageKeys.ts`).
-
-### `src/hooks/`
-- **Nhiệm vụ:** Chứa các Custom Hooks đóng gói React state logic độc lập với giao diện.
-- **Ví dụ:** `useDebounce.ts`, `useLocalStorage.ts`, `useOnClickOutside.ts`, `useCart.ts`.
-- **Quy tắc:** Tên file và tên function BẮT BỘC có tiền tố `use` (ví dụ: `useDebounce.ts`).
-
-### `src/layouts/`
-- **Nhiệm vụ:** Chứa khung bố cục trang (Header, Footer, Navigation, Sidebar).
-- **Các Layout tiêu chuẩn:**
-  - `MainLayout.tsx`: Header tìm kiếm, Hotline, Giỏ hàng + Footer + Bố cục chính.
-  - `AuthLayout.tsx`: Khung tối giản cho Đăng nhập / Đăng ký.
-  - `CheckoutLayout.tsx`: Khung tập trung hoàn tất đơn hàng, hạn chế xao nhãng.
-
-### `src/lib/`
-- **Nhiệm vụ:** Khởi tạo và cấu hình các instance thư viện bên thứ 3 trước khi dùng trong app.
-- **Ví dụ:** `lib/axios.ts` (Khởi tạo Axios instance, baseURL, interceptors cho Auth token).
-
-### `src/pages/`
-- **Nhiệm vụ:** Màn hình hoàn chỉnh gắn liền với từng đường dẫn (Route).
-- **Cấu trúc:** Mỗi trang có thể tạo thư mục riêng nếu cần tách sub-components chỉ thuộc riêng trang đó (`pages/Home/`, `pages/ProductDetail/`, `pages/Cart/`, `pages/Checkout/`).
-- **Nhiệm vụ chính:** Lắp ráp UI components, sử dụng custom hooks, gọi stores/APIs.
-
-### `src/providers/`
-- **Nhiệm vụ:** Chứa các React Context Providers bọc ở cấp ứng dụng.
-- **Ví dụ:** `AppProvider.tsx`, `ThemeProvider.tsx`, `AuthProvider.tsx`.
-
-### `src/schemas/`
-- **Nhiệm vụ:** Chứa các Zod / Yup validation schemas phục vụ kiểm tra form và payload.
-- **Ví dụ:** `auth.schema.ts` (validate Đăng nhập/Đăng ký), `checkout.schema.ts` (validate Địa chỉ giao hàng).
-
-### `src/stores/`
-- **Nhiệm vụ:** Quản lý Client State toàn cục dùng chung cho nhiều trang (ví dụ: state giỏ hàng, thông tin tài khoản đăng nhập).
-- **Ví dụ:** `cartStore.ts`, `authStore.ts`.
-
-### `src/styles/`
-- **Nhiệm vụ:** Chứa các file CSS/SCSS tùy chỉnh, biến CSS, cấu hình style toàn cục không thuộc Tailwind.
-
-### `src/types/`
-- **Nhiệm vụ:** Định nghĩa kiểu dữ liệu TypeScript (Interfaces, Types, Enums) dùng chung toàn hệ thống.
-- **Ví dụ:** `product.type.ts`, `order.type.ts`, `user.type.ts`, `api.type.ts`.
-
-### `src/utils/`
-- **Nhiệm vụ:** Chứa các hàm tiện ích thuần túy (Pure Functions), nhận input trả về output, không phụ thuộc vào React Component/Hooks.
-- **Ví dụ:** `formatCurrency.ts` (định dạng giá VND), `formatDate.ts`, `calculateDiscount.ts`.
-
----
-
-## 3. Cấu hình Đường dẫn Tuyệt đối (Path Aliases)
-
-Dự án cấu hình Path Alias `@/` trỏ trực tiếp về thư mục `src/` (thông qua `vite.config.ts` và `tsconfig.app.json`):
-
-```typescript
-// ✅ Chuẩn (Dùng Path Alias)
-import { ProductCard } from '@/components/ProductCard'
-import { formatCurrency } from '@/utils/formatCurrency'
-
-// ❌ Không dùng đường dẫn tương đối dài dòng
-import { ProductCard } from '../../../components/ProductCard'
+```text
+apps/frontend/src/
+├── components/          # Reusable UI components dùng chung toàn ứng dụng (Modal, Button, Badge)
+├── features/            # Các module tính năng chia theo Domain nghiệp vụ:
+│   ├── auth/            # Đăng nhập, đăng ký, refresh session
+│   ├── catalog/         # Quản lý danh mục & sản phẩm (Merchant / Storefront)
+│   ├── challenges/      # Thẻ thử thách, tích tem (Stamp card 1/5 -> 4/5), mốc thưởng
+│   ├── events/          # Sự kiện khuyến mãi & nhân điểm
+│   ├── loyalty/         # Cấu hình chính sách điểm, hạng thẻ, lịch sử chính sách
+│   ├── member/          # Màn hình hội viên, ví voucher, hành trình khách hàng
+│   ├── merchant/        # CMS quản trị merchant, quầy thu ngân (Cashier counter)
+│   ├── orders/          # Giỏ hàng, tạo đơn, quản lý hàng chờ đơn hàng
+│   ├── refunds/         # Quy trình duyệt & đối soát hoàn tiền
+│   └── storefront/      # Giao diện cửa hàng, cấu hình giao diện & theme
+├── layouts/             # Khung bố cục các cổng (MerchantLayout, MemberLayout, AdminLayout)
+├── lib/                 # Core HTTP client, Axios/Fetch instance, cấu hình môi trường
+├── routes/              # Bảng định tuyến routes toàn ứng dụng (AppRoutes.tsx)
+├── types/               # Kiểu dữ liệu TypeScript dùng chung
+└── utils/               # Hàm tiện ích thuần túy (format tiền VND, format điểm, xử lý ngày)
 ```
 
 ---
 
-## 4. Quy tắc Nguyên tắc Vàng khi Thêm File Mới
+## 3. Chi tiết Thư mục `apps/backend/`
 
-1. **Kiểm tra trước khi tạo:** Xác định xem thư mục chuyên trách đã có file tương tự hay chưa.
-2. **Một trách nhiệm - Một vị trí:**
-   - Cần format tiền/ngày? -> `src/utils/`
-   - Cần gọi API backend? -> `src/apis/`
-   - Cần validate input form? -> `src/schemas/`
-   - Cần tạo UI dùng chung? -> `src/components/`
-3. **Không tạo thư mục cấp 1 mới trong `src/`** nếu chưa có sự thống nhất của nhóm.
+Ứng dụng Backend được tổ chức theo kiến trúc **Domain-Driven Modular Express**:
+
+```text
+apps/backend/
+├── prisma/
+│   ├── schema.prisma    # Định nghĩa cấu trúc 36+ models cơ sở dữ liệu MySQL
+│   ├── migrations/      # Lịch sử migration cơ sở dữ liệu
+│   ├── seed.ts          # Seed dữ liệu gốc (Standard baseline seed)
+│   └── demo-seed.ts     # Seed dữ liệu demo Hikari Coffee (Latte, bánh, hội viên, voucher)
+└── src/
+    ├── middleware/      # Auth, RBAC (OWNER, STORE_MANAGER, CASHIER), Branch Scope, Validation
+    ├── modules/         # Các module nghiệp vụ lõi (Domain Services & Controllers):
+    │   ├── auth/        # Xử lý token, session, phân quyền
+    │   ├── catalog/     # Sản phẩm, biến thể, tồn kho
+    │   ├── challenges/  # Gamification, thẻ tem tích ly, mốc nhận voucher
+    │   ├── events/      # Chiến dịch tích điểm theo sự kiện
+    │   ├── inventory/   # Quản lý tồn kho sản phẩm
+    │   ├── loyalty/     # Tính điểm, hạng thành viên, carry-over điểm lẻ, snapshot chính sách
+    │   ├── orders/      # Tiếp nhận đơn, đếm số ly latte/bánh, thanh toán
+    │   ├── refunds/     # Hoàn tiền, đảo tem, trừ điểm bù trừ
+    │   ├── storefront/  # Cấu hình giao diện và thông tin cửa hàng
+    │   └── vouchers/    # Phát hành, khóa giữ chỗ (reservation), đổi voucher theo chi nhánh
+    ├── lib/             # Khởi tạo Prisma Client, Decimal helper, Winston Logger
+    └── server.ts        # Entry point khởi động Express HTTP Server
+```
+
+---
+
+## 4. Chi tiết Thư mục `tests/`
+
+Hệ thống test được tổ chức tách biệt hoàn toàn khỏi mã nguồn sản phẩm và chia theo domain:
+
+```text
+tests/
+├── frontend/
+│   ├── unit/            # Vitest + React Testing Library (33 test suites)
+│   │   ├── analytics/   # Test báo cáo phân tích khách hàng
+│   │   ├── auth/        # Test client auth & refresh session
+│   │   ├── catalog/     # Test giao diện sản phẩm & danh mục
+│   │   ├── challenges/  # Test giao diện thẻ tem & thử thách hội viên
+│   │   ├── events/      # Test sự kiện merchant
+│   │   ├── loyalty/     # Test hiển thị điểm chính xác, lịch sử hạng thẻ
+│   │   ├── member/      # Test ví voucher, xem trước thanh toán hội viên
+│   │   ├── merchant/    # Test CMS merchant, hàng chờ đơn hàng, phân trang
+│   │   ├── orders/      # Test HTTP client thương mại & đặt hàng
+│   │   ├── refunds/     # Test giao diện duyệt hoàn tiền của merchant & member
+│   │   └── storefront/  # Test điều hướng & theme cửa hàng
+│   └── e2e/             # Playwright E2E browser tests (kiểm thử đầu cuối)
+│
+└── backend/
+    ├── unit/            # Vitest Backend Unit Tests (99 tests chạy trong bộ nhớ)
+    │   └── modules/     # Test các hàm tính điểm, validation, policy rule tách biệt DB
+    │       ├── auth/
+    │       ├── catalog/
+    │       ├── challenges/
+    │       ├── loyalty/
+    │       ├── orders/
+    │       ├── refunds/
+    │       └── vouchers/
+    │
+    └── integration/     # Vitest MySQL Integration Tests (22 test suites)
+        ├── analytics/   # Test tích hợp phân tích số liệu
+        ├── auth/        # Test session & token xác thực
+        ├── catalog/     # Test cô lập danh mục sản phẩm
+        ├── challenges/  # Test tích tem, vượt mốc cấp voucher
+        ├── database/    # Test migration & schema integrity
+        ├── events/      # Test sự kiện tích điểm thực tế
+        ├── inventory/   # Test quản lý tồn kho đồng thời
+        ├── loyalty/     # Test tính điểm chính xác (Exact Decimal), thăng hạng
+        ├── orders/      # Test tạo đơn, đồng thời thanh toán, hủy đơn
+        ├── refunds/     # Test vòng đời hoàn tiền, đối soát thủ công
+        ├── storefront/  # Test API storefront
+        └── vouchers/    # Test máy trạng thái voucher, đổi chéo chi nhánh
+```
+
+---
+
+## 5. Nguyên tắc Vàng khi Tạo hoặc Chuyển File Mới
+
+1. **Tuyệt đối không tạo file test trong thư mục `src/`**: File test frontend đặt tại `tests/frontend/unit/<domain>/`; file test backend đặt tại `tests/backend/unit/modules/<domain>/` hoặc `tests/backend/integration/<domain>/`.
+2. **Không tạo thư mục cấp 1 mới ở root**: Chỉ sử dụng các thư mục gốc đã được chuẩn hóa (`apps/`, `tests/`, `docs/`, `agent-docs/`).
+3. **Phân loại rõ ràng trong `docs/`**:
+   - Kế hoạch sprint active: `docs/superpowers/plans/sprint-9days/`.
+   - Kế hoạch cũ đã lưu trữ: `docs/superpowers/plans/historical/`.
+   - Tài liệu kỹ thuật: `docs/frontend/` hoặc `docs/backend/`.
