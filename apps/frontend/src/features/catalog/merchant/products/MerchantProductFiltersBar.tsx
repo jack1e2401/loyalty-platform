@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import { Button, Checkbox, Form, Input, Select } from "antd";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import type {
   ProductCategoryDto,
   ProductKind,
@@ -28,20 +29,22 @@ type Props = {
 export function MerchantProductFiltersBar(props: Props) {
   return (
     <CmsFilterBar label="Lọc sản phẩm">
-      <Form onSubmitCapture={props.onSearchSubmit} className="flex min-w-[16rem] flex-1 items-end gap-2">
-        <label className="min-w-0 flex-1 text-xs text-[#59685e]">
-          <span className="mb-1 block">Tìm kiếm sản phẩm</span>
+      <Form onSubmitCapture={props.onSearchSubmit} className="flex min-w-[17rem] flex-1 items-end gap-2">
+        <label className="min-w-0 flex-1">
+          <span className="mb-1.5 block text-xs font-semibold text-[#20392a]">Tìm kiếm sản phẩm</span>
           <Input
             aria-label="Tìm kiếm sản phẩm"
-            placeholder="Tên sản phẩm hoặc SKU"
+            placeholder="Tên sản phẩm hoặc SKU..."
+            prefix={<MagnifyingGlass size={15} className="text-[#7d8a80]" />}
             value={props.qInput}
             onChange={(event) => props.onQInputChange(event.target.value)}
+            allowClear
           />
         </label>
-        <Button htmlType="submit">Tìm</Button>
+        <Button htmlType="submit" className="font-medium">Tìm</Button>
       </Form>
-      <label className="min-w-40 text-xs text-[#59685e]">
-        <span className="mb-1 block">Danh mục</span>
+      <label className="min-w-[140px]">
+        <span className="mb-1.5 block text-xs font-semibold text-[#20392a]">Danh mục</span>
         <Select
           aria-label="Lọc theo danh mục"
           className="w-full"
@@ -53,8 +56,8 @@ export function MerchantProductFiltersBar(props: Props) {
           ]}
         />
       </label>
-      <label className="min-w-40 text-xs text-[#59685e]">
-        <span className="mb-1 block">Trạng thái</span>
+      <label className="min-w-[130px]">
+        <span className="mb-1.5 block text-xs font-semibold text-[#20392a]">Trạng thái</span>
         <Select
           aria-label="Lọc theo trạng thái"
           className="w-full"
@@ -67,8 +70,8 @@ export function MerchantProductFiltersBar(props: Props) {
           ]}
         />
       </label>
-      <label className="min-w-36 text-xs text-[#59685e]">
-        <span className="mb-1 block">Loại</span>
+      <label className="min-w-[120px]">
+        <span className="mb-1.5 block text-xs font-semibold text-[#20392a]">Loại</span>
         <Select
           aria-label="Lọc theo loại"
           className="w-full"
@@ -81,8 +84,8 @@ export function MerchantProductFiltersBar(props: Props) {
           ]}
         />
       </label>
-      <label className="min-w-36 text-xs text-[#59685e]">
-        <span className="mb-1 block">Sắp xếp</span>
+      <label className="min-w-[130px]">
+        <span className="mb-1.5 block text-xs font-semibold text-[#20392a]">Sắp xếp</span>
         <Select
           aria-label="Sắp xếp"
           className="w-full"
@@ -96,12 +99,15 @@ export function MerchantProductFiltersBar(props: Props) {
           ]}
         />
       </label>
-      <Checkbox
-        checked={props.lowStockOnly}
-        onChange={(event) => props.onLowStockOnlyChange(event.target.checked)}
-      >
-        Sắp hết hàng
-      </Checkbox>
+      <div className="flex h-9 items-center pb-0.5">
+        <Checkbox
+          checked={props.lowStockOnly}
+          onChange={(event) => props.onLowStockOnlyChange(event.target.checked)}
+          className="text-xs font-medium text-[#20392a]"
+        >
+          Sắp hết hàng
+        </Checkbox>
+      </div>
     </CmsFilterBar>
   );
 }

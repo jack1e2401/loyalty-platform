@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, Flex } from "antd";
+import { Folder, Plus } from "@phosphor-icons/react";
 import { useAuthSession } from "../../../../api/auth-session";
 import { createCommerceClient, translateApiError } from "../../../../api/commerce-http";
 import type {
@@ -148,8 +149,10 @@ export function MerchantProducts() {
         title="Sản phẩm"
         action={
           <Flex gap={8} wrap>
-            <Button onClick={() => navigate("/merchant/categories")}>Quản lý danh mục</Button>
-            <Button type="primary" onClick={() => navigate("/merchant/products/new")}>
+            <Button icon={<Folder size={16} />} onClick={() => navigate("/merchant/categories")}>
+              Quản lý danh mục
+            </Button>
+            <Button type="primary" icon={<Plus size={16} />} onClick={() => navigate("/merchant/products/new")}>
               Thêm sản phẩm
             </Button>
           </Flex>
