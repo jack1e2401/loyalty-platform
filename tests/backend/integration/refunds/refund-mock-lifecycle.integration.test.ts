@@ -122,6 +122,10 @@ after(async () => {
   await prisma.refundOrder.deleteMany({ where: { requestedById: { in: userIds } } });
   await prisma.reservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
   await prisma.pointTransaction.deleteMany({ where: { wallet: { membership: { merchantId: { in: merchantIds } } } } });
+  await prisma.challengeProgressEntry.deleteMany({ where: { progress: { membership: { merchantId: { in: merchantIds } } } } });
+  await prisma.challengeRewardGrant.deleteMany({ where: { progress: { membership: { merchantId: { in: merchantIds } } } } });
+  await prisma.challengeProgress.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
+  await prisma.memberActivity.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.memberVoucher.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.orderItem.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });

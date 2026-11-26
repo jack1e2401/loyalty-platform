@@ -2,7 +2,6 @@ import "dotenv/config";
 import { Prisma } from "../src/generated/prisma/client.js";
 import { hashPassword } from "../src/lib/password.js";
 import { prisma } from "../src/lib/prisma.js";
-import { initializeDefaultStorefrontTx } from "../src/modules/merchants/storefront/storefront.persistence.js";
 import { readBootstrapConfig } from "./bootstrap-config.js";
 
 const baselineTiers = [
@@ -37,6 +36,7 @@ async function main(): Promise<void> {
           email: config.email,
           passwordHash,
           role: "MERCHANT",
+          staffRole: "OWNER",
           accountStatus: "ACTIVE",
         },
       });
@@ -91,12 +91,6 @@ async function main(): Promise<void> {
         },
       });
     }
-
-    await initializeDefaultStorefrontTx(tx, {
-      id: merchant.id,
-      name: merchant.name,
-      slug: merchant.slug,
-    }, owner.id);
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   console.info("Merchant installation bootstrap is ready.");

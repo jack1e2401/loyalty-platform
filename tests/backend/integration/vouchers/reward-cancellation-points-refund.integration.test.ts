@@ -118,11 +118,10 @@ test("reward fulfillment cancellation: success refunds exact integer points and 
 
   const dbVoucher = await prisma.memberVoucher.findUniqueOrThrow({
     where: { id: voucherId },
-    include: { cancellation: true },
   });
   assert.equal(dbVoucher.status, "CANCELLED");
-  assert.ok(dbVoucher.cancellation);
-  assert.equal(dbVoucher.cancellation.reason, "Item damaged during preparation");
+  assert.ok(dbVoucher.cancelledAt);
+  assert.equal(dbVoucher.cancelReason, "Item damaged during preparation");
 
   const ledger = await prisma.pointTransaction.findFirstOrThrow({
     where: { memberVoucherId: voucherId, type: "REDEMPTION_REVERSAL" },

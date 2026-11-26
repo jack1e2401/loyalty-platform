@@ -93,15 +93,24 @@ after(async () => {
   const merchantIds = merchants.map((m) => m.id);
 
   await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
+  await prisma.inventoryBalance.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.reservation.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
+  await prisma.pointTransaction.deleteMany({ where: { wallet: { membership: { merchantId: { in: merchantIds } } } } });
+  await prisma.challengeProgressEntry.deleteMany({ where: { progress: { membership: { merchantId: { in: merchantIds } } } } });
+  await prisma.challengeRewardGrant.deleteMany({ where: { progress: { membership: { merchantId: { in: merchantIds } } } } });
+  await prisma.challengeProgress.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
+  await prisma.memberActivity.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.memberVoucher.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.voucherDefinition.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.orderItem.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
   await prisma.orderRequest.deleteMany({ where: { order: { merchantId: { in: merchantIds } } } });
   await prisma.order.deleteMany({ where: { merchantId: { in: merchantIds } } });
+  await prisma.loyaltyWallet.deleteMany({ where: { membership: { merchantId: { in: merchantIds } } } });
   await prisma.merchantMembership.deleteMany({ where: { merchantId: { in: merchantIds } } });
-  await prisma.inventoryBalance.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.product.deleteMany({ where: { merchantId: { in: merchantIds } } });
+  await prisma.loyaltyPolicyVersion.deleteMany({ where: { merchantId: { in: merchantIds } } });
+  await prisma.loyaltyTier.deleteMany({ where: { merchantId: { in: merchantIds } } });
+  await prisma.loyaltyRule.deleteMany({ where: { merchantId: { in: merchantIds } } });
   await prisma.merchant.deleteMany({ where: { id: { in: merchantIds } } });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   await prisma.$disconnect();
