@@ -72,7 +72,7 @@ function ResetSummary({ reset, tiers }: {
 }
 
 
-const sectionTitle = "text-xs font-semibold uppercase tracking-[0.12em] text-[#526458]";
+const sectionTitle = "text-xs font-semibold text-[#526458]";
 const primaryLink = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#315e3c] px-4 text-sm font-semibold text-white hover:bg-[#244a30] focus-visible:ring-2 focus-visible:ring-[#6b9270] focus-visible:ring-offset-2";
 const secondaryButton = "inline-flex min-h-9 items-center rounded-lg border border-[#dbe3d9] bg-white px-3 text-sm font-semibold text-[#315e3c] hover:bg-[#f3f6f1] focus-visible:ring-2 focus-visible:ring-[#6b9270]";
 const panel = "rounded-2xl border border-[#e3e9e1] bg-white";

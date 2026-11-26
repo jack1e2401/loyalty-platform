@@ -60,12 +60,12 @@ export function MerchantLoyaltyMembers({ token, memberId }: { token: string; mem
           description={email ? "Thử tìm bằng một phần email." : "Khách sẽ xuất hiện sau khi mua hàng và tích điểm tại cửa hàng."}
         />
       ) : (
-        <div className="surface overflow-x-auto rounded-3xl">
+        <div className="surface overflow-x-auto rounded-2xl border border-[var(--color-border,#e3e9e1)] shadow-sm">
           <table
             aria-label="Điểm Loyalty theo thành viên"
             className="w-full min-w-[780px] border-collapse text-left"
           >
-            <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
+            <thead className="bg-[#edf3ee] text-xs font-semibold text-[#344b3b]">
               <tr>
                 <th scope="col" className="px-5 py-4">
                   Thành viên

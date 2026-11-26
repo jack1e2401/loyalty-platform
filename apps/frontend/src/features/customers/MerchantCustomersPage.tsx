@@ -67,17 +67,18 @@ export function MerchantCustomersPage() {
         description="Danh sách thành viên đã tham gia cửa hàng, điểm Loyalty và giá trị mua hàng."
       />
 
-      <form className="grid gap-3 sm:grid-cols-[1fr_11rem_12rem_auto] sm:items-end" onSubmit={handleSearch}>
-        <Field label="Tìm theo tên, email hoặc điện thoại">
-          <Input
-            type="search"
-            placeholder="Tên, email hoặc điện thoại"
-            value={draftQuery}
-            maxLength={191}
-            onChange={(event) => setDraftQuery(event.target.value)}
-          />
-        </Field>
-        <Field label="Hạng thành viên">
+      <form onSubmit={handleSearch}>
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-border,#e3e9e1)] bg-white p-4 shadow-sm">
+          <div className="min-w-64 flex-1">
+            <Input
+              type="search"
+              placeholder="Tên, email hoặc điện thoại..."
+              value={draftQuery}
+              maxLength={191}
+              onChange={(event) => setDraftQuery(event.target.value)}
+              className="min-h-9 w-full rounded-lg border border-[var(--color-border,#dbe3d9)] text-sm"
+            />
+          </div>
           <Select
             aria-label="Hạng thành viên"
             value={tier}
@@ -85,13 +86,12 @@ export function MerchantCustomersPage() {
               setTier(event.target.value as MemberTier | "");
               setPage(1);
             }}
+            className="min-h-9 rounded-lg border border-[var(--color-border,#dbe3d9)] bg-white px-3 text-sm text-[var(--color-ink,#20392a)]"
           >
             <option value="">Tất cả hạng</option>
             <option value="UNRANKED">Chưa xếp hạng</option>
             {(resource.data?.tiers ?? []).map((item) => <option key={item.level} value={item.level}>{item.name}</option>)}
           </Select>
-        </Field>
-        <Field label="Trạng thái mua hàng">
           <Select
             aria-label="Trạng thái mua hàng"
             value={purchaseStatus}
@@ -99,15 +99,16 @@ export function MerchantCustomersPage() {
               setPurchaseStatus(event.target.value as CustomerPurchaseStatus);
               setPage(1);
             }}
+            className="min-h-9 rounded-lg border border-[var(--color-border,#dbe3d9)] bg-white px-3 text-sm text-[var(--color-ink,#20392a)]"
           >
-            <option value="all">Tất cả</option>
+            <option value="all">Trạng thái: Tất cả</option>
             <option value="buyers">Đã có đơn</option>
             <option value="non_buyers">Chưa mua hàng</option>
           </Select>
-        </Field>
-        <Button type="submit" variant="outline" className="h-11">
-          Tìm
-        </Button>
+          <Button type="submit" variant="outline" className="min-h-9 px-4">
+            Tìm
+          </Button>
+        </div>
       </form>
 
       {resource.loading ? (
@@ -125,9 +126,9 @@ export function MerchantCustomersPage() {
         />
       ) : (
         <>
-          <div className="surface overflow-x-auto rounded-3xl">
+          <div className="surface overflow-x-auto rounded-2xl border border-[var(--color-border,#e3e9e1)] shadow-sm">
             <table aria-label="Danh sách khách hàng" className="w-full min-w-[920px] border-collapse text-left">
-              <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
+              <thead className="bg-[#edf3ee] text-xs font-semibold text-[#344b3b]">
                 <tr>
                   <th scope="col" className="px-5 py-4">
                     Khách hàng
