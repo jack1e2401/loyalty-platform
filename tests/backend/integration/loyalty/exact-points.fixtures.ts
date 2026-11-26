@@ -1,0 +1,207 @@
+import assert from "node:assert/strict";
+import { randomBytes, randomUUID } from "node:crypto";
+import type { Server } from "node:http";
+
+process.env.JWT_SECRET ??= randomBytes(32).toString("hex");
+
+export const env = { databaseUrl: process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL };
+
+export const [{ app }, { prisma }, { signAccessToken }, { Prisma }] = await Promise.all([
+  import("../../../../apps/backend/src/app.js"),
+  import("../../../../apps/backend/src/lib/prisma.js"),
+  import("../../../../apps/backend/src/lib/access-token.js"),
+  import("../../../../apps/backend/src/generated/prisma/client.js"),
+]);
+
+export interface Wallet {
+  availablePoints: number;
+  lifetimeEarnedPoints: number;
+  exactBalance: string;
+  fractionalCarry: string;
+  pointDebt: string;
+  netLifetimeEarned: string;
+  tier: string;
+  transactions: {
+    id: number; orderId: number | null; delta: string; balanceAfter: string;
+    availablePointsAfter: number; fractionalCarryAfter: string; pointDebtAfter: string;
+  }[];
+}
+interface Order {
+  id: number; total: string; earnedPoints: number | null; earnedPointsExact: string | null;
+}
+
+export interface Shop { id: number; token: string; productId: number }
+export interface Member { id: number; token: string }
+const fixtureUserIds: number[] = [];
+let server: Server | undefined;
+let baseUrl: string;
+
+export async function start() {
+  server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server!.once("listening", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  baseUrl = `http://127.0.0.1:${address.port}`;
+}
+
+export async function cleanup() {
+  if (server) await new Promise<void>((resolve) => server!.close(() => resolve()));
+  try {
+    const memberships = await prisma.merchantMembership.findMany({ where: { memberId: { in: fixtureUserIds } }, select: { id: true } });
+    const membershipIds = memberships.map(({ id }) => id);
+    const merchants = await prisma.merchant.findMany({ where: { ownerId: { in: fixtureUserIds } }, select: { id: true } });
+    const merchantIds = merchants.map(({ id }) => id);
+    await prisma.rewardFulfillment.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
+    await prisma.rewardCancellation.deleteMany({ where: { voucher: { membershipId: { in: membershipIds } } } });
+    await prisma.pointTransaction.deleteMany({ where: { wallet: { membershipId: { in: membershipIds } } } });
+    await prisma.orderItem.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
+    await prisma.inventoryMovement.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.refundRequest.deleteMany({ where: { order: { memberId: { in: fixtureUserIds } } } });
+    await prisma.challengeProgressEntry.deleteMany({ where: { progress: { membership: { memberId: { in: fixtureUserIds } } } } });
+    await prisma.challengeRewardGrant.deleteMany({ where: { progress: { membership: { memberId: { in: fixtureUserIds } } } } });
+    await prisma.challengeProgress.deleteMany({ where: { membership: { memberId: { in: fixtureUserIds } } } });
+    await prisma.memberActivity.deleteMany({ where: { membership: { memberId: { in: fixtureUserIds } } } });
+    await prisma.orderRequest.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
+    await prisma.order.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
+    await prisma.redemptionIdempotency.deleteMany({ where: { memberId: { in: fixtureUserIds } } });
+    await prisma.memberVoucher.deleteMany({ where: { membershipId: { in: membershipIds } } });
+    await prisma.loyaltyWallet.deleteMany({ where: { membershipId: { in: membershipIds } } });
+    await prisma.merchantMembership.deleteMany({ where: { id: { in: membershipIds } } });
+    await prisma.inventoryBalance.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.voucherDefinition.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.product.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.loyaltyTier.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.loyaltyRule.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.loyaltyPolicyVersion.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.tierResetRun.deleteMany({ where: { merchantId: { in: merchantIds } } });
+    await prisma.merchant.deleteMany({ where: { id: { in: merchantIds } } });
+    await prisma.user.deleteMany({ where: { id: { in: fixtureUserIds } } });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function request<T>(path: string, method = "GET", token?: string, body?: unknown, headers?: Record<string, string>) {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(body === undefined ? {} : { "content-type": "application/json" }),
+      ...(headers ?? {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  return { status: response.status, json: await response.json() as T };
+}
+
+export async function createUser(role: "MEMBER" | "MERCHANT") {
+  const user = await prisma.user.create({ data: { email: `exact-${randomUUID()}@test.local`, passwordHash: "fixture", role } });
+  fixtureUserIds.push(user.id);
+  return { id: user.id, token: await signAccessToken(user.id) };
+}
+
+export async function completeRefundApproval(shop: Shop, orderId: number, reason = "Approved test refund") {
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  const memberToken = await signAccessToken(order.memberId);
+  const submitted = await request<{ refundRequest?: { id: number } }>(`/api/orders/${orderId}/refund-request`, "POST", memberToken, { reason });
+  if (submitted.status !== 201) return submitted;
+  const requestId = submitted.json.refundRequest!.id;
+  return request(`/api/merchant/refund-requests/${requestId}/approve`, "POST", shop.token, {});
+}
+
+export const createMember = () => createUser("MEMBER");
+
+export async function createShop(price = "6000", multiplier = "1.00", initialQuantity = 100): Promise<Shop> {
+  const owner = await createUser("MERCHANT");
+  const shop = await prisma.merchant.create({ data: { ownerId: owner.id, name: "Exact points shop", slug: `exact-${randomUUID()}` } });
+  const createdProduct = await request<{ product: { id: number } }>("/api/merchant/products", "POST", owner.token, {
+    name: "Exact points product",
+    price,
+    initialQuantity,
+  });
+  assert.equal(createdProduct.status, 201);
+  const result = { id: shop.id, token: owner.token, productId: createdProduct.json.product.id };
+  await savePolicy(result, { bronzeMultiplier: multiplier });
+  return result;
+}
+
+export async function savePolicy(shop: Shop, changes: {
+  rate?: number;
+  active?: boolean;
+  silverThreshold?: number;
+  bronzeMultiplier?: string;
+  qualificationMode?: "POINTS" | "SPEND";
+  reset?: { enabled: boolean; month: number; day: number; strategy: "ONE_DOWN" | "SELECTED"; targetLevel: string | null };
+  publishAsNewVersion?: boolean;
+} = {}) {
+  const qualificationMode = changes.qualificationMode ?? "POINTS";
+  const thresholds = [0, changes.silverThreshold ?? 1000, 5000, 10000];
+  const tierData = [
+    { level: "default", name: "Default", multiplier: changes.bronzeMultiplier ?? "1.00", color: "#6B7280" },
+    { level: "silver", name: "Silver", multiplier: "1.50", color: "#8A949D" },
+    { level: "gold", name: "Gold", multiplier: "1.80", color: "#C6912D" },
+    { level: "platinum", name: "Platinum", multiplier: "2.00", color: "#5B6F8D" },
+  ];
+  const result = await request("/api/merchant/loyalty", "PUT", shop.token, {
+    ...(changes.publishAsNewVersion ? { publishAsNewVersion: true } : {}),
+    vndPerPoint: changes.rate ?? 10000,
+    isActive: changes.active ?? true,
+    qualificationMode,
+    reset: changes.reset ?? { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null },
+    tiers: tierData.map((tier, index) => ({
+      ...tier,
+      ...(qualificationMode === "POINTS" ? { minLifetimePoints: thresholds[index] } : { minSpendVnd: String(thresholds[index]) }),
+      benefits: [],
+      iconUrl: null,
+      maintenanceSpendVnd: null,
+      sortOrder: index,
+      isActive: true,
+    })),
+  });
+  assert.equal(result.status, 200);
+}
+
+export async function createOrder(shop: Shop, member: Member, voucherId?: number) {
+  const result = await request<{ order: Order }>("/api/orders", "POST", member.token, {
+    productId: shop.productId, quantity: 1, ...(voucherId === undefined ? {} : { voucherId }),
+  }, { "Idempotency-Key": randomUUID() });
+  assert.equal(result.status, 201);
+  return result.json.order;
+}
+
+export async function pay(shop: Shop, member: Member, voucherId?: number) {
+  const order = await createOrder(shop, member, voucherId);
+  const result = await request<{ order: Order }>(`/api/orders/${order.id}/pay`, "POST", member.token);
+  assert.equal(result.status, 200);
+  return result.json.order;
+}
+
+export async function wallet(shop: Shop, member: Member) {
+  const result = await request<{ wallet: Wallet }>(`/api/member/merchants/${shop.id}/wallet`, "GET", member.token);
+  assert.equal(result.status, 200);
+  return result.json.wallet;
+}
+
+export async function assertLedger(shop: Shop, member: Member, exactBalance: string) {
+  const stored = await prisma.loyaltyWallet.findFirstOrThrow({ where: { membership: { memberId: member.id, merchantId: shop.id } }, include: { transactions: { orderBy: { id: "asc" } } } });
+  assert.equal(stored.exactBalance.toFixed(), exactBalance);
+  let total = new Prisma.Decimal(0);
+  let lifetime = new Prisma.Decimal(0);
+  const seenRefs = new Set<string>();
+  for (const entry of stored.transactions) {
+    total = total.plus(entry.delta);
+    assert.equal(entry.balanceAfter.toFixed(), total.toFixed());
+    assert.ok(entry.eventRef && entry.eventRef.length > 0, "eventRef must be non-null and non-empty");
+    assert.ok(!seenRefs.has(entry.eventRef), `eventRef must be unique, duplicated: ${entry.eventRef}`);
+    seenRefs.add(entry.eventRef);
+    assert.ok(entry.source, "source must be present");
+    if (entry.type === "EARN") {
+      lifetime = lifetime.plus(entry.delta);
+    } else if (entry.type === "EARN_REVERSAL") {
+      lifetime = lifetime.minus(entry.delta.abs());
+    }
+  }
+  assert.equal(total.toFixed(), exactBalance);
+  assert.equal(stored.netLifetimeEarned.toFixed(), lifetime.toFixed());
+  return stored;
+}
