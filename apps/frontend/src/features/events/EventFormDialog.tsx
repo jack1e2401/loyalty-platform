@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeft, ArrowRight, CalendarDots, MapPin } from "@phosphor-icons/react";
+import { CalendarDots, MapPin, X } from "@phosphor-icons/react";
 import type { CreateEventInput, MerchantEventDto, UpdateEventInput } from "../../api/events-types";
 import { BusyLabel, Button, Field, Input, Textarea } from "../../components/ui";
 import {
@@ -146,51 +146,71 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
     <Dialog.Root open={target !== null} onOpenChange={(open) => !open && !busy && onClose()}>
       {target && (
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-[#14251b]/45 backdrop-blur-[2px]" />
-          <Dialog.Content className="surface fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl p-6 shadow-2xl outline-none sm:p-7">
-            <Dialog.Title className="text-lg font-extrabold text-[#20392a]">
-              {target === "new" ? "Tạo sự kiện mới" : `Chỉnh sửa sự kiện #${target.id}`}
-            </Dialog.Title>
-            <Dialog.Description className="mt-1 text-xs muted">
-              Nội dung sự kiện hiển thị dạng văn bản thuần an toàn trên trang công khai cửa hàng.
-            </Dialog.Description>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1d14]/40 backdrop-blur-[2px] transition-opacity" />
+          <Dialog.Content className="surface fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#e3e9e1] p-6 shadow-xl outline-none">
+            {/* Header with Close button */}
+            <div className="relative pr-8">
+              <Dialog.Title className="text-base font-bold text-[#1f3829]">
+                {target === "new" ? "Tạo sự kiện mới" : `Chỉnh sửa sự kiện #${target.id}`}
+              </Dialog.Title>
+              <Dialog.Description className="mt-0.5 text-xs text-[#607767]">
+                Nội dung hiển thị dạng văn bản an toàn trên trang sự kiện cửa hàng.
+              </Dialog.Description>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={busy}
+                aria-label="Đóng"
+                className="absolute -right-1 -top-1 rounded-lg p-1.5 text-[#738879] transition hover:bg-[#edf2ed] hover:text-[#1f3829]"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
 
-            {/* Tab navigation */}
-            <div className="mt-5 flex border-b border-[#e3e9e2] gap-2" role="tablist" aria-label="Phân nhóm sự kiện">
+            {/* Segmented Control Tabs */}
+            <div
+              className="mt-4 flex rounded-xl bg-[#edf2ed] p-1 gap-1"
+              role="tablist"
+              aria-label="Phân nhóm sự kiện"
+            >
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "schedule"}
                 onClick={() => setActiveTab("schedule")}
-                className={`-mb-px flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-xs font-semibold transition ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-semibold transition-all ${
                   activeTab === "schedule"
-                    ? "border-[#356b43] text-[#20392a]"
-                    : "border-transparent text-[#607767] hover:text-[#20392a]"
+                    ? "bg-white text-[#1f3829] shadow-xs"
+                    : "text-[#607767] hover:text-[#1f3829]"
                 }`}
               >
-                <CalendarDots size={16} aria-hidden="true" />
-                1. Thông tin & Thời gian
+                <CalendarDots size={15} aria-hidden="true" />
+                Thông tin & Lịch trình
               </button>
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "content"}
                 onClick={() => setActiveTab("content")}
-                className={`-mb-px flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-xs font-semibold transition ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-semibold transition-all ${
                   activeTab === "content"
-                    ? "border-[#356b43] text-[#20392a]"
-                    : "border-transparent text-[#607767] hover:text-[#20392a]"
+                    ? "bg-white text-[#1f3829] shadow-xs"
+                    : "text-[#607767] hover:text-[#1f3829]"
                 }`}
               >
-                <MapPin size={16} aria-hidden="true" />
-                2. Địa điểm & Nội dung
+                <MapPin size={15} aria-hidden="true" />
+                Địa điểm & Nội dung
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-              {/* Tab 1: Thông tin & Thời gian */}
-              <div className={activeTab === "schedule" ? "space-y-4" : "hidden"} role="tabpanel" aria-label="Thông tin & Thời gian">
-                <div className="grid gap-3.5 sm:grid-cols-2">
+              {/* Tab 1: Thông tin & Lịch trình */}
+              <div
+                className={activeTab === "schedule" ? "space-y-3.5" : "hidden"}
+                role="tabpanel"
+                aria-label="Thông tin & Lịch trình"
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Tiêu đề sự kiện">
                     <Input
                       required
@@ -225,22 +245,15 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                     />
                   </Field>
                 </div>
-                <div className="flex justify-end pt-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => setActiveTab("content")}
-                  >
-                    Tiếp theo: Địa điểm & Nội dung <ArrowRight size={14} aria-hidden="true" />
-                  </Button>
-                </div>
               </div>
 
               {/* Tab 2: Địa điểm & Nội dung */}
-              <div className={activeTab === "content" ? "space-y-4" : "hidden"} role="tabpanel" aria-label="Địa điểm & Nội dung">
-                <div className="grid gap-3.5 sm:grid-cols-2">
+              <div
+                className={activeTab === "content" ? "space-y-3.5" : "hidden"}
+                role="tabpanel"
+                aria-label="Địa điểm & Nội dung"
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Tên địa điểm">
                     <Input
                       required
@@ -284,30 +297,19 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                     </Field>
                   </div>
                 </div>
-                <div className="flex justify-start pt-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-xs text-[#607767]"
-                    onClick={() => setActiveTab("schedule")}
-                  >
-                    <ArrowLeft size={14} aria-hidden="true" /> Quay lại Thông tin & Thời gian
-                  </Button>
-                </div>
               </div>
 
               {displayError && (
-                <p role="alert" className="rounded-xl bg-[#fae7e3] p-3 text-xs text-[#a4473a]">
+                <p role="alert" className="rounded-xl bg-[#fae7e3] p-2.5 text-xs text-[#a4473a]">
                   {displayError}
                 </p>
               )}
 
-              <div className="flex justify-end gap-2 border-t border-[#edf1ea] pt-3">
-                <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
+              <div className="flex justify-end gap-2.5 border-t border-[#edf1ea] pt-4">
+                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onClose}>
                   Hủy
                 </Button>
-                <Button type="submit" disabled={busy}>
+                <Button type="submit" size="sm" disabled={busy}>
                   {busy ? <BusyLabel>Đang lưu</BusyLabel> : target === "new" ? "Tạo bản nháp" : "Lưu thay đổi"}
                 </Button>
               </div>
