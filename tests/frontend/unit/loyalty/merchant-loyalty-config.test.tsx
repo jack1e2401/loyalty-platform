@@ -132,6 +132,10 @@ describe("Merchant Loyalty Configuration & Ledger", () => {
         writes.push(`${init.method} ${url}`);
         return Response.json({ cycleYear: 2026, processedCount: 1, alreadyProcessed: false });
       }
+      if (url.endsWith("/api/merchant/loyalty/tier-reset/manual") && init?.method === "POST") {
+        writes.push(`${init.method} ${url} ${String(init.body)}`);
+        return Response.json({ cycleYear: 2026, seasonNumber: 2, targetPoints: 500, effectiveAt: new Date().toISOString(), processedCount: 1, triggerType: "MANUAL" });
+      }
       if (url.endsWith("/api/merchant/loyalty") && (!init || init.method === "GET")) return Response.json({ config });
       return Response.json({ error: "Not found" }, { status: 404 });
     });
@@ -149,6 +153,13 @@ describe("Merchant Loyalty Configuration & Ledger", () => {
     await waitFor(() => expect(writes).toHaveLength(1));
     expect(writes[0]).toContain("POST http://localhost:3000/api/merchant/loyalty/tier-reset/run");
 
+    fireEvent.change(screen.getByLabelText("Điểm mục tiêu reset ngay"), { target: { value: "500" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset mùa ngay" }));
+    expect(await screen.findByText(/Reset mùa thủ công ngay\?/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận reset ngay" }));
+    await waitFor(() => expect(writes).toHaveLength(2));
+    expect(writes[1]).toContain("POST http://localhost:3000/api/merchant/loyalty/tier-reset/manual");
+
     fireEvent.click(screen.getByRole("button", { name: "Chương trình" }));
     fireEvent.change(screen.getByLabelText("VND cho mỗi điểm"), { target: { value: "5000" } });
     const navigationAlert = vi.spyOn(window, "alert").mockImplementation(() => {});
@@ -157,10 +168,10 @@ describe("Merchant Loyalty Configuration & Ledger", () => {
     expect(screen.getByLabelText("VND cho mỗi điểm"),).toHaveValue(5000);
     fireEvent.click(await screen.findByRole("button", { name: "Lưu cấu hình" }));
     expect(await screen.findByText(/sẽ được lưu thành một phiên bản chính sách mới/i)).toBeInTheDocument();
-    expect(writes).toHaveLength(1);
+    expect(writes).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "Phát hành phiên bản mới" }));
-    await waitFor(() => expect(writes).toHaveLength(2));
-    expect(writes[1]).toContain("PUT http://localhost:3000/api/merchant/loyalty");
+    await waitFor(() => expect(writes).toHaveLength(3));
+    expect(writes[2]).toContain("PUT http://localhost:3000/api/merchant/loyalty");
     expect(await screen.findByRole("heading", { name: "Lịch sử phiên bản" })).toBeInTheDocument();
   });
 

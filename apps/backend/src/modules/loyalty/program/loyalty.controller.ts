@@ -24,6 +24,14 @@ export const runLoyaltyTierReset: RequestHandler = async (_request, response) =>
   response.json(await loyaltyService.runTierReset(response.locals.user.id));
 };
 
+export const runManualLoyaltyTierReset: RequestHandler = async (request, response) => {
+  const rawTarget = (request.body as { targetPoints?: unknown } | undefined)?.targetPoints;
+  if (rawTarget !== undefined && (typeof rawTarget !== "number" || !Number.isInteger(rawTarget) || rawTarget < 0)) {
+    throw new HttpError(400, "INVALID_INPUT");
+  }
+  response.json(await loyaltyService.runManualTierReset(response.locals.user.id, rawTarget));
+};
+
 export const listLoyaltyPolicyHistory: RequestHandler = async (request, response) => {
   if (request.query.page !== undefined || request.query.limit !== undefined) {
     const page = readRouteId(request.query.page ?? "1");

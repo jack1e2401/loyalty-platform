@@ -12,8 +12,11 @@ type Props = {
   showOptional: Record<string, boolean>;
   setShowOptional: Dispatch<SetStateAction<Record<string, boolean>>>;
   resetBusy: boolean;
+  manualResetTarget: number;
+  onManualResetTargetChange: (value: number) => void;
   canEditPolicy: boolean;
   onRequestReset: () => void;
+  onRequestManualReset: () => void;
 };
 
 export function LoyaltyTierSettings(props: Props) {

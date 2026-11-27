@@ -44,7 +44,7 @@ test("annual tier reset persists the effective clamped boundary independently of
   const result = await runAnnualTierReset(shop.id, now);
   assert.equal(result.processedCount, 1);
   const expectedBoundary = new Date(Date.UTC(year, month - 1, day) - 7 * 60 * 60 * 1000);
-  const run = await prisma.tierResetRun.findUniqueOrThrow({ where: { merchantId_cycleYear: { merchantId: shop.id, cycleYear: year } } });
+  const run = await prisma.tierResetRun.findUniqueOrThrow({ where: { merchantId_cycleKey: { merchantId: shop.id, cycleKey: `scheduled-${year}` } } });
   assert.equal(run.effectiveAt.toISOString(), expectedBoundary.toISOString());
   const updatedMembership = await prisma.merchantMembership.findUniqueOrThrow({ where: { id: membership.id } });
   assert.equal(updatedMembership.lastResetAt?.toISOString(), expectedBoundary.toISOString());

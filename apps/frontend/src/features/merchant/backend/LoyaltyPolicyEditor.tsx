@@ -39,7 +39,10 @@ type Props = {
   showOptional: Record<string, boolean>;
   setShowOptional: Dispatch<SetStateAction<Record<string, boolean>>>;
   resetBusy: boolean;
+  manualResetTarget: number;
+  onManualResetTargetChange: (value: number) => void;
   onRequestReset: () => void;
+  onRequestManualReset: () => void;
   error: string;
   notice: string;
 };
@@ -72,7 +75,10 @@ export function LoyaltyPolicyEditor({
   showOptional,
   setShowOptional,
   resetBusy,
+  manualResetTarget,
+  onManualResetTargetChange,
   onRequestReset,
+  onRequestManualReset,
   error,
   notice,
 }: Props) {
@@ -168,8 +174,11 @@ export function LoyaltyPolicyEditor({
               showOptional={showOptional}
               setShowOptional={setShowOptional}
               resetBusy={resetBusy}
+              manualResetTarget={manualResetTarget}
+              onManualResetTargetChange={onManualResetTargetChange}
               canEditPolicy={canEditPolicy}
               onRequestReset={onRequestReset}
+              onRequestManualReset={onRequestManualReset}
             />
           </fieldset>
           {error && (

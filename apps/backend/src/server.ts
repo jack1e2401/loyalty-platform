@@ -1,5 +1,6 @@
 import { app } from "./app.js";
 import { env } from "./config/env.js";
+import { startTierResetCron } from "./jobs/tier-reset.cron.js";
 import { ordersService } from "./modules/commerce/orders/orders.service.js";
 
 const expireOrders = () => {
@@ -11,6 +12,7 @@ const expireOrders = () => {
 expireOrders();
 const expiryTimer = setInterval(expireOrders, 30_000);
 expiryTimer.unref();
+startTierResetCron();
 app.listen(env.port, () => {
   console.info(`API listening on http://localhost:${env.port}`);
 });

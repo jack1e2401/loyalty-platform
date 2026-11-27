@@ -20,8 +20,17 @@ function extractPreviousSeasonTier(reason: string): string | null {
   return match?.[1]?.trim() ?? null;
 }
 
+function extractSeasonNumber(reason: string): number | null {
+  const match = /sang\s+Mùa\s+(\d+)/i.exec(reason);
+  return match?.[1] ? Number(match[1]) : null;
+}
+
+function extractTriggerType(reason: string): "MANUAL" | "SCHEDULED" {
+  return /thủ công/i.test(reason) ? "MANUAL" : "SCHEDULED";
+}
+
 function extractSeasonYear(reason: string, fallbackIso: string): number {
-  const match = /mùa\s+(\d{4})/i.exec(reason);
+  const match = /(?:mùa(?:\s+\d+\s*·)?)\s+(\d{4})/i.exec(reason);
   if (match?.[1]) return Number(match[1]);
   return new Date(fallbackIso).getFullYear();
 }
@@ -30,7 +39,7 @@ async function readWallet(memberId: number, merchantId: number) {
   return prisma.$transaction(async (tx) => {
     const merchant = await tx.merchant.findFirst({ where: { id: merchantId, isActive: true }, select: { id: true } });
     if (!merchant) return "merchant_missing" as const;
-    const [membership, rule, configuredTiers] = await Promise.all([
+    const [membership, rule, configuredTiers, resetRuns] = await Promise.all([
       tx.merchantMembership.findUnique({
         where: { memberId_merchantId: { memberId, merchantId } },
         include: {
@@ -40,27 +49,45 @@ async function readWallet(memberId: number, merchantId: number) {
       }),
       tx.loyaltyRule.findUnique({ where: { merchantId } }),
       tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
+      tx.tierResetRun.findMany({
+        where: { merchantId },
+        orderBy: [{ seasonNumber: "desc" }, { id: "desc" }],
+        select: { id: true, cycleYear: true, triggerType: true, seasonNumber: true },
+      }),
     ]);
     const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
     const ranked = membership && (membership.tierId !== null || membership.wallet?.transactions.some((entry) => entry.type === "EARN" || entry.type === "SEASON_RESET"));
     const currentTierLevel = ranked ? selectQualifiedTier(membership.qualificationProgress, tiers, rule?.qualificationMode ?? "POINTS") ?? "UNRANKED" : "UNRANKED";
     const transactions = membership?.wallet?.transactions ?? [];
-    const seasonHistory = transactions
-      .filter((entry) => entry.type === "SEASON_RESET")
-      .map((entry) => {
-        const resetYear = extractSeasonYear(entry.reason, entry.createdAt.toISOString());
-        const newTierObj = tiers.find((t) => t.level === entry.promotedToTier);
-        return {
-          seasonYear: resetYear - 1,
-          previousTierName: extractPreviousSeasonTier(entry.reason) ?? "Chưa xếp hạng",
-          newSeasonYear: resetYear,
-          newTierLevel: entry.promotedToTier ?? "default",
-          newTierName: newTierObj?.name ?? entry.promotedToTier ?? "Default",
-          resetToPoints: exactPoints(entry.balanceAfter),
-          delta: exactPoints(entry.delta),
-          resetAt: entry.createdAt.toISOString(),
-        };
-      });
+    const runById = new Map(resetRuns.map((run) => [run.id, run]));
+    const seasonResets = transactions.filter((entry) => entry.type === "SEASON_RESET");
+    const seasonHistory = seasonResets.map((entry, idx) => {
+      const runMatch = /^season-reset-\d+-run-(\d+)-/.exec(entry.eventRef);
+      const run = runMatch?.[1] ? runById.get(Number(runMatch[1])) : undefined;
+      const newSeasonNumber = run?.seasonNumber ?? extractSeasonNumber(entry.reason) ?? (seasonResets.length - idx + 1);
+      const prevSeasonNumber = Math.max(1, newSeasonNumber - 1);
+      const resetYear = run?.cycleYear ?? extractSeasonYear(entry.reason, entry.createdAt.toISOString());
+      const triggerType = run?.triggerType ?? extractTriggerType(entry.reason);
+      const prevSeasonYear = triggerType === "SCHEDULED" && newSeasonNumber <= 2 ? resetYear - 1 : resetYear;
+      const newTierObj = tiers.find((t) => t.level === entry.promotedToTier);
+      return {
+        seasonNumber: prevSeasonNumber,
+        seasonYear: prevSeasonYear,
+        seasonLabel: `Mùa ${prevSeasonNumber} · ${prevSeasonYear}`,
+        previousTierName: extractPreviousSeasonTier(entry.reason) ?? "Chưa xếp hạng",
+        newSeasonNumber,
+        newSeasonYear: resetYear,
+        newSeasonLabel: `Mùa ${newSeasonNumber} · ${resetYear}`,
+        newTierLevel: entry.promotedToTier ?? "default",
+        newTierName: newTierObj?.name ?? entry.promotedToTier ?? "Default",
+        resetToPoints: exactPoints(entry.balanceAfter),
+        delta: exactPoints(entry.delta),
+        triggerType,
+        resetAt: entry.createdAt.toISOString(),
+      };
+    });
+    const currentSeasonNumber = resetRuns[0]?.seasonNumber ?? (seasonResets.length > 0 ? seasonResets.length + 1 : 1);
+    const currentSeasonYear = membership?.lastResetCycleYear ?? resetRuns[0]?.cycleYear ?? new Date().getFullYear();
     const wallet = {
       merchantId,
       policy: {
@@ -76,7 +103,9 @@ async function readWallet(memberId: number, merchantId: number) {
       },
       ...describeWallet(membership?.wallet),
       qualificationProgress: exactPoints(membership?.qualificationProgress ?? "0"),
-      currentSeason: membership?.lastResetCycleYear ?? new Date().getFullYear(),
+      currentSeason: currentSeasonYear,
+      currentSeasonNumber,
+      currentSeasonLabel: `Mùa ${currentSeasonNumber} · ${currentSeasonYear}`,
       lastResetAt: membership?.lastResetAt?.toISOString() ?? null,
       seasonHistory,
       tier: currentTierLevel,

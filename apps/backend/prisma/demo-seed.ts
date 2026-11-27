@@ -306,18 +306,38 @@ async function main(): Promise<void> {
         update: { passwordHash, name: seed.name, phone: seed.phone, address: seed.address, role: "MEMBER", accountStatus: "ACTIVE" },
         select: { id: true },
       });
-      const existingMembership = await tx.merchantMembership.findUnique({
-        where: { memberId_merchantId: { memberId: user.id, merchantId: merchant.id } },
-        select: { id: true },
-      });
       const membership = await tx.merchantMembership.upsert({
         where: { memberId_merchantId: { memberId: user.id, merchantId: merchant.id } },
         create: { memberId: user.id, merchantId: merchant.id, tierId: seed.tier.id, qualificationProgress: 0 },
         update: {},
         select: { id: true, wallet: { select: { id: true } } },
       });
-      demoMembers.set(seed.email, { id: user.id, membershipId: membership.id, walletId: membership.wallet?.id ?? null, tierLevel: seed.tier.level, openingPoints: new Prisma.Decimal(0), earnedPoints: new Prisma.Decimal(0), finalBalance: new Prisma.Decimal(0), isFreshMembership: !existingMembership });
+      demoMembers.set(seed.email, { id: user.id, membershipId: membership.id, walletId: membership.wallet?.id ?? null, tierLevel: seed.tier.level, openingPoints: new Prisma.Decimal(0), earnedPoints: new Prisma.Decimal(0), finalBalance: new Prisma.Decimal(0), isFreshMembership: true });
     }
+
+    // Remove rehearsal tier-reset runs/transactions so re-running `npm run seed` always restores pre-demo state cleanly.
+    const demoMembershipIds = [...demoMembers.values()].map((m) => m.membershipId);
+    const demoWalletIds = (
+      await tx.loyaltyWallet.findMany({
+        where: { membershipId: { in: demoMembershipIds } },
+        select: { id: true },
+      })
+    ).map((w) => w.id);
+    if (demoWalletIds.length > 0) {
+      await tx.pointTransaction.deleteMany({
+        where: {
+          walletId: { in: demoWalletIds },
+          type: "SEASON_RESET",
+          eventRef: { startsWith: `season-reset-${merchant.id}-` },
+        },
+      });
+    }
+    await tx.tierResetRun.deleteMany({
+      where: {
+        merchantId: merchant.id,
+        NOT: { cycleKey: { startsWith: "local-demo-reset-" } },
+      },
+    });
 
     const readLines = (lineSpecs: Array<{ sku: string; quantity: number }>) => lineSpecs.map((line) => {
       const product = products.get(line.sku);
@@ -416,15 +436,19 @@ async function main(): Promise<void> {
       }
       paidOrders.set(spec.key, { id: orderId, memberId: member.id, total: subtotal, earned, paidAt, email: spec.email });
 
+      const lastResetAt = new Date("2026-01-01T00:00:00+07:00");
       if (member.isFreshMembership) {
-        await tx.merchantMembership.update({ where: { id: member.membershipId }, data: { tierId: tier.id, qualificationProgress } });
+        await tx.merchantMembership.update({
+          where: { id: member.membershipId },
+          data: { tierId: tier.id, qualificationProgress, lastResetCycleYear: 2026, lastResetAt },
+        });
       }
       const redemptionCost = spec.email === memberSeeds[1].email ? 150 : 0;
       const balanceAfterRedemption = lifetimeAfterOrder.sub(redemptionCost);
       const wallet = await tx.loyaltyWallet.upsert({
         where: { membershipId: member.membershipId },
         create: { membershipId: member.membershipId, exactBalance: balanceAfterRedemption, netLifetimeEarned: lifetimeAfterOrder },
-        update: {},
+        update: { exactBalance: balanceAfterRedemption, netLifetimeEarned: lifetimeAfterOrder },
         select: { id: true },
       });
       member.walletId = wallet.id;
@@ -546,16 +570,88 @@ async function main(): Promise<void> {
     });
     void silverPaidOrder;
 
+    // Seed historical season reset runs (Season 1 -> 2025 Season 2 -> 2026 Season 3) for demo rank history UI.
+    const historicalResets = [
+      {
+        cycleKey: "local-demo-reset-2025",
+        cycleYear: 2025,
+        seasonNumber: 2,
+        effectiveAt: new Date("2025-01-01T00:00:00+07:00"),
+        prevTierLabel: "Default",
+        newTierLevel: "default",
+        targetPoints: 0,
+      },
+      {
+        cycleKey: "local-demo-reset-2026",
+        cycleYear: 2026,
+        seasonNumber: 3,
+        effectiveAt: new Date("2026-01-01T00:00:00+07:00"),
+        prevTierLabel: "Silver",
+        newTierLevel: "silver",
+        targetPoints: 500,
+      },
+    ];
+    for (const hist of historicalResets) {
+      await tx.tierResetRun.upsert({
+        where: { merchantId_cycleKey: { merchantId: merchant.id, cycleKey: hist.cycleKey } },
+        create: {
+          merchantId: merchant.id,
+          cycleYear: hist.cycleYear,
+          cycleKey: hist.cycleKey,
+          triggerType: "SCHEDULED",
+          seasonNumber: hist.seasonNumber,
+          targetPoints: hist.targetPoints,
+          effectiveAt: hist.effectiveAt,
+          processedCount: demoMembers.size,
+          completedAt: hist.effectiveAt,
+        },
+        update: {
+          seasonNumber: hist.seasonNumber,
+          targetPoints: hist.targetPoints,
+          effectiveAt: hist.effectiveAt,
+          processedCount: demoMembers.size,
+        },
+      });
+    }
+    for (const email of [memberSeeds[1].email, memberSeeds[2].email, memberSeeds[3].email]) {
+      const m = demoMembers.get(email);
+      if (!m?.walletId) continue;
+      for (const hist of historicalResets) {
+        const ref = `${hist.cycleKey}:${email}`;
+        await tx.pointTransaction.upsert({
+          where: { eventRef: ref },
+          create: {
+            walletId: m.walletId,
+            type: "SEASON_RESET",
+            delta: new Prisma.Decimal(hist.targetPoints === 0 ? -420 : 500),
+            balanceAfter: new Prisma.Decimal(hist.targetPoints),
+            promotedToTier: hist.newTierLevel,
+            reason: `Reset điểm tự động sang Mùa ${hist.seasonNumber} · ${hist.cycleYear} (Mùa trước: ${hist.prevTierLabel})`,
+            eventRef: ref,
+            source: "SYSTEM",
+            createdAt: hist.effectiveAt,
+          },
+          update: {
+            reason: `Reset điểm tự động sang Mùa ${hist.seasonNumber} · ${hist.cycleYear} (Mùa trước: ${hist.prevTierLabel})`,
+            promotedToTier: hist.newTierLevel,
+            balanceAfter: new Prisma.Decimal(hist.targetPoints),
+            createdAt: hist.effectiveAt,
+          },
+        });
+      }
+    }
+
     const challengeSpecs = [
-      { title: "Ghé Hikari 3 lần trong tuần", description: "Tích luỹ đủ 3 đơn đã thanh toán trong thời gian diễn ra để nhận điểm thưởng.", type: "ORDER_COUNT" as const, targetValue: 3, rewardPoints: 50, budgetTotal: 5_000, isFeatured: true },
-      { title: "Check-in 5 ngày", description: "Quay lại Hikari và check-in mỗi ngày để mở khoá điểm thưởng.", type: "DAILY_CHECKIN" as const, targetValue: 5, rewardPoints: 25, budgetTotal: 2_500, isFeatured: false },
+      { title: "Ghé Hikari 3 lần trong tuần", description: "Tích luỹ đủ 3 đơn đã thanh toán trong thời gian diễn ra để nhận điểm thưởng.", type: "ORDER_COUNT" as const, targetValue: 3, rewardPoints: 50, budgetTotal: 5_000, budgetSpent: 0, isFeatured: true },
+      { title: "Check-in 5 ngày", description: "Quay lại Hikari và check-in mỗi ngày để mở khoá điểm thưởng.", type: "DAILY_CHECKIN" as const, targetValue: 5, rewardPoints: 25, budgetTotal: 2_500, budgetSpent: 0, isFeatured: false },
+      { title: "Check-in nhận thưởng nhanh", description: "Điểm danh 1 ngày để nhận +100 điểm thưởng (kiểm tra ngân sách & hàng đợi FIFO).", type: "DAILY_CHECKIN" as const, targetValue: 1, rewardPoints: 100, budgetTotal: 100, budgetSpent: 100, isFeatured: false },
     ];
     const challenges = new Map<string, { id: number; type: "ORDER_COUNT" | "DAILY_CHECKIN" }>();
     for (const spec of challengeSpecs) {
       const existing = await tx.challenge.findFirst({ where: { merchantId: merchant.id, title: spec.title }, select: { id: true } });
       const challenge = existing
-        ? await tx.challenge.update({ where: { id: existing.id }, data: { ...spec, merchantId: merchant.id, status: "ACTIVE", startsAt: addDays(-1), endsAt: addDays(14), activatedAt: now }, select: { id: true, type: true } })
-        : await tx.challenge.create({ data: { ...spec, merchantId: merchant.id, status: "ACTIVE", startsAt: addDays(-1), endsAt: addDays(14), activatedAt: now }, select: { id: true, type: true } });
+        ? await tx.challenge.update({ where: { id: existing.id }, data: { ...spec, merchantId: merchant.id, status: "ACTIVE", startsAt: addDays(-7), endsAt: addDays(14), activatedAt: now }, select: { id: true, type: true } })
+        : await tx.challenge.create({ data: { ...spec, merchantId: merchant.id, status: "ACTIVE", startsAt: addDays(-7), endsAt: addDays(14), activatedAt: now }, select: { id: true, type: true } });
       challenges.set(spec.title, challenge);
     }
     const orderChallenge = challenges.get(challengeSpecs[0].title)!;
@@ -577,19 +673,44 @@ async function main(): Promise<void> {
       void order;
     }
 
+    const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
     const checkinChallenge = challenges.get(challengeSpecs[1].title)!;
-    const silverProgress = await tx.challengeProgress.upsert({
-      where: { challengeId_membershipId: { challengeId: checkinChallenge.id, membershipId: silver.membershipId } },
-      create: { challengeId: checkinChallenge.id, membershipId: silver.membershipId, currentValue: 2, rewardState: "IN_PROGRESS", rewardCycle: 1 },
-      update: {},
+    // Clear any live check-ins done during earlier rehearsal so demo starts cleanly at 4/5 and Waiting-Budget ready.
+    const liveCheckins = await tx.memberActivity.findMany({
+      where: {
+        membershipId: { in: demoMembershipIds },
+        type: "DAILY_CHECKIN",
+        eventKey: { startsWith: "checkin-" },
+      },
       select: { id: true },
     });
-    for (const day of [4, 3]) {
+    if (liveCheckins.length > 0) {
+      await tx.challengeProgressEntry.deleteMany({ where: { activityId: { in: liveCheckins.map((a) => a.id) } } });
+      await tx.memberActivity.deleteMany({ where: { id: { in: liveCheckins.map((a) => a.id) } } });
+    }
+    void todayKey;
+
+    const silverProgress = await tx.challengeProgress.upsert({
+      where: { challengeId_membershipId: { challengeId: checkinChallenge.id, membershipId: silver.membershipId } },
+      create: { challengeId: checkinChallenge.id, membershipId: silver.membershipId, currentValue: 4, rewardState: "IN_PROGRESS", rewardCycle: 1 },
+      update: { currentValue: 4, rewardState: "IN_PROGRESS", completedAt: null },
+      select: { id: true },
+    });
+    const silverGrants = await tx.challengeRewardGrant.findMany({
+      where: { progressId: silverProgress.id },
+      select: { id: true, earnTransactionId: true, reversalTransactionId: true },
+    });
+    if (silverGrants.length > 0) {
+      await tx.challengeRewardGrant.deleteMany({ where: { id: { in: silverGrants.map((g) => g.id) } } });
+      const txIds = silverGrants.flatMap((g) => [g.earnTransactionId, g.reversalTransactionId]).filter((id): id is number => id !== null);
+      if (txIds.length > 0) await tx.pointTransaction.deleteMany({ where: { id: { in: txIds } } });
+    }
+    for (const day of [5, 4, 3, 2]) {
       const eventKey = `local-demo-seed:checkin:${memberSeeds[1].email}:${day}`;
       const activity = await tx.memberActivity.upsert({
         where: { eventKey },
         create: { membershipId: silver.membershipId, type: "DAILY_CHECKIN", eventKey, occurredAt: addDays(-day) },
-        update: {},
+        update: { occurredAt: addDays(-day) },
         select: { id: true },
       });
       await tx.challengeProgressEntry.upsert({
@@ -599,17 +720,54 @@ async function main(): Promise<void> {
       });
     }
 
-    const milestoneChallenge = orderChallenge;
-    for (const milestone of [
-      { position: 1, thresholdValue: 1, title: "Lần ghé đầu tiên", description: "Hoàn thành đơn đầu tiên." },
-      { position: 2, thresholdValue: 3, title: "Khách quen Hikari", description: "Hoàn thành đủ ba đơn." },
-    ]) {
-      await tx.challengeMilestone.upsert({
-        where: { challengeId_position: { challengeId: milestoneChallenge.id, position: milestone.position } },
-        create: { challengeId: milestoneChallenge.id, ...milestone },
-        update: { thresholdValue: milestone.thresholdValue, title: milestone.title, description: milestone.description },
+    // Seed quick budget-exhausted challenge: Bronze already claimed 100/100 budget so next member enters WAITING_BUDGET.
+    const quickChallenge = challenges.get(challengeSpecs[2].title)!;
+    const bronze = demoMembers.get(memberSeeds[0].email)!;
+    const quickExtraProgresses = await tx.challengeProgress.findMany({
+      where: { challengeId: quickChallenge.id, membershipId: { not: bronze.membershipId } },
+      select: { id: true },
+    });
+    if (quickExtraProgresses.length > 0) {
+      const extraIds = quickExtraProgresses.map((p) => p.id);
+      const extraGrants = await tx.challengeRewardGrant.findMany({
+        where: { progressId: { in: extraIds } },
+        select: { id: true, earnTransactionId: true, reversalTransactionId: true },
       });
+      if (extraGrants.length > 0) {
+        await tx.challengeRewardGrant.deleteMany({ where: { id: { in: extraGrants.map((g) => g.id) } } });
+        const txIds = extraGrants.flatMap((g) => [g.earnTransactionId, g.reversalTransactionId]).filter((id): id is number => id !== null);
+        if (txIds.length > 0) await tx.pointTransaction.deleteMany({ where: { id: { in: txIds } } });
+      }
+      await tx.challengeProgressEntry.deleteMany({ where: { progressId: { in: extraIds } } });
+      await tx.challengeProgress.deleteMany({ where: { id: { in: extraIds } } });
     }
+    const bronzeQuickProgress = await tx.challengeProgress.upsert({
+      where: { challengeId_membershipId: { challengeId: quickChallenge.id, membershipId: bronze.membershipId } },
+      create: { challengeId: quickChallenge.id, membershipId: bronze.membershipId, currentValue: 1, rewardState: "REWARDED", rewardCycle: 1, completedAt: addDays(-1) },
+      update: { currentValue: 1, rewardState: "REWARDED", completedAt: addDays(-1) },
+      select: { id: true },
+    });
+    const bronzeQuickActivity = await tx.memberActivity.upsert({
+      where: { eventKey: `local-demo-seed:checkin:${memberSeeds[0].email}:quick` },
+      create: { membershipId: bronze.membershipId, type: "DAILY_CHECKIN", eventKey: `local-demo-seed:checkin:${memberSeeds[0].email}:quick`, occurredAt: addDays(-1) },
+      update: { occurredAt: addDays(-1) },
+      select: { id: true },
+    });
+    await tx.challengeProgressEntry.upsert({
+      where: { progressId_activityId: { progressId: bronzeQuickProgress.id, activityId: bronzeQuickActivity.id } },
+      create: { progressId: bronzeQuickProgress.id, activityId: bronzeQuickActivity.id, deltaValue: 1 },
+      update: {},
+    });
+
+    await tx.challenge.update({
+      where: { id: orderChallenge.id },
+      data: {
+        milestones: [
+          { position: 1, thresholdValue: "1", title: "Lần ghé đầu tiên", description: "Hoàn thành đơn đầu tiên." },
+          { position: 2, thresholdValue: "3", title: "Khách quen Hikari", description: "Hoàn thành đủ ba đơn." },
+        ] as Prisma.InputJsonValue,
+      },
+    });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   console.info("Local Hikari UI demo dataset is ready. Member login password is the shared local demo password.");
@@ -617,7 +775,7 @@ async function main(): Promise<void> {
 
 main()
   .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : "Local demo seed failed");
+    console.error(error instanceof Error ? error.stack ?? error.message : "Local demo seed failed");
     process.exitCode = 1;
   })
   .finally(async () => {

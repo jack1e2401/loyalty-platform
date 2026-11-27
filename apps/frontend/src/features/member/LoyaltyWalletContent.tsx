@@ -66,7 +66,7 @@ export function LoyaltyWalletContent({
   const progressPercent = nextTier && nextThreshold > currentThreshold
     ? Math.min(100, Math.max(0, ((qualPoints - currentThreshold) / (nextThreshold - currentThreshold)) * 100))
     : 100;
-  const currentSeason = wallet.currentSeason ?? new Date().getFullYear();
+  const currentSeasonLabel = wallet.currentSeasonLabel ?? `Mùa ${wallet.currentSeason ?? new Date().getFullYear()}`;
   const tierColor = currentTier?.color && /^#[0-9A-Fa-f]{6}$/.test(currentTier.color) ? currentTier.color : "#2f583a";
   const red = Number.parseInt(tierColor.slice(1, 3), 16);
   const green = Number.parseInt(tierColor.slice(3, 5), 16);
@@ -112,14 +112,14 @@ export function LoyaltyWalletContent({
           <div className={tierArtwork ? "relative z-1 max-w-[68%] sm:max-w-[65%]" : undefined}>
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-semibold opacity-75">Hạng thành viên</p>
-              <span className="rounded-full bg-black/15 px-2.5 py-0.5 text-xs font-bold">Mùa {currentSeason}</span>
+              <span className="rounded-full bg-black/15 px-2.5 py-0.5 text-xs font-bold">{currentSeasonLabel}</span>
             </div>
             <h2 className="mt-2 break-words text-2xl font-semibold leading-tight sm:mt-3 sm:text-3xl" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
               {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : currentTier?.name ?? wallet.tier}
             </h2>
             <div className="mt-3 space-y-1.5">
               <p className="text-xs font-semibold opacity-90 sm:text-sm">
-                Tiến độ thăng hạng mùa {currentSeason}: {qualPoints.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} điểm
+                Tiến độ thăng hạng ({currentSeasonLabel}): {qualPoints.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} điểm
               </p>
               {sortedTiers.length > 0 && (
                 <>

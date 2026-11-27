@@ -13,7 +13,7 @@ export function MemberSeasonHistoryDialog({
   const currentTier = wallet.policy?.tiers.find((tier) => tier.level === wallet.tier);
   const currentTierName = wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : currentTier?.name ?? wallet.tier;
   const qualPoints = Number(wallet.qualificationProgress ?? 0);
-  const currentSeason = wallet.currentSeason ?? new Date().getFullYear();
+  const currentSeasonLabel = wallet.currentSeasonLabel ?? `Mùa ${wallet.currentSeason ?? new Date().getFullYear()}`;
   const seasonHistory = wallet.seasonHistory ?? [];
 
   return (
@@ -49,7 +49,7 @@ export function MemberSeasonHistoryDialog({
             <div className="rounded-2xl border border-[#cde0c8] bg-[#f4f9f2] p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#49654e]">
-                  Mùa {currentSeason}
+                  {currentSeasonLabel}
                 </span>
                 <span className="rounded-full bg-[#315e3c] px-2.5 py-0.5 text-[11px] font-bold text-white">
                   Hiện tại
@@ -66,22 +66,29 @@ export function MemberSeasonHistoryDialog({
                 Chưa có kỳ reset mùa trước nào được ghi nhận.
               </p>
             ) : (
-              seasonHistory.map((entry) => (
+              seasonHistory.map((entry, idx) => (
                 <div
-                  key={`${entry.newSeasonYear}-${entry.resetAt}`}
+                  key={`${entry.resetAt}-${idx}`}
                   className="rounded-2xl border border-[#e5ece3] bg-[#fafcf9] p-4"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#637269]">
-                      Mùa {entry.seasonYear}
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#637269]">
+                        {entry.seasonLabel ?? `Mùa ${entry.seasonYear}`}
+                      </span>
+                      {entry.triggerType && (
+                        <span className="rounded-full bg-[#eef3ec] px-2 py-0.5 text-[11px] font-medium text-[#4a6251]">
+                          {entry.triggerType === "MANUAL" ? "Reset thủ công" : "Reset định kỳ"}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[11px] text-[#637269]">
                       {new Date(entry.resetAt).toLocaleDateString("vi-VN")}
                     </span>
                   </div>
                   <p className="mt-2 text-lg font-extrabold text-[#20392a]">{entry.previousTierName}</p>
                   <p className="mt-1 text-xs text-[#53685a]">
-                    Reset sang mùa {entry.newSeasonYear}: {entry.newTierName} (
+                    Chuyển sang {entry.newSeasonLabel ?? `Mùa ${entry.newSeasonYear}`}: {entry.newTierName} (
                     {Number(entry.resetToPoints).toLocaleString("vi-VN")} điểm)
                   </p>
                 </div>

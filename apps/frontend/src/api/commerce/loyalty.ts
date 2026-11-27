@@ -26,9 +26,16 @@ export function createLoyaltyClient(baseUrl = "", fetcher: typeof fetch = fetch)
       });
     },
     runTierReset(token: string) {
-      return requestJson<{ cycleYear: number; processedCount: number; alreadyProcessed: boolean }>(fetcher, baseUrl, "/api/merchant/loyalty/tier-reset/run", {
+      return requestJson<{ cycleYear: number; seasonNumber?: number; processedCount: number; alreadyProcessed: boolean }>(fetcher, baseUrl, "/api/merchant/loyalty/tier-reset/run", {
         method: "POST",
         token,
+      });
+    },
+    runManualTierReset(targetPoints: number | undefined, token: string) {
+      return requestJson<{ cycleYear: number; seasonNumber: number; targetPoints: number; effectiveAt: string; processedCount: number; triggerType: "MANUAL" }>(fetcher, baseUrl, "/api/merchant/loyalty/tier-reset/manual", {
+        method: "POST",
+        token,
+        body: targetPoints === undefined ? {} : { targetPoints },
       });
     },
     getLoyaltyPolicyHistory(token: string, paging?: { page: number; limit: number }) {

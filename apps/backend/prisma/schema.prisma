@@ -68,6 +68,11 @@ enum TierResetStrategy {
   SELECTED
 }
 
+enum TierResetTrigger {
+  SCHEDULED
+  MANUAL
+}
+
 enum PaymentProvider {
   UNKNOWN
   MOCK
@@ -467,15 +472,20 @@ model LoyaltyRule {
 }
 
 model TierResetRun {
-  id             Int      @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
   merchantId     Int
   cycleYear      Int
-  effectiveAt    DateTime @db.DateTime(3)
-  processedCount Int      @default(0)
-  completedAt    DateTime @default(now())
-  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  cycleKey       String           @db.VarChar(64)
+  triggerType    TierResetTrigger @default(SCHEDULED)
+  seasonNumber   Int              @default(1)
+  targetPoints   Int              @default(0)
+  effectiveAt    DateTime         @db.DateTime(3)
+  processedCount Int              @default(0)
+  completedAt    DateTime         @default(now())
+  merchant       Merchant         @relation(fields: [merchantId], references: [id], onDelete: Restrict)
 
-  @@unique([merchantId, cycleYear])
+  @@unique([merchantId, cycleKey])
+  @@index([merchantId, cycleYear, triggerType])
   @@index([completedAt])
 }
 

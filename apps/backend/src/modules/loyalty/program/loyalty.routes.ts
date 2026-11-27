@@ -13,6 +13,7 @@ import {
   previewMerchantPolicy,
   putLoyaltyConfig,
   runLoyaltyTierReset,
+  runManualLoyaltyTierReset,
 } from "./loyalty.controller.js";
 
 export const merchantLoyaltyRoutes = Router();
@@ -20,6 +21,7 @@ merchantLoyaltyRoutes.use(authenticate, requireRole("MERCHANT"));
 merchantLoyaltyRoutes.get("/", getLoyaltyConfig);
 merchantLoyaltyRoutes.put("/", putLoyaltyConfig);
 merchantLoyaltyRoutes.post("/tier-reset/run", runLoyaltyTierReset);
+merchantLoyaltyRoutes.post("/tier-reset/manual", runManualLoyaltyTierReset);
 merchantLoyaltyRoutes.get("/history", listLoyaltyPolicyHistory);
 merchantLoyaltyRoutes.post("/preview", previewMerchantPolicy);
 merchantLoyaltyRoutes.get("/transactions", listMerchantTransactions);

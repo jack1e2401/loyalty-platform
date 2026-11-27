@@ -83,13 +83,18 @@ export interface WalletTransactionDto {
 }
 
 export interface SeasonHistoryEntryDto {
+  seasonNumber?: number;
   seasonYear: number;
+  seasonLabel?: string;
   previousTierName: string;
+  newSeasonNumber?: number;
   newSeasonYear: number;
+  newSeasonLabel?: string;
   newTierLevel: string;
   newTierName: string;
   resetToPoints: string;
   delta: string;
+  triggerType?: "SCHEDULED" | "MANUAL";
   resetAt: string;
 }
 
@@ -103,6 +108,8 @@ export interface WalletDto {
   lifetimeEarnedPoints: number;
   qualificationProgress?: string;
   currentSeason?: number;
+  currentSeasonNumber?: number;
+  currentSeasonLabel?: string;
   lastResetAt?: string | null;
   seasonHistory?: SeasonHistoryEntryDto[];
   tier: MemberTier;

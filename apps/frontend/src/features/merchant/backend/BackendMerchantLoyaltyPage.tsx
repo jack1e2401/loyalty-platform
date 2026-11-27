@@ -13,6 +13,7 @@ import { MerchantLoyaltyMembers } from "../MerchantLoyaltyMembers";
 import { ConfirmActionDialog } from "../../../components/ui/ConfirmActionDialog";
 import { api, message, useToken } from "../merchant-page-support";
 import { LoyaltyPolicyEditor } from "./LoyaltyPolicyEditor";
+import { resolvePreviewTierName } from "./LoyaltyResetSettings";
 
 export function MerchantLoyalty() {
   const token = useToken();
@@ -42,7 +43,8 @@ export function MerchantLoyalty() {
   const [showOptional, setShowOptional] = useState<Record<string, boolean>>({});
   const [expandedTiers, setExpandedTiers] = useState<Record<string, boolean>>({});
   const [editingPolicy, setEditingPolicy] = useState(false);
-  const [confirmingAction, setConfirmingAction] = useState<"publish" | "reset" | null>(null);
+  const [confirmingAction, setConfirmingAction] = useState<"publish" | "reset" | "manualReset" | null>(null);
+  const [manualResetTarget, setManualResetTarget] = useState<number | null>(null);
 
   // Formula preview state
   const [previewAmount, setPreviewAmount] = useState("");
@@ -164,13 +166,36 @@ export function MerchantLoyalty() {
     }
   }
 
+  const effectiveManualTarget = manualResetTarget ?? form?.reset.targetPoints ?? 0;
+
+  async function runManualReset(): Promise<boolean> {
+    if (resetBusy) return false;
+    setResetBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await api.runManualTierReset(effectiveManualTarget, token);
+      setNotice(
+        `Đã chốt mùa và reset thủ công ${result.processedCount} hội viên sang Mùa ${result.seasonNumber} (${result.targetPoints.toLocaleString("vi-VN")} điểm).`,
+      );
+      return true;
+    } catch (reason) {
+      setError(message(reason));
+      return false;
+    } finally {
+      setResetBusy(false);
+    }
+  }
+
   async function confirmPendingAction() {
     const succeeded =
       confirmingAction === "publish"
         ? await save()
         : confirmingAction === "reset"
           ? await runTierReset()
-          : false;
+          : confirmingAction === "manualReset"
+            ? await runManualReset()
+            : false;
     if (succeeded) setConfirmingAction(null);
   }
 
@@ -222,7 +247,10 @@ export function MerchantLoyalty() {
                   showOptional={showOptional}
                   setShowOptional={setShowOptional}
                   resetBusy={resetBusy}
+                  manualResetTarget={effectiveManualTarget}
+                  onManualResetTargetChange={(value) => setManualResetTarget(value)}
                   onRequestReset={() => setConfirmingAction("reset")}
+                  onRequestManualReset={() => setConfirmingAction("manualReset")}
                   error={error}
                   notice={notice}
                 />
@@ -248,14 +276,28 @@ export function MerchantLoyalty() {
         onOpenChange={(open) => {
           if (!open && !busy && !resetBusy) setConfirmingAction(null);
         }}
-        title={confirmingAction === "reset" ? "Chạy reset hạng đến hạn?" : "Phát hành chính sách mới?"}
-        description={
-          confirmingAction === "reset"
-            ? "Hạng và tiến trình xét hạng của hội viên đủ điều kiện sẽ được cập nhật theo lịch đã lưu. Ví điểm và lịch sử giao dịch được giữ nguyên."
-            : "Thay đổi sẽ được lưu thành một phiên bản chính sách mới. Các phiên bản đã phát hành trước đó vẫn được giữ nguyên. Chỉ tiếp tục nếu bạn muốn áp dụng cấu hình này cho các đơn hàng sau."
+        title={
+          confirmingAction === "manualReset"
+            ? "Reset mùa thủ công ngay?"
+            : confirmingAction === "reset"
+              ? "Chạy reset hạng đến hạn?"
+              : "Phát hành chính sách mới?"
         }
-        confirmLabel={confirmingAction === "reset" ? "Chạy reset" : "Phát hành phiên bản mới"}
-        busy={confirmingAction === "reset" ? resetBusy : busy}
+        description={
+          confirmingAction === "manualReset"
+            ? `Toàn bộ hội viên sẽ được đưa về ${effectiveManualTarget.toLocaleString("vi-VN")} điểm khả dụng & điểm xét hạng (hạng ${form ? resolvePreviewTierName(form, effectiveManualTarget) : "mặc định"}) và mở mùa mới ngay lúc này. Lịch sử giao dịch và điểm trọn đời vẫn được giữ nguyên.`
+            : confirmingAction === "reset"
+              ? "Hạng và tiến trình xét hạng của hội viên đủ điều kiện sẽ được cập nhật theo lịch đã lưu. Ví điểm và lịch sử giao dịch được giữ nguyên."
+              : "Thay đổi sẽ được lưu thành một phiên bản chính sách mới. Các phiên bản đã phát hành trước đó vẫn được giữ nguyên. Chỉ tiếp tục nếu bạn muốn áp dụng cấu hình này cho các đơn hàng sau."
+        }
+        confirmLabel={
+          confirmingAction === "manualReset"
+            ? "Xác nhận reset ngay"
+            : confirmingAction === "reset"
+              ? "Chạy reset"
+              : "Phát hành phiên bản mới"
+        }
+        busy={confirmingAction === "reset" || confirmingAction === "manualReset" ? resetBusy : busy}
         error={error || undefined}
         onConfirm={() => void confirmPendingAction()}
       />
