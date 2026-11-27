@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowCounterClockwise, ArrowUpRight, Copy } from "@phosphor-icons/react";
 import { Alert, Button, Collapse, Flex, Form, Input, Tag, Typography } from "antd";
 import { createStorefrontClient } from "../../api/storefront-client";
@@ -10,7 +10,7 @@ import { CmsCard } from "./cms";
 
 const api = createStorefrontClient();
 
-export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileResponse; token: string }) {
+export function MerchantStoreProfileForm({ data, token, aside }: { data: StoreProfileResponse; token: string; aside?: ReactNode }) {
   const [saved, setSaved] = useState(() => ({ ...data.profile, name: data.merchant.name }));
   const [draft, setDraft] = useState(saved);
   const [confirming, setConfirming] = useState(false);
@@ -70,7 +70,7 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
   return (
     <Form
       layout="vertical"
-      className="min-w-0 space-y-5"
+      className="min-w-0 space-y-6"
       onSubmitCapture={(event) => {
         event.preventDefault();
         if (!changed || busy) return;
@@ -78,7 +78,9 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
         setConfirming(true);
       }}
     >
-      <CmsCard title="Hồ sơ cửa hàng">
+      <div className={aside ? "grid items-start gap-6 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]" : "min-w-0"}>
+        <div className="min-w-0 space-y-5">
+          <CmsCard title="Hồ sơ cửa hàng">
         <div className="space-y-1">
           <Form.Item label="Tên cửa hàng" htmlFor="store-profile-name" required>
             <Input
@@ -157,15 +159,18 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
               },
             ]}
           />
-        </div>
-      </CmsCard>
+          </div>
+          </CmsCard>
 
-      <StorefrontOpeningHoursEditor value={draft.openingHours ?? null} onChange={(hours) => change("openingHours", hours)} />
+          <StorefrontOpeningHoursEditor value={draft.openingHours ?? null} onChange={(hours) => change("openingHours", hours)} />
+        </div>
+        {aside ? <div className="grid min-w-0 gap-6">{aside}</div> : null}
+      </div>
 
       <div
         role="region"
         aria-label="Thanh lưu thông tin cửa hàng"
-        className={`sticky bottom-4 z-20 rounded-xl border p-3.5 shadow-[0_6px_20px_rgba(32,57,42,0.10)] backdrop-blur transition-colors ${
+        className={`sticky bottom-4 z-20 w-full rounded-xl border p-3.5 shadow-[0_6px_20px_rgba(32,57,42,0.10)] backdrop-blur transition-colors ${
           changed ? "border-[#e5b869] bg-[#fffcf5]/95" : "border-[#e3e9e2] bg-white/95"
         }`}
       >

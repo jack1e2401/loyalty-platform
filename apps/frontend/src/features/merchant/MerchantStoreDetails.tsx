@@ -22,34 +22,38 @@ export function MerchantStoreDetails({ data, token }: { data: StoreProfileRespon
   ] as const;
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]">
-      <MerchantStoreProfileForm key={merchant.id} data={data} token={token} />
-      <div className="grid min-w-0 gap-6">
-        <section className="space-y-4 rounded-xl border border-[#284c35] bg-[#284c35] p-5 text-white shadow-[0_1px_3px_rgba(32,57,42,0.08)] sm:p-6">
-          <Flex align="center" justify="space-between" gap={8} wrap>
-            <h2 className="m-0 text-lg font-extrabold text-white">Trạng thái hoạt động & kênh bán</h2>
-            <CmsStatusTag
-              label={merchant.isActive ? "Hoạt động" : "Không hoạt động"}
-              tone={merchant.isActive ? "success" : "warning"}
-            />
-          </Flex>
-          <dl className="m-0 grid grid-cols-3 gap-2">
-            {metrics.map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-white/10 p-2.5">
-                <dt className="text-xs text-white/85">{label}</dt>
-                <dd className="mt-1 text-lg font-bold tabular-nums">{number(value)}</dd>
-              </div>
-            ))}
-          </dl>
-          <Link to={`/s/${merchant.slug}`} target="_blank" rel="noopener" className="inline-block">
-            <Button size="small" icon={<ArrowUpRight size={14} />} iconPlacement="end">
-              Mở cửa hàng
-            </Button>
-          </Link>
-        </section>
-        <MerchantLoyaltySummary token={token} />
-      </div>
-    </div>
+    <MerchantStoreProfileForm
+      key={merchant.id}
+      data={data}
+      token={token}
+      aside={
+        <>
+          <section className="space-y-4 rounded-xl border border-[#284c35] bg-[#284c35] p-5 text-white shadow-[0_1px_3px_rgba(32,57,42,0.08)] sm:p-6">
+            <Flex align="center" justify="space-between" gap={8} wrap>
+              <h2 className="m-0 text-lg font-extrabold text-white">Trạng thái hoạt động & kênh bán</h2>
+              <CmsStatusTag
+                label={merchant.isActive ? "Hoạt động" : "Không hoạt động"}
+                tone={merchant.isActive ? "success" : "warning"}
+              />
+            </Flex>
+            <dl className="m-0 grid grid-cols-3 gap-2">
+              {metrics.map(([label, value]) => (
+                <div key={label} className="rounded-xl bg-white/10 p-2.5">
+                  <dt className="text-xs text-white/85">{label}</dt>
+                  <dd className="mt-1 text-lg font-bold tabular-nums">{number(value)}</dd>
+                </div>
+              ))}
+            </dl>
+            <Link to={`/s/${merchant.slug}`} target="_blank" rel="noopener" className="inline-block">
+              <Button size="small" icon={<ArrowUpRight size={14} />} iconPlacement="end">
+                Mở cửa hàng
+              </Button>
+            </Link>
+          </section>
+          <MerchantLoyaltySummary token={token} />
+        </>
+      }
+    />
   );
 }
 
