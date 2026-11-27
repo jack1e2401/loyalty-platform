@@ -7,11 +7,13 @@ import {
   Descriptions,
   Flex,
   Input,
+  Segmented,
   Space,
   Spin,
   Typography,
   type TableColumnsType,
 } from "antd";
+import { ArrowRight } from "@phosphor-icons/react";
 import { createRefundsClient, translateRefundRequestError } from "../../../api/refunds-client";
 import type {
   RefundRequestDetailResponse,
@@ -42,6 +44,7 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState<"approve" | "reject" | null>(null);
+  const [activeTab, setActiveTab] = useState<"info" | "decision">("info");
 
   useEffect(() => {
     let active = true;
@@ -136,56 +139,168 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       backLabel="Quay lại yêu cầu hoàn tiền"
       status={<CmsStatusTag label={refundRequestStatusLabel(data.refundRequest.status)} tone={statusTone} />}
     >
-      {error ? <Alert type="error" showIcon title={error} className="mb-4" /> : null}
-      <Card title="Thông tin yêu cầu" size="small">
-        <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }}>
-          <Descriptions.Item label="Đơn hàng">
-            <Link to={`/merchant/orders?orderId=${data.order.id}`} className="font-medium text-[#20392a] hover:underline">
-              #{data.order.id}
-            </Link>
-          </Descriptions.Item>
-          <Descriptions.Item label="Thành viên">
-            <Link to={`/merchant/customers/${data.order.memberId}`} className="font-medium text-[#20392a] hover:underline">
-              {data.member?.email ?? `#${data.order.memberId}`}
-            </Link>
-          </Descriptions.Item>
-          <Descriptions.Item label="Tổng tiền">{money(data.order.total)}</Descriptions.Item>
-          <Descriptions.Item label="Voucher giảm giá">
-            {Number(data.order.discountAmount) > 0 ? `−${money(data.order.discountAmount)}` : "Không"}
-          </Descriptions.Item>
-          <Descriptions.Item label="Thanh toán đơn">
-            {data.order.paidAt ? new Date(data.order.paidAt).toLocaleString("vi-VN") : "—"}
-          </Descriptions.Item>
-          <Descriptions.Item label="Nguồn thanh toán">{paymentProviderLabel}</Descriptions.Item>
-          {data.order.paymentProviderReference ? <Descriptions.Item label="Mã thanh toán">{data.order.paymentProviderReference}</Descriptions.Item> : null}
-          {data.order.paymentProviderTransactionNo ? <Descriptions.Item label="Mã giao dịch nhà cung cấp">{data.order.paymentProviderTransactionNo}</Descriptions.Item> : null}
-          <Descriptions.Item label="Gửi lúc">
-            {new Date(data.refundRequest.requestedAt).toLocaleString("vi-VN")}
-          </Descriptions.Item>
-          <Descriptions.Item label="Lý do" span={{ xs: 1, sm: 2, lg: 3 }}>
-            {data.refundRequest.reason}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-      <Card title="Sản phẩm trong đơn" size="small">
-        <CmsDataTable
-          label="Sản phẩm trong đơn"
-          rows={data.order.items}
-          columns={orderColumns}
-          rowKey="productId"
+      {error ? <Alert type="error" showIcon title={error} className="mb-2" /> : null}
+      <div className="min-w-0 overflow-x-auto pb-1">
+        <Segmented
+          aria-label="Chế độ xem yêu cầu hoàn tiền"
+          style={{ background: "#e9f0e9", border: "1px solid #d7e4d8", padding: 4 }}
+          value={activeTab}
+          onChange={(value) => setActiveTab(value as "info" | "decision")}
+          options={[
+            { label: "Xem thông tin", value: "info" },
+            { label: pending ? "Quyết định" : "Kết quả xử lý", value: "decision" },
+          ]}
         />
-        {data.itemPagination && <MerchantPagination {...data.itemPagination}
-          onChange={(nextPage, nextLimit) => { setPage(nextPage); setLimit(nextLimit); }} />}
-      </Card>
-      {pending ? (
-        <Card title="Tác động dự kiến khi hoàn tiền" size="small">
-          <Typography.Paragraph type="secondary" className="!mb-3">
-            Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
-          </Typography.Paragraph>
-          <MerchantRefundPreview preview={data.preview} onChallengePageChange={(nextPage, nextLimit) => {
-            setChallengePage(nextPage); setChallengeLimit(nextLimit);
-          }} />
-        </Card>
+      </div>
+
+      {activeTab === "info" ? (
+        <Space orientation="vertical" size={16} className="w-full">
+          <div className="rounded-xl border border-[#d7e4d8] border-l-4 border-l-[#20392a] bg-[#f7faf7] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Typography.Text strong className="text-xs text-[#20392a]">Lý do khách hàng yêu cầu hoàn tiền</Typography.Text>
+              <Typography.Text type="secondary" className="text-xs">
+                Gửi lúc {new Date(data.refundRequest.requestedAt).toLocaleString("vi-VN")}
+              </Typography.Text>
+            </div>
+            <div className="mt-1.5 text-sm font-medium text-[#1f3829]">{data.refundRequest.reason}</div>
+          </div>
+
+          <Card title="Thông tin đơn hàng" size="small">
+            <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }}>
+              <Descriptions.Item label="Đơn hàng">
+                <Link to={`/merchant/orders?orderId=${data.order.id}`} className="font-medium text-[#20392a] hover:underline">
+                  #{data.order.id}
+                </Link>
+              </Descriptions.Item>
+              <Descriptions.Item label="Thành viên">
+                <Link to={`/merchant/customers/${data.order.memberId}`} className="font-medium text-[#20392a] hover:underline">
+                  {data.member?.email ?? `#${data.order.memberId}`}
+                </Link>
+              </Descriptions.Item>
+              <Descriptions.Item label="Tổng tiền">
+                <Typography.Text strong>{money(data.order.total)}</Typography.Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Voucher giảm giá">
+                {Number(data.order.discountAmount) > 0 ? `−${money(data.order.discountAmount)}` : "Không"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Thanh toán đơn">
+                {data.order.paidAt ? new Date(data.order.paidAt).toLocaleString("vi-VN") : "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Nguồn thanh toán">{paymentProviderLabel}</Descriptions.Item>
+              {data.order.paymentProviderReference ? (
+                <Descriptions.Item label="Mã thanh toán">{data.order.paymentProviderReference}</Descriptions.Item>
+              ) : null}
+              {data.order.paymentProviderTransactionNo ? (
+                <Descriptions.Item label="Mã giao dịch nhà cung cấp">{data.order.paymentProviderTransactionNo}</Descriptions.Item>
+              ) : null}
+            </Descriptions>
+          </Card>
+
+          <Card title="Sản phẩm trong đơn" size="small">
+            <CmsDataTable
+              label="Sản phẩm trong đơn"
+              rows={data.order.items}
+              columns={orderColumns}
+              rowKey="productId"
+            />
+            {data.itemPagination && (
+              <MerchantPagination
+                {...data.itemPagination}
+                onChange={(nextPage, nextLimit) => {
+                  setPage(nextPage);
+                  setLimit(nextLimit);
+                }}
+              />
+            )}
+          </Card>
+
+          <Flex justify="end">
+            <Button
+              type="primary"
+              icon={<ArrowRight size={16} />}
+              iconPlacement="end"
+              onClick={() => setActiveTab("decision")}
+              className="bg-[#20392a] hover:!bg-[#2e523c]"
+            >
+              {pending ? "Sang bước Quyết định" : "Xem kết quả xử lý"}
+            </Button>
+          </Flex>
+        </Space>
+      ) : pending ? (
+        <Space orientation="vertical" size={16} className="w-full">
+          <Card title="Tác động dự kiến khi hoàn tiền" size="small">
+            <Typography.Paragraph type="secondary" className="!mb-3">
+              Thông tin này do hệ thống tính trước. Quyết định chỉ được gửi sau khi bạn xác nhận.
+            </Typography.Paragraph>
+            <MerchantRefundPreview
+              preview={data.preview}
+              onChallengePageChange={(nextPage, nextLimit) => {
+                setChallengePage(nextPage);
+                setChallengeLimit(nextLimit);
+              }}
+            />
+          </Card>
+          <Card title="Quyết định" size="small">
+            <Space orientation="vertical" size={12} className="w-full">
+              <Input.TextArea
+                aria-label="Ghi chú hoặc lý do từ chối"
+                maxLength={255}
+                disabled={busy || confirming !== null}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="Nhập ghi chú; bắt buộc khi từ chối"
+                autoSize={{ minRows: 2, maxRows: 4 }}
+              />
+              <Typography.Text type="secondary" className="text-xs">
+                Bắt buộc nhập lý do nếu từ chối yêu cầu hoàn tiền.
+              </Typography.Text>
+              {confirming ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title={
+                    confirming === "approve"
+                      ? `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
+                      : "Xác nhận từ chối yêu cầu hoàn tiền?"
+                  }
+                  description={
+                    confirming === "approve"
+                      ? "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
+                      : `Yêu cầu sẽ bị từ chối với lý do: “${note.trim()}”.`
+                  }
+                  action={
+                    <Flex gap={8} wrap>
+                      <Button disabled={busy} onClick={() => setConfirming(null)}>
+                        Quay lại
+                      </Button>
+                      <Button
+                        type={confirming === "reject" ? "default" : "primary"}
+                        danger={confirming === "reject"}
+                        loading={busy}
+                        onClick={() => void decide(confirming)}
+                      >
+                        {confirming === "approve" ? "Xác nhận hoàn tiền" : "Xác nhận từ chối"}
+                      </Button>
+                    </Flex>
+                  }
+                />
+              ) : (
+                <Flex gap={8} wrap>
+                  <Button danger disabled={busy || !note.trim()} onClick={() => setConfirming("reject")}>
+                    Từ chối
+                  </Button>
+                  <Button
+                    type="primary"
+                    disabled={busy}
+                    onClick={() => setConfirming("approve")}
+                  >
+                    Duyệt hoàn tiền
+                  </Button>
+                </Flex>
+              )}
+            </Space>
+          </Card>
+        </Space>
       ) : (
         <Card title="Kết quả xử lý" size="small">
           <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
@@ -215,68 +330,6 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
           </Descriptions>
         </Card>
       )}
-      {pending ? (
-        <Card title="Quyết định" size="small">
-          <Space orientation="vertical" size={12} className="w-full">
-            <Input.TextArea
-              aria-label="Ghi chú hoặc lý do từ chối"
-              maxLength={255}
-              disabled={busy || confirming !== null}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Nhập ghi chú; bắt buộc khi từ chối"
-              autoSize={{ minRows: 2, maxRows: 4 }}
-            />
-            <Typography.Text type="secondary" className="text-xs">
-              Bắt buộc nhập lý do nếu từ chối yêu cầu hoàn tiền.
-            </Typography.Text>
-            {confirming ? (
-              <Alert
-                type="warning"
-                showIcon
-                title={
-                  confirming === "approve"
-                    ? `Xác nhận hoàn ${money(data.preview.refundAmountVnd)} cho đơn #${data.order.id}?`
-                    : "Xác nhận từ chối yêu cầu hoàn tiền?"
-                }
-                description={
-                  confirming === "approve"
-                    ? "Hành động này sẽ gửi yêu cầu hoàn tiền để hệ thống xử lý."
-                    : `Yêu cầu sẽ bị từ chối với lý do: “${note.trim()}”.`
-                }
-                action={
-                  <Flex gap={8} wrap>
-                    <Button disabled={busy} onClick={() => setConfirming(null)}>
-                      Quay lại
-                    </Button>
-                    <Button
-                      type={confirming === "reject" ? "default" : "primary"}
-                      danger={confirming === "reject"}
-                      loading={busy}
-                      onClick={() => void decide(confirming)}
-                    >
-                      {confirming === "approve" ? "Xác nhận hoàn tiền" : "Xác nhận từ chối"}
-                    </Button>
-                  </Flex>
-                }
-              />
-            ) : (
-              <Flex gap={8} wrap>
-                <Button danger disabled={busy || !note.trim()} onClick={() => setConfirming("reject")}>
-                  Từ chối
-                </Button>
-                <Button
-                  type="primary"
-                  disabled={busy}
-                  onClick={() => setConfirming("approve")}
-                >
-                  Duyệt hoàn tiền
-                </Button>
-              </Flex>
-            )}
-          </Space>
-        </Card>
-      ) : null}
     </CmsDetailLayout>
   );
 }

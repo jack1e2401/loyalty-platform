@@ -134,14 +134,17 @@ describe("merchant refund request approvals", () => {
   });
   it("restores the selected refund detail from the URL", async () => {
     renderPage("/merchant/refund-requests?requestId=11");
+    expect(await screen.findByRole("heading", { name: "Yêu cầu hoàn tiền #11" })).toBeInTheDocument();
+    expect(screen.getByText("Hàng lỗi")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /sang bước quyết định/i }));
     expect(await screen.findByText(/Nhiệm vụ: First/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Yêu cầu hoàn tiền #11" })).toBeInTheDocument();
   });
   it("shows the preview and requires confirmation before executing the refund", async () => {
     mocks.approve.mockResolvedValue({ refundRequest: { ...item, status: "COMPLETED" } });
     renderPage();
     await screen.findByText("Hàng lỗi");
     fireEvent.click(screen.getByRole("button", { name: "Xem & Duyệt" }));
+    fireEvent.click(await screen.findByRole("button", { name: /sang bước quyết định/i }));
     expect(await screen.findByText(/Nhiệm vụ: First/)).toBeInTheDocument();
     expect(screen.getAllByText(/50\.000/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Duyệt hoàn tiền" }));
@@ -153,6 +156,7 @@ describe("merchant refund request approvals", () => {
     renderPage();
     await screen.findByText("Hàng lỗi");
     fireEvent.click(screen.getByRole("button", { name: "Xem & Duyệt" }));
+    fireEvent.click(await screen.findByRole("button", { name: /sang bước quyết định/i }));
     await screen.findByText(/Nhiệm vụ: First/);
     const reject = screen.getByRole("button", { name: "Từ chối" });
     expect(reject).toBeDisabled();
@@ -178,6 +182,7 @@ describe("merchant refund request approvals", () => {
     renderPage();
     await screen.findByText("Hàng lỗi");
     fireEvent.click(screen.getByRole("button", { name: "Xem & Duyệt" }));
+    fireEvent.click(await screen.findByRole("button", { name: /sang bước quyết định/i }));
     expect((await screen.findAllByText(/nợ 0\.4/)).length).toBeGreaterThan(0);
     expect(screen.getByText("Lưu ý tác động loyalty")).toBeInTheDocument();
     expect(screen.getByText("Điểm tích lũy thu hồi")).toBeInTheDocument();
@@ -215,9 +220,10 @@ describe("merchant refund request approvals", () => {
       },
     });
     renderPage("/merchant/refund-requests?requestId=11");
+    expect(await screen.findByRole("link", { name: "#21" })).toHaveAttribute("href", "/merchant/orders?orderId=21");
+    expect(screen.getByRole("link", { name: "#4" })).toHaveAttribute("href", "/merchant/customers/4");
+    fireEvent.click(screen.getByRole("button", { name: /xem kết quả xử lý/i }));
     expect(await screen.findByText("Đã kiểm tra hàng hoàn")).toBeInTheDocument();
     expect(screen.getByText("Số tiền hoàn thực tế")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "#21" })).toHaveAttribute("href", "/merchant/orders?orderId=21");
-    expect(screen.getByRole("link", { name: "#4" })).toHaveAttribute("href", "/merchant/customers/4");
   });
 });
