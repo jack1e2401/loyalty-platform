@@ -80,7 +80,7 @@ export function MerchantLoyaltyMembers({ token, memberId }: { token: string; mem
                   Điểm khả dụng
                 </th>
                 <th scope="col" className="px-4 py-4">
-                  Tổng tích lũy
+                  Điểm xét hạng
                 </th>
                 <th scope="col" className="px-4 py-4">
                   Biến động gần nhất
@@ -104,7 +104,7 @@ export function MerchantLoyaltyMembers({ token, memberId }: { token: string; mem
                       <p className="mt-1 text-xs text-[#a4473a]">Nợ {member.pointDebt}</p>
                     )}
                   </td>
-                  <td className="px-4 py-4 tabular-nums">{member.netLifetimeEarned}</td>
+                  <td className="px-4 py-4 tabular-nums">{member.qualificationProgress ?? member.netLifetimeEarned}</td>
                   <td className="px-4 py-4">
                     {member.latestChange ? (
                       <>

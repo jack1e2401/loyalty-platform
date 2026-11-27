@@ -29,8 +29,16 @@ export function MemberLoyaltyPolicyDialog({ policy }: { policy: LoyaltyConfigDto
             </Button>
           </Dialog.Close>
 
-          <div className="mt-5">
+          <div className="mt-5 space-y-3">
             <LoyaltyFormula config={policy} />
+            {policy.reset?.enabled && (
+              <p className="rounded-xl border border-[#e5ece3] bg-[#f7f9f5] px-4 py-3 text-xs text-[#46614d]">
+                Reset hạng theo mùa: Vào ngày{" "}
+                <b>{String(policy.reset.day).padStart(2, "0")}/{String(policy.reset.month).padStart(2, "0")}</b>{" "}
+                hằng năm, điểm khả dụng và điểm xét hạng sẽ được đặt lại về{" "}
+                <b>{(policy.reset.targetPoints ?? 0).toLocaleString("vi-VN")} điểm</b>.
+              </p>
+            )}
           </div>
 
           <table className="mt-5 w-full text-left text-xs sm:text-sm">

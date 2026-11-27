@@ -32,8 +32,9 @@ export interface TierResetConfigDto {
   enabled: boolean;
   month: number;
   day: number;
-  strategy: "ONE_DOWN" | "SELECTED";
-  targetLevel: string | null;
+  targetPoints?: number;
+  strategy?: "ONE_DOWN" | "SELECTED";
+  targetLevel?: string | null;
 }
 
 export interface LoyaltyConfigDto {
@@ -61,7 +62,8 @@ export type PointTransactionType =
   | "EARN_REVERSAL"
   | "REDEMPTION_REVERSAL"
   | "MERCHANT_ADJUSTMENT"
-  | "LEGACY_BACKFILL";
+  | "LEGACY_BACKFILL"
+  | "SEASON_RESET";
 
 export interface WalletTransactionDto {
   id: number;
@@ -80,6 +82,17 @@ export interface WalletTransactionDto {
   createdAt: string;
 }
 
+export interface SeasonHistoryEntryDto {
+  seasonYear: number;
+  previousTierName: string;
+  newSeasonYear: number;
+  newTierLevel: string;
+  newTierName: string;
+  resetToPoints: string;
+  delta: string;
+  resetAt: string;
+}
+
 export interface WalletDto {
   merchantId: number;
   availablePoints: number;
@@ -88,6 +101,10 @@ export interface WalletDto {
   pointDebt: string;
   netLifetimeEarned: string;
   lifetimeEarnedPoints: number;
+  qualificationProgress?: string;
+  currentSeason?: number;
+  lastResetAt?: string | null;
+  seasonHistory?: SeasonHistoryEntryDto[];
   tier: MemberTier;
   policy?: LoyaltyConfigDto;
   transactions: WalletTransactionDto[];
@@ -148,6 +165,7 @@ export interface MerchantLoyaltyMemberDto {
   tier: MemberTier;
   availablePoints: number;
   netLifetimeEarned: string;
+  qualificationProgress?: string;
   pointDebt: string;
   latestChange: Pick<WalletTransactionDto, "type" | "delta" | "createdAt"> | null;
 }
@@ -169,6 +187,7 @@ export interface MerchantLoyaltyPolicyVersionDto {
     enabled: boolean;
     month: number | null;
     day: number | null;
+    targetPoints?: number;
     strategy: "ONE_DOWN" | "SELECTED" | null;
     targetLevel: string | null;
   } | null;

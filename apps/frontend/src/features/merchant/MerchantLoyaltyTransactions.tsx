@@ -47,6 +47,8 @@ export function transactionTypeLabel(type: PointTransactionType): string {
       return "Điều chỉnh từ cửa hàng";
     case "LEGACY_BACKFILL":
       return "Khởi tạo ban đầu";
+    case "SEASON_RESET":
+      return "Reset điểm theo mùa";
     default:
       return type;
   }
@@ -160,6 +162,7 @@ export function MerchantLoyaltyTransactions() {
               <option value="REDEEM_DISCOUNT">Đổi ưu đãi (REDEEM_DISCOUNT)</option>
               <option value="REDEEM_REWARD">Đổi quà (REDEEM_REWARD)</option>
               <option value="REDEMPTION_REVERSAL">Hoàn điểm đổi quà (REDEMPTION_REVERSAL)</option>
+              <option value="SEASON_RESET">Reset điểm theo mùa (SEASON_RESET)</option>
             </Select>
           </Field>
           <Field label="Từ ngày">

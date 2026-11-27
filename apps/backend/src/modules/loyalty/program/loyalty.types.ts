@@ -18,8 +18,9 @@ export interface TierResetConfigInput {
   enabled: boolean;
   month: number;
   day: number;
-  strategy: "ONE_DOWN" | "SELECTED";
-  targetLevel: string | null;
+  targetPoints: number;
+  strategy?: "ONE_DOWN" | "SELECTED";
+  targetLevel?: string | null;
 }
 
 export interface LoyaltyConfigInput {

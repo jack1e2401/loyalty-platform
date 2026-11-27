@@ -25,7 +25,8 @@ function eventDate(date: string | null) {
 }
 
 export function MemberLifetimeTierChart({ wallet }: { wallet: WalletDto }) {
-  const history = buildLifetimeTierHistory(wallet.transactions, wallet.netLifetimeEarned);
+  const targetTotal = wallet.qualificationProgress ?? wallet.netLifetimeEarned;
+  const history = buildLifetimeTierHistory(wallet.transactions, targetTotal);
   const tiers = [...(wallet.policy?.tiers ?? [])]
     .filter((tier) => tier.minLifetimePoints !== undefined)
     .sort((a, b) => (a.minLifetimePoints ?? 0) - (b.minLifetimePoints ?? 0));
@@ -35,10 +36,10 @@ export function MemberLifetimeTierChart({ wallet }: { wallet: WalletDto }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="member-lifetime-chart-title" className="text-lg font-extrabold text-[#294833]">
-            Biến động điểm lifetime
+            Biến động điểm xét hạng mùa {wallet.currentSeason ?? new Date().getFullYear()}
           </h2>
           <p className="mt-1 text-sm muted">
-            Tổng điểm tăng khi tích lũy và giảm khi bị thu hồi; đổi điểm không làm giảm hạng.
+            Điểm xét hạng tăng khi tích lũy trong mùa và không bị trừ khi đổi ưu đãi.
           </p>
         </div>
         <p className="rounded-full bg-[#f0f5ed] px-3 py-1 text-xs font-bold text-[#31563a]">

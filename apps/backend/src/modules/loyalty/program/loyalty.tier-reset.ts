@@ -2,7 +2,6 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
 import { HttpError } from "../../../lib/http-error.js";
 import { points, selectQualifiedTier } from "./loyalty.calculation.js";
-import { resolveResetTier } from "./loyalty.tier-reset.domain.js";
 
 const zone = "Asia/Ho_Chi_Minh";
 
@@ -40,49 +39,77 @@ export async function runAnnualTierReset(merchantId: number, now = new Date()) {
   if (today.month !== resetMonth || today.day !== dueDay) throw new HttpError(409, "TIER_RESET_NOT_DUE");
 
   const cycleYear = today.year;
-  const spendFrom = vndStartOfDayUtc(cycleYear - 1, resetMonth, resolvedResetDay(cycleYear - 1, resetMonth, resetDay));
   const spendTo = vndStartOfDayUtc(cycleYear, resetMonth, dueDay);
+  const targetPoints = points(rule.resetTargetPoints ?? 0);
+
   try {
     return await prisma.$transaction(async (tx) => {
       const run = await tx.tierResetRun.create({ data: { merchantId, cycleYear, effectiveAt: spendTo } });
       const tiers = await tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } });
       if (tiers.length === 0 || tiers[0]!.level !== "default") throw new HttpError(409, "DEFAULT_TIER_REQUIRED");
-      const memberships = await tx.merchantMembership.findMany({ where: { merchantId }, include: { tier: true } });
+      const memberships = await tx.merchantMembership.findMany({
+        where: { merchantId },
+        include: { tier: true, wallet: true },
+      });
+
       for (const membership of memberships) {
-        const spend = await tx.order.aggregate({
-          where: { merchantId, memberId: membership.memberId, status: { in: ["PAID", "REFUND_PENDING"] }, paidAt: { gte: spendFrom, lt: spendTo } },
-          _sum: { total: true },
+        const wallet = membership.wallet ?? await tx.loyaltyWallet.upsert({
+          where: { membershipId: membership.id },
+          create: { membershipId: membership.id },
+          update: {},
         });
-        const result = resolveResetTier({
-          currentTierId: membership.tierId,
-          tiers,
-          mode: rule.resetStrategy === "SELECTED" ? "TO_TIER" : "DOWN_ONE",
-          targetTierId: rule.resetTargetLevel ? tiers.find((tier) => tier.level === rule.resetTargetLevel)?.id : undefined,
-          qualificationMode: rule.qualificationMode,
-          cycleSpendVnd: spend._sum.total ?? new Prisma.Decimal(0),
-          maintenanceEnabled: tiers.some((tier) => tier.maintenanceSpendVnd !== null),
+
+        const postBoundaryTx = await tx.pointTransaction.aggregate({
+          where: { walletId: wallet.id, createdAt: { gte: spendTo } },
+          _sum: { delta: true },
         });
-        const postBoundaryOrders = await tx.order.aggregate({
-          where: { merchantId, memberId: membership.memberId, status: { in: ["PAID", "REFUND_PENDING"] }, paidAt: { gte: spendTo } },
-          _sum: { total: true, earnedPointsExact: true },
+        const postBoundaryWalletDelta = points(postBoundaryTx._sum.delta ?? "0");
+        const balanceAtBoundary = points(wallet.exactBalance).minus(postBoundaryWalletDelta);
+        const delta = targetPoints.minus(balanceAtBoundary);
+        const newBalance = points(wallet.exactBalance).plus(delta);
+
+        await tx.loyaltyWallet.update({
+          where: { id: wallet.id },
+          data: { exactBalance: newBalance },
         });
-        const postBoundaryChallengeRewards = rule.qualificationMode === "POINTS"
-          ? await tx.challengeRewardGrant.aggregate({
+
+        const [postBoundaryOrders, postBoundaryChallengeRewards] = await Promise.all([
+          tx.order.aggregate({
+            where: { merchantId, memberId: membership.memberId, status: { in: ["PAID", "REFUND_PENDING"] }, paidAt: { gte: spendTo } },
+            _sum: { earnedPointsExact: true },
+          }),
+          tx.challengeRewardGrant.aggregate({
             where: { status: "GRANTED", grantedAt: { gte: spendTo }, progress: { membershipId: membership.id } },
             _sum: { pointsGranted: true },
-          })
-          : null;
-        const postBoundaryContribution = rule.qualificationMode === "SPEND"
-          ? postBoundaryOrders._sum.total ?? new Prisma.Decimal(0)
-          : (postBoundaryOrders._sum.earnedPointsExact ?? new Prisma.Decimal(0)).plus(postBoundaryChallengeRewards?._sum.pointsGranted ?? new Prisma.Decimal(0));
-        const qualificationProgress = points(result.progress).plus(postBoundaryContribution);
-        const qualifiedLevel = selectQualifiedTier(qualificationProgress, tiers, rule.qualificationMode) ?? tiers[0]!.level;
+          }),
+        ]);
+
+        const postBoundaryQual = points(postBoundaryOrders._sum.earnedPointsExact ?? "0")
+          .plus(points(postBoundaryChallengeRewards._sum.pointsGranted ?? "0"));
+        const qualificationProgress = targetPoints.plus(postBoundaryQual);
+        const qualifiedLevel = selectQualifiedTier(qualificationProgress, tiers, "POINTS") ?? tiers[0]!.level;
         const qualifiedTier = tiers.find((tier) => tier.level === qualifiedLevel)!;
+        const prevTierName = membership.tier?.name ?? "Chưa xếp hạng";
+
+        await tx.pointTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: "SEASON_RESET",
+            delta,
+            balanceAfter: targetPoints,
+            promotedToTier: qualifiedTier.level,
+            reason: `Reset điểm mùa ${cycleYear} (Mùa trước: ${prevTierName})`,
+            eventRef: `season-reset-${merchantId}-${cycleYear}-${membership.id}`,
+            source: "SYSTEM",
+          },
+        });
+
         await tx.merchantMembership.update({
           where: { id: membership.id },
           data: { tierId: qualifiedTier.id, qualificationProgress, lastResetCycleYear: cycleYear, lastResetAt: spendTo },
         });
       }
+
       await tx.tierResetRun.update({ where: { id: run.id }, data: { processedCount: memberships.length } });
       return { cycleYear, processedCount: memberships.length, alreadyProcessed: false };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

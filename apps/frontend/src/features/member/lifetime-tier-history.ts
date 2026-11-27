@@ -54,10 +54,10 @@ function sameExactDecimal(left: ExactDecimal, right: ExactDecimal): boolean {
   );
 }
 
-function isLifetimeEvent(
+function isSeasonEvent(
   transaction: WalletTransactionDto,
-): transaction is WalletTransactionDto & { type: "EARN" | "EARN_REVERSAL" } {
-  return transaction.type === "EARN" || transaction.type === "EARN_REVERSAL";
+): transaction is WalletTransactionDto & { type: "EARN" | "EARN_REVERSAL" | "SEASON_RESET" } {
+  return transaction.type === "EARN" || transaction.type === "EARN_REVERSAL" || transaction.type === "SEASON_RESET";
 }
 
 function compareTransactions(left: WalletTransactionDto, right: WalletTransactionDto): number {
@@ -71,23 +71,34 @@ function compareTransactions(left: WalletTransactionDto, right: WalletTransactio
 
 export function buildLifetimeTierHistory(
   transactions: readonly WalletTransactionDto[],
-  netLifetimeEarned: string,
+  targetTotal: string,
 ): LifetimeTierHistory {
-  const events = transactions.filter(isLifetimeEvent).slice().sort(compareTransactions);
-  let running: ExactDecimal = { units: 0n, scale: 0 };
+  const sorted = transactions.filter(isSeasonEvent).slice().sort(compareTransactions);
+  let lastResetIdx = -1;
+  for (let i = sorted.length - 1; i >= 0; i -= 1) {
+    if (sorted[i]?.type === "SEASON_RESET") {
+      lastResetIdx = i;
+      break;
+    }
+  }
+  const events = lastResetIdx >= 0 ? sorted.slice(lastResetIdx) : sorted;
+  const firstReset = lastResetIdx >= 0 ? events[0] : null;
+  const startTotal = firstReset ? firstReset.balanceAfter : "0";
+  let running: ExactDecimal = parseExactDecimal(startTotal);
   const points: LifetimeTierHistoryPoint[] = [
     {
-      transactionId: null,
-      createdAt: null,
+      transactionId: firstReset?.id ?? null,
+      createdAt: firstReset?.createdAt ?? null,
       type: "START",
-      total: "0",
+      total: startTotal,
       orderId: null,
-      reason: "Bắt đầu",
+      reason: firstReset ? firstReset.reason : "Bắt đầu",
     },
   ];
 
   try {
-    for (const event of events) {
+    for (const event of firstReset ? events.slice(1) : events) {
+      if (event.type === "SEASON_RESET") continue;
       const delta = parseExactDecimal(event.delta);
       if ((event.type === "EARN" && delta.units < 0n) || (event.type === "EARN_REVERSAL" && delta.units > 0n)) {
         return { points: [], isConsistent: false };
@@ -105,7 +116,7 @@ export function buildLifetimeTierHistory(
 
     return {
       points,
-      isConsistent: sameExactDecimal(running, parseExactDecimal(netLifetimeEarned)),
+      isConsistent: sameExactDecimal(running, parseExactDecimal(targetTotal)),
     };
   } catch {
     return { points: [], isConsistent: false };

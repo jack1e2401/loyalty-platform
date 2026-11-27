@@ -148,10 +148,10 @@ export async function loadEarningPolicy(tx: Prisma.TransactionClient, merchantId
   return { ...policy, policyVersion: version };
 }
 
-function configMatches(current: { vndPerPoint: number; isActive: boolean; qualificationMode: TierQualificationMode; resetEnabled: boolean; resetMonth: number | null; resetDay: number | null; resetStrategy: string; resetTargetLevel: string | null; tiers: StoredTier[] }, input: LoyaltyConfigInput) {
+function configMatches(current: { vndPerPoint: number; isActive: boolean; qualificationMode: TierQualificationMode; resetEnabled: boolean; resetMonth: number | null; resetDay: number | null; resetTargetPoints: number; tiers: StoredTier[] }, input: LoyaltyConfigInput) {
   if (current.vndPerPoint !== input.vndPerPoint || current.isActive !== input.isActive || current.qualificationMode !== input.qualificationMode ||
     current.resetEnabled !== input.reset.enabled || current.resetMonth !== input.reset.month || current.resetDay !== input.reset.day ||
-    current.resetStrategy !== input.reset.strategy || current.resetTargetLevel !== input.reset.targetLevel || current.tiers.length !== input.tiers.length) return false;
+    current.resetTargetPoints !== input.reset.targetPoints || current.tiers.length !== input.tiers.length) return false;
   const byLevel = new Map(current.tiers.map((tier) => [tier.level, tier]));
   return input.tiers.every((tier) => {
     const old = byLevel.get(tier.level);
@@ -180,6 +180,7 @@ export const loyaltyConfigRepository = {
         enabled: rule?.resetEnabled ?? false,
         month: rule?.resetMonth ?? 1,
         day: rule?.resetDay ?? 1,
+        targetPoints: rule?.resetTargetPoints ?? 0,
         strategy: rule?.resetStrategy ?? "ONE_DOWN",
         targetLevel: rule?.resetTargetLevel ?? null,
       },
@@ -200,8 +201,7 @@ export const loyaltyConfigRepository = {
         resetEnabled: currentRule.resetEnabled,
         resetMonth: currentRule.resetMonth,
         resetDay: currentRule.resetDay,
-        resetStrategy: currentRule.resetStrategy,
-        resetTargetLevel: currentRule.resetTargetLevel,
+        resetTargetPoints: currentRule.resetTargetPoints,
         tiers: currentTiers,
       }, input);
       await tx.loyaltyRule.upsert({
@@ -209,12 +209,14 @@ export const loyaltyConfigRepository = {
         create: {
           merchantId, vndPerPoint: input.vndPerPoint, isActive: input.isActive, qualificationMode: input.qualificationMode,
           resetEnabled: input.reset.enabled, resetMonth: input.reset.month, resetDay: input.reset.day,
-          resetStrategy: input.reset.strategy, resetTargetLevel: input.reset.targetLevel,
+          resetTargetPoints: input.reset.targetPoints,
+          resetStrategy: input.reset.strategy ?? "ONE_DOWN", resetTargetLevel: input.reset.targetLevel ?? null,
         },
         update: {
           vndPerPoint: input.vndPerPoint, isActive: input.isActive, qualificationMode: input.qualificationMode,
           resetEnabled: input.reset.enabled, resetMonth: input.reset.month, resetDay: input.reset.day,
-          resetStrategy: input.reset.strategy, resetTargetLevel: input.reset.targetLevel,
+          resetTargetPoints: input.reset.targetPoints,
+          resetStrategy: input.reset.strategy ?? "ONE_DOWN", resetTargetLevel: input.reset.targetLevel ?? null,
         },
       });
       const activeLevels = input.tiers.map(({ level }) => level);
@@ -261,8 +263,9 @@ export const loyaltyConfigRepository = {
             resetEnabled: input.reset.enabled,
             resetMonth: input.reset.month,
             resetDay: input.reset.day,
-            resetStrategy: input.reset.strategy,
-            resetTargetLevel: input.reset.targetLevel,
+            resetTargetPoints: input.reset.targetPoints,
+            resetStrategy: input.reset.strategy ?? "ONE_DOWN",
+            resetTargetLevel: input.reset.targetLevel ?? null,
             tiers: jsonTiers(input.tiers),
             source: "MERCHANT_PUBLISH",
             publishedById,
@@ -294,6 +297,7 @@ export const loyaltyConfigRepository = {
         enabled: version.resetEnabled,
         month: version.resetMonth,
         day: version.resetDay,
+        targetPoints: version.resetTargetPoints ?? 0,
         strategy: version.resetStrategy,
         targetLevel: version.resetTargetLevel,
       },

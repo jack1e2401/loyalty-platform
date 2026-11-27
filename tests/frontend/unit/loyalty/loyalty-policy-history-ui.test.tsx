@@ -47,7 +47,7 @@ describe("loyalty policy history UI", () => {
     expect(screen.getByText(/SILVER/)).toBeTruthy();
     expect(screen.getByText(/1.10/)).toBeTruthy();
     expect(screen.getByText(/Điểm tích lũy/)).toBeTruthy();
-    expect(screen.getByText(/Giảm một hạng/)).toBeTruthy();
+    expect(screen.getByText(/01\/01 · Reset theo mùa/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Chỉnh sửa chính sách" }).getAttribute("href")).toBe("/merchant/loyalty/config?mode=edit&version=3");
     fireEvent.click(screen.getByRole("button", { name: "Xem chi tiết v3" }));
     expect(within(screen.getByRole("dialog")).getByText(/owner@test.local/)).toBeTruthy();

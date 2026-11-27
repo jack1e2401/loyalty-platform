@@ -9,19 +9,19 @@ export async function reverseOrderPoints(
   ownerId: number,
 ) {
   const { merchantId } = order;
+  const membership = await tx.merchantMembership.findUniqueOrThrow({
+    where: {
+      memberId_merchantId: { memberId: order.memberId, merchantId },
+    },
+    include: { wallet: true },
+  });
+  // BR09: Refunds for orders from a previous season must not deduct points or rank progress in the new season.
+  if (!isQualificationContributionInCurrentCycle(order.paidAt, membership.lastResetAt)) return;
+
   const originalEarned = points(order.earnedPointsExact ?? "0");
   if (originalEarned.greaterThan(0)) {
-    const membership = await tx.merchantMembership.findUniqueOrThrow({
-      where: {
-        memberId_merchantId: { memberId: order.memberId, merchantId },
-      },
-      include: { wallet: true },
-    });
     const wallet = membership.wallet!;
     const balanceAfter = points(wallet.exactBalance).minus(
-      originalEarned,
-    );
-    const lifetimeAfter = points(wallet.netLifetimeEarned).minus(
       originalEarned,
     );
 
@@ -57,10 +57,6 @@ export async function reverseOrderPoints(
     });
   }
 
-  const membership = await tx.merchantMembership.findUniqueOrThrow({
-    where: { memberId_merchantId: { memberId: order.memberId, merchantId } },
-  });
-  if (!isQualificationContributionInCurrentCycle(order.paidAt, membership.lastResetAt)) return;
   const policy = await loadEarningPolicy(tx, merchantId);
   const progressReversal = policy.qualificationMode === "SPEND" ? points(order.total) : originalEarned;
   const progressAfterRaw = points(membership.qualificationProgress).minus(progressReversal);

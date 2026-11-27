@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE `LoyaltyRule` ADD COLUMN `resetTargetPoints` INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE `LoyaltyPolicyVersion` ADD COLUMN `resetTargetPoints` INTEGER NULL;
+
+-- AlterTable
+ALTER TABLE `PointTransaction` MODIFY COLUMN `type` ENUM('EARN', 'REDEEM_DISCOUNT', 'REDEEM_REWARD', 'EARN_REVERSAL', 'REDEMPTION_REVERSAL', 'SEASON_RESET') NOT NULL;

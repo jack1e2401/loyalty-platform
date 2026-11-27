@@ -41,9 +41,7 @@ export function LoyaltyTiersEditor({
                   const nextTier = {
                     level,
                     name: `Hạng ${order + 1}`,
-                    ...(form.qualificationMode === "POINTS"
-                      ? { minLifetimePoints: Number(last?.minLifetimePoints ?? 0) + 1 }
-                      : { minSpendVnd: String(Number(last?.minSpendVnd ?? 0) + 1) }),
+                    minLifetimePoints: Number(last?.minLifetimePoints ?? 0) + 1,
                     multiplier: "1.00",
                     benefits: [],
                     iconUrl: null,
@@ -107,35 +105,25 @@ export function LoyaltyTiersEditor({
                         }
                       />
                     </Field>
-                    <Field
-                      label={
-                        form.qualificationMode === "POINTS" ? "Điểm tối thiểu" : "Chi tiêu tối thiểu (VND)"
-                      }
-                    >
+                    <Field label="Điểm tối thiểu">
                       <Input
                         required
                         type="number"
                         min={index === 0 ? 0 : 1}
                         step={1}
                         disabled={index === 0}
-                        value={
-                          form.qualificationMode === "POINTS"
-                            ? (tier.minLifetimePoints ?? (index === 0 ? 0 : ""))
-                            : (tier.minSpendVnd ?? (index === 0 ? "0" : ""))
-                        }
+                        value={tier.minLifetimePoints ?? (index === 0 ? 0 : "")}
                         onChange={(event) =>
                           setDraft({
                             ...form,
                             tiers: form.tiers.map((item, i) =>
                               i === index
-                                ? form.qualificationMode === "POINTS"
-                                  ? {
-                                      ...item,
-                                      minLifetimePoints:
-                                        event.target.value === "" ? undefined : Number(event.target.value),
-                                      minSpendVnd: undefined,
-                                    }
-                                  : { ...item, minSpendVnd: event.target.value, minLifetimePoints: undefined }
+                                ? {
+                                    ...item,
+                                    minLifetimePoints:
+                                      event.target.value === "" ? undefined : Number(event.target.value),
+                                    minSpendVnd: undefined,
+                                  }
                                 : item,
                             ),
                           })
@@ -213,28 +201,11 @@ export function LoyaltyTiersEditor({
                       )}
                     </div>
                     {showOptional[tier.level] && (
-                      <>
+                      <div className="sm:col-span-2">
                         <Field label="Lợi ích">
                           <Input disabled placeholder="Chưa triển khai" value="" />
                         </Field>
-                        <Field label="Chi tiêu duy trì hạng (VND)">
-                          <Input
-                            type="number"
-                            min={0}
-                            value={tier.maintenanceSpendVnd ?? ""}
-                            onChange={(event) =>
-                              setDraft({
-                                ...form,
-                                tiers: form.tiers.map((item, i) =>
-                                  i === index
-                                    ? { ...item, maintenanceSpendVnd: event.target.value || null }
-                                    : item,
-                                ),
-                              })
-                            }
-                          />
-                        </Field>
-                      </>
+                      </div>
                     )}
                   </>
                 )}

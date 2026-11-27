@@ -15,6 +15,7 @@ export function pointTransactionLabel(type: PointTransactionType) {
     REDEMPTION_REVERSAL: "Hoàn điểm đổi thưởng",
     MERCHANT_ADJUSTMENT: "Điều chỉnh từ cửa hàng",
     LEGACY_BACKFILL: "Khởi tạo ban đầu",
+    SEASON_RESET: "Reset điểm theo mùa",
   };
   return labels[type] ?? type;
 }
@@ -54,6 +55,18 @@ export function LoyaltyWalletContent({
   voucherLink?: string;
 }) {
   const currentTier = wallet.policy?.tiers.find((tier) => tier.level === wallet.tier);
+  const sortedTiers = [...(wallet.policy?.tiers ?? [])].sort(
+    (a, b) => (a.minLifetimePoints ?? 0) - (b.minLifetimePoints ?? 0),
+  );
+  const qualPoints = Number(wallet.qualificationProgress ?? 0);
+  const nextTier = sortedTiers.find((tier) => (tier.minLifetimePoints ?? 0) > qualPoints);
+  const currentThreshold = currentTier?.minLifetimePoints ?? 0;
+  const nextThreshold = nextTier?.minLifetimePoints ?? currentThreshold;
+  const progressPercent = nextTier && nextThreshold > currentThreshold
+    ? Math.min(100, Math.max(0, ((qualPoints - currentThreshold) / (nextThreshold - currentThreshold)) * 100))
+    : 100;
+  const currentSeason = wallet.currentSeason ?? new Date().getFullYear();
+  const seasonHistory = wallet.seasonHistory ?? [];
   const tierColor = currentTier?.color && /^#[0-9A-Fa-f]{6}$/.test(currentTier.color) ? currentTier.color : "#2f583a";
   const red = Number.parseInt(tierColor.slice(1, 3), 16);
   const green = Number.parseInt(tierColor.slice(3, 5), 16);
@@ -82,10 +95,14 @@ export function LoyaltyWalletContent({
           )}
           <div className="mt-6 flex items-center justify-between gap-4 border-t border-white/15 pt-4 sm:mt-8 sm:pt-5">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/65">Tổng điểm đã tích lũy</p>
-              <p className="mt-1 break-words text-lg font-bold tabular-nums sm:text-xl">
-                {wallet.netLifetimeEarned}
-              </p>
+              <p className="text-xs text-white/75">Dùng để đổi ưu đãi và phần thưởng</p>
+              {wallet.policy?.reset?.enabled && (
+                <p className="mt-1 text-xs text-white/65">
+                  Reset mùa tiếp theo: {String(wallet.policy.reset.day).padStart(2, "0")}/
+                  {String(wallet.policy.reset.month).padStart(2, "0")} về{" "}
+                  {(wallet.policy.reset.targetPoints ?? 0).toLocaleString("vi-VN")} điểm
+                </p>
+              )}
             </div>
             <Wallet aria-hidden="true" size={24} weight="light" className="shrink-0 text-[#c5e89b]" />
           </div>
@@ -93,15 +110,30 @@ export function LoyaltyWalletContent({
         <Card className="relative min-h-48 overflow-hidden border-0 p-5 sm:min-h-56 sm:p-8" style={{ backgroundColor: tierColor, color: tierForeground }}>
           <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full opacity-[0.08]" viewBox="0 0 160 100" preserveAspectRatio="none"><defs><pattern id="member-tier-texture" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.7" fill="currentColor" /><circle cx="8" cy="8" r="0.7" fill="currentColor" /></pattern></defs><rect width="160" height="100" fill="url(#member-tier-texture)" /></svg>
           <div className={tierArtwork ? "relative z-1 max-w-[68%] sm:max-w-[65%]" : undefined}>
-            <p className="text-sm font-semibold opacity-75">Hạng thành viên</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold opacity-75">Hạng thành viên</p>
+              <span className="rounded-full bg-black/15 px-2.5 py-0.5 text-xs font-bold">Mùa {currentSeason}</span>
+            </div>
             <h2 className="mt-2 break-words text-2xl font-semibold leading-tight sm:mt-3 sm:text-3xl" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
               {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : currentTier?.name ?? wallet.tier}
             </h2>
-            <p className="mt-2 break-words text-xs leading-5 opacity-80 sm:mt-3 sm:text-sm sm:leading-6">
-              {wallet.tier === "UNRANKED"
-                ? "Đơn đã thanh toán đầu tiên sẽ xác lập hạng theo tổng điểm tích lũy."
-                : "Hạng dựa trên tổng điểm đã tích lũy; tiêu điểm không làm giảm hạng."}
-            </p>
+            <div className="mt-3 space-y-1.5">
+              <p className="text-xs font-semibold opacity-90 sm:text-sm">
+                Tiến độ thăng hạng mùa {currentSeason}: {qualPoints.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} điểm
+              </p>
+              {sortedTiers.length > 0 && (
+                <>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-black/15">
+                    <div className="h-full rounded-full bg-current transition-all" style={{ width: `${progressPercent}%` }} />
+                  </div>
+                  <p className="text-xs opacity-80">
+                    {nextTier
+                      ? `Cần thêm ${Math.max(0, (nextTier.minLifetimePoints ?? 0) - qualPoints).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} điểm để đạt ${nextTier.name ?? nextTier.level}.`
+                      : "Bạn đang ở hạng cao nhất trong mùa."}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
           {tierArtwork && (
             <div className="pointer-events-none absolute -bottom-3 -right-3 h-28 w-28 sm:h-48 sm:w-48">
@@ -110,6 +142,42 @@ export function LoyaltyWalletContent({
           )}
         </Card>
       </div>
+      {(seasonHistory.length > 0 || wallet.tier !== "UNRANKED") && (
+        <Card className="mt-7 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#294833]">Hạng các mùa</h2>
+              <p className="mt-0.5 text-xs muted">Lịch sử thứ hạng qua từng mùa giải tích điểm</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-[#cde0c8] bg-[#f4f9f2] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#49654e]">Mùa {currentSeason}</span>
+                <span className="rounded-full bg-[#315e3c] px-2 py-0.5 text-[11px] font-bold text-white">Hiện tại</span>
+              </div>
+              <p className="mt-2 text-lg font-extrabold text-[#20392a]">
+                {wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : currentTier?.name ?? wallet.tier}
+              </p>
+              <p className="mt-1 text-xs muted">
+                Điểm xét hạng: {qualPoints.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} điểm
+              </p>
+            </div>
+            {seasonHistory.map((entry) => (
+              <div key={`${entry.newSeasonYear}-${entry.resetAt}`} className="rounded-2xl border border-[#e5ece3] bg-[#fafcf9] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#637269]">Mùa {entry.seasonYear}</span>
+                  <span className="text-[11px] muted">{new Date(entry.resetAt).toLocaleDateString("vi-VN")}</span>
+                </div>
+                <p className="mt-2 text-lg font-extrabold text-[#20392a]">{entry.previousTierName}</p>
+                <p className="mt-1 text-xs muted">
+                  Reset sang mùa {entry.newSeasonYear}: {entry.newTierName} ({Number(entry.resetToPoints).toLocaleString("vi-VN")} điểm)
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
       <MemberLifetimeTierChart wallet={wallet} />
       {!wallet.policy && (
         <div className="mt-7">

@@ -59,16 +59,15 @@ function TierTrack({ tiers, mode }: { tiers: LoyaltyConfigDto["tiers"]; mode: "P
   );
 }
 
-function ResetSummary({ reset, tiers }: {
+function ResetSummary({ reset }: {
   reset: MerchantLoyaltyPolicyVersionDto["reset"] | LoyaltyConfigDto["reset"] | null;
-  tiers: LoyaltyConfigDto["tiers"];
+  tiers?: LoyaltyConfigDto["tiers"];
 }) {
   if (!reset) return <span>Không được lưu trong phiên bản này</span>;
   if (!reset.enabled) return <span>Đang tắt</span>;
-  const schedule = reset.month && reset.day ? ` · ${String(reset.day).padStart(2, "0")}/${String(reset.month).padStart(2, "0")}` : "";
-  const strategy = reset.strategy === "SELECTED" ? "Về hạng đích" : reset.strategy === "ONE_DOWN" ? "Giảm một hạng" : "Chưa xác định";
-  const targetTier = reset.targetLevel ? tiers.find((tier) => tier.level === reset.targetLevel) : undefined;
-  return <span>{strategy}{schedule}{reset.targetLevel ? ` · ${targetTier?.name ?? reset.targetLevel}` : ""}</span>;
+  const schedule = reset.month && reset.day ? `${String(reset.day).padStart(2, "0")}/${String(reset.month).padStart(2, "0")}` : "";
+  const targetPts = reset.targetPoints !== undefined ? `Về ${formatNumber(reset.targetPoints)} điểm` : "Reset theo mùa";
+  return <span>{schedule ? `${schedule} · ` : ""}{targetPts}</span>;
 }
 
 
@@ -87,7 +86,9 @@ function Status({ active, children }: { active: boolean; children: ReactNode }) 
 }
 
 function PolicySummary({ policy }: {
-  policy: Pick<MerchantLoyaltyPolicyVersionDto, "vndPerPoint" | "qualificationMode" | "tiers" | "reset">;
+  policy: Pick<MerchantLoyaltyPolicyVersionDto, "vndPerPoint" | "qualificationMode" | "tiers"> & {
+    reset: MerchantLoyaltyPolicyVersionDto["reset"] | LoyaltyConfigDto["reset"] | null;
+  };
 }) {
   const { vndPerPoint, qualificationMode, tiers, reset } = policy;
   const metrics: [string, ReactNode][] = [

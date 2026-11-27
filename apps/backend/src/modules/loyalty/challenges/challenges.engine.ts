@@ -48,23 +48,24 @@ export async function reverseOrderChallenges(tx: PrismaTypes.TransactionClient, 
     if (after.greaterThanOrEqualTo(challenge.targetValue)) { await tx.challengeProgress.update({ where: { id: progress.id }, data: { currentValue: after } }); continue; }
     const grant = progress.grants[0];
     if (grant) {
-      const wallet = await tx.loyaltyWallet.update({
-        where: { id: grant.earnTransaction.walletId },
-        data: {
-          exactBalance: { decrement: grant.pointsGranted },
-          netLifetimeEarned: { decrement: grant.pointsGranted },
-        },
-      });
-      const txRow = await tx.pointTransaction.create({ data: { walletId: wallet.id, type: "EARN_REVERSAL", source: "CHALLENGE_REFUND", delta: grant.pointsGranted.negated(), balanceAfter: wallet.exactBalance, reason: `Challenge reward reversal for refunded order #${orderId}`, eventRef: `challenge-refund-${grant.id}`, actorId } });
-      await tx.challengeRewardGrant.update({ where: { id: grant.id }, data: { status: "REVERSED", reversalTransactionId: txRow.id, reversedAt: new Date() } });
-      await tx.challenge.update({ where: { id: challenge.id }, data: { budgetSpent: { decrement: grant.pointsGranted } } });
       const [membership, rule, tiers] = await Promise.all([
         tx.merchantMembership.findUniqueOrThrow({ where: { id: progress.membershipId } }),
         tx.loyaltyRule.findUnique({ where: { merchantId: challenge.merchantId } }),
         tx.loyaltyTier.findMany({ where: { merchantId: challenge.merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
       ]);
-      const mode = rule?.qualificationMode ?? "POINTS";
-      if (isQualificationContributionInCurrentCycle(grant.grantedAt, membership.lastResetAt)) {
+      const inCurrentCycle = isQualificationContributionInCurrentCycle(grant.grantedAt, membership.lastResetAt);
+      if (inCurrentCycle) {
+        const wallet = await tx.loyaltyWallet.update({
+          where: { id: grant.earnTransaction.walletId },
+          data: {
+            exactBalance: { decrement: grant.pointsGranted },
+            netLifetimeEarned: { decrement: grant.pointsGranted },
+          },
+        });
+        const txRow = await tx.pointTransaction.create({ data: { walletId: wallet.id, type: "EARN_REVERSAL", source: "CHALLENGE_REFUND", delta: grant.pointsGranted.negated(), balanceAfter: wallet.exactBalance, reason: `Challenge reward reversal for refunded order #${orderId}`, eventRef: `challenge-refund-${grant.id}`, actorId } });
+        await tx.challengeRewardGrant.update({ where: { id: grant.id }, data: { status: "REVERSED", reversalTransactionId: txRow.id, reversedAt: new Date() } });
+        await tx.challenge.update({ where: { id: challenge.id }, data: { budgetSpent: { decrement: grant.pointsGranted } } });
+        const mode = rule?.qualificationMode ?? "POINTS";
         const rawProgress = mode === "POINTS" ? points(membership.qualificationProgress).minus(grant.pointsGranted) : points(membership.qualificationProgress);
         const qualificationProgress = rawProgress.isNegative() ? points("0") : rawProgress;
         const level = selectQualifiedTier(qualificationProgress, tiers, mode);

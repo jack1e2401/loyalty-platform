@@ -24,15 +24,26 @@ function ascendingVnd(current: string, previous: string): boolean {
 }
 
 function parseReset(value: unknown): TierResetConfigInput {
-  if (value === undefined) return { enabled: false, month: 1, day: 1, strategy: "ONE_DOWN", targetLevel: null };
+  if (value === undefined) return { enabled: false, month: 1, day: 1, targetPoints: 0, strategy: "ONE_DOWN", targetLevel: null };
   if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
   const reset = value as Record<string, unknown>;
+  const targetPoints = reset.targetPoints === undefined ? 0 : reset.targetPoints;
+  const strategy = reset.strategy === undefined ? "ONE_DOWN" : reset.strategy;
+  const targetLevel = reset.targetLevel === undefined ? null : reset.targetLevel;
   if (typeof reset.enabled !== "boolean" || !Number.isInteger(reset.month) || (reset.month as number) < 1 || (reset.month as number) > 12 ||
     !Number.isInteger(reset.day) || (reset.day as number) < 1 || (reset.day as number) > 31 ||
-    (reset.strategy !== "ONE_DOWN" && reset.strategy !== "SELECTED") ||
-    (reset.targetLevel !== null && (typeof reset.targetLevel !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(reset.targetLevel)))) invalid();
-  if (reset.strategy === "SELECTED" && !reset.targetLevel) invalid();
-  return { enabled: reset.enabled, month: reset.month as number, day: reset.day as number, strategy: reset.strategy, targetLevel: reset.targetLevel as string | null };
+    !Number.isInteger(targetPoints) || (targetPoints as number) < 0 || (targetPoints as number) > maxInt ||
+    (strategy !== "ONE_DOWN" && strategy !== "SELECTED") ||
+    (targetLevel !== null && (typeof targetLevel !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetLevel)))) invalid();
+  if (strategy === "SELECTED" && !targetLevel) invalid();
+  return {
+    enabled: reset.enabled,
+    month: reset.month as number,
+    day: reset.day as number,
+    targetPoints: targetPoints as number,
+    strategy,
+    targetLevel: targetLevel as string | null,
+  };
 }
 
 export function parseConfig(value: unknown): LoyaltyConfigInput {

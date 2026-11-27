@@ -13,7 +13,7 @@ const config = {
     { level: "gold", name: "Vàng", minLifetimePoints: 500, multiplier: "1.50", benefits: [], iconUrl: null, color: "#B08D35", maintenanceSpendVnd: null },
   ],
 };
-const defaultReset = { enabled: false, day: 1, month: 1, strategy: "ONE_DOWN", targetLevel: null };
+const defaultReset = { enabled: false, day: 1, month: 1, targetPoints: 0, strategy: "ONE_DOWN", targetLevel: null };
 
 test("accepts a variable number of named loyalty tiers and valid point rate", () => {
   const parsed = parseConfig(config);

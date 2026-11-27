@@ -80,6 +80,7 @@ enum PointTransactionType {
   REDEEM_REWARD
   EARN_REVERSAL
   REDEMPTION_REVERSAL
+  SEASON_RESET
 }
 
 enum PointTransactionSource {
@@ -459,6 +460,7 @@ model LoyaltyRule {
   resetDay          Int?
   resetStrategy     TierResetStrategy     @default(ONE_DOWN)
   resetTargetLevel  String?               @db.VarChar(64)
+  resetTargetPoints Int                   @default(0)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   merchant          Merchant              @relation(fields: [merchantId], references: [id])
@@ -489,6 +491,7 @@ model LoyaltyPolicyVersion {
   resetDay      Int?
   resetStrategy TierResetStrategy?
   resetTargetLevel String?                  @db.VarChar(64)
+  resetTargetPoints Int?
   tiers         Json
   source        LoyaltyPolicyVersionSource @default(MERCHANT_PUBLISH)
   publishedById Int?

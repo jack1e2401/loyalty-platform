@@ -11,6 +11,14 @@ type Props = {
   onRequestReset: () => void;
 };
 
+function resolvePreviewTierName(form: LoyaltyConfigInput, targetPoints: number): string {
+  const sorted = [...form.tiers]
+    .filter((tier) => (tier.minLifetimePoints ?? 0) <= targetPoints)
+    .sort((a, b) => (b.minLifetimePoints ?? 0) - (a.minLifetimePoints ?? 0));
+  const matched = sorted[0] ?? form.tiers[0];
+  return matched?.name ?? matched?.level ?? "Default";
+}
+
 export function LoyaltyResetSettings({
   configSection,
   form,
@@ -19,15 +27,18 @@ export function LoyaltyResetSettings({
   canEditPolicy,
   onRequestReset,
 }: Props) {
+  const targetPoints = Number.isFinite(form.reset.targetPoints) ? Math.max(0, Math.floor(form.reset.targetPoints ?? 0)) : 0;
+  const previewTierName = resolvePreviewTierName(form, targetPoints);
+
   return (
     <>
       {configSection === "reset" && (
         <>
           <section
             aria-label="Thiết lập reset hạng"
-            className="space-y-3 rounded-lg border border-[#e5ece3] p-3"
+            className="space-y-4 rounded-lg border border-[#e5ece3] p-4"
           >
-            <h2 className="font-extrabold">Reset hạng hằng năm</h2>
+            <h2 className="font-extrabold text-[#20392a]">Cấu hình reset mùa</h2>
             <Field label="Lịch reset">
               <Select
                 value={form.reset.enabled ? "true" : "false"}
@@ -36,73 +47,73 @@ export function LoyaltyResetSettings({
                 }
               >
                 <option value="false">Tắt</option>
-                <option value="true">Bật</option>
+                <option value="true">Bật reset</option>
               </Select>
             </Field>
             {form.reset.enabled && (
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Tháng">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={12}
-                    value={form.reset.month}
-                    onChange={(event) =>
-                      setDraft({ ...form, reset: { ...form.reset, month: Number(event.target.value) } })
-                    }
-                  />
-                </Field>
-                <Field label="Ngày">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={form.reset.day}
-                    onChange={(event) =>
-                      setDraft({ ...form, reset: { ...form.reset, day: Number(event.target.value) } })
-                    }
-                  />
-                </Field>
-                <Field label="Điều chỉnh hạng">
-                  <Select
-                    value={form.reset.strategy}
-                    onChange={(event) =>
-                      setDraft({
-                        ...form,
-                        reset: {
-                          ...form.reset,
-                          strategy: event.target.value as "ONE_DOWN" | "SELECTED",
-                          targetLevel:
-                            event.target.value === "SELECTED" ? (form.tiers[0]?.level ?? null) : null,
-                        },
-                      })
-                    }
-                  >
-                    <option value="ONE_DOWN">Giảm một hạng</option>
-                    <option value="SELECTED">Về hạng được chọn</option>
-                  </Select>
-                </Field>
-                {form.reset.strategy === "SELECTED" && (
-                  <Field label="Hạng đích">
-                    <Select
-                      value={form.reset.targetLevel ?? ""}
+              <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Ngày reset hằng năm">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={form.reset.day}
                       onChange={(event) =>
-                        setDraft({ ...form, reset: { ...form.reset, targetLevel: event.target.value } })
+                        setDraft({ ...form, reset: { ...form.reset, day: Number(event.target.value) } })
                       }
-                    >
-                      {form.tiers.map((tier) => (
-                        <option key={tier.level} value={tier.level}>
-                          {tier.name ?? tier.level}
-                        </option>
-                      ))}
-                    </Select>
+                    />
                   </Field>
-                )}
-                <p className="text-xs muted sm:col-span-3">
-                  Reset đặt lại tiến trình về ngưỡng của hạng đích nhưng giữ nguyên điểm có thể đổi. Đủ chi
-                  tiêu duy trì sẽ giữ nguyên hạng hiện tại.
-                </p>
-              </div>
+                  <Field label="Tháng reset">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={form.reset.month}
+                      onChange={(event) =>
+                        setDraft({ ...form, reset: { ...form.reset, month: Number(event.target.value) } })
+                      }
+                    />
+                  </Field>
+                  <Field label="Điểm mục tiêu sau reset">
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={form.reset.targetPoints ?? 0}
+                      onChange={(event) => {
+                        const raw = event.target.value === "" ? 0 : Math.max(0, Math.floor(Number(event.target.value)));
+                        setDraft({ ...form, reset: { ...form.reset, targetPoints: Number.isFinite(raw) ? raw : 0 } });
+                      }}
+                    />
+                  </Field>
+                </div>
+                <div className="rounded-xl border border-[#dce6d9] bg-[#f7f9f5] p-4">
+                  <p className="text-xs font-bold uppercase tracking-[.06em] text-[#53685a]">Kết quả dự kiến</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-[#e5ece3] bg-white p-3">
+                      <p className="text-xs text-[#637269]">Điểm khả dụng</p>
+                      <p className="mt-1 text-xl font-extrabold tabular-nums text-[#20392a]">
+                        {targetPoints.toLocaleString("vi-VN")}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-[#e5ece3] bg-white p-3">
+                      <p className="text-xs text-[#637269]">Điểm xét hạng</p>
+                      <p className="mt-1 text-xl font-extrabold tabular-nums text-[#20392a]">
+                        {targetPoints.toLocaleString("vi-VN")}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-[#e5ece3] bg-white p-3">
+                      <p className="text-xs text-[#637269]">Hạng sau reset</p>
+                      <p className="mt-1 text-xl font-extrabold text-[#315e3c]">{previewTierName}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-[#637269]">
+                    Toàn bộ thành viên sẽ được đưa về {targetPoints.toLocaleString("vi-VN")} điểm khả dụng và{" "}
+                    {targetPoints.toLocaleString("vi-VN")} điểm xét hạng, đồng thời tính lại hạng tương ứng.
+                  </p>
+                </div>
+              </>
             )}
           </section>
           <section
@@ -112,7 +123,7 @@ export function LoyaltyResetSettings({
             <div>
               <h3 className="text-sm font-semibold text-[#7a4038]">Thực hiện reset</h3>
               <p className="mt-1 text-xs muted">
-                Thao tác này cập nhật hạng và tiến trình xét hạng của hội viên khi đến lịch đã cấu hình.
+                Thao tác này đưa điểm khả dụng và điểm xét hạng của toàn bộ hội viên về mức mục tiêu khi đến ngày đã cấu hình.
               </p>
             </div>
             <Button

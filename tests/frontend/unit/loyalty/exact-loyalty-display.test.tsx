@@ -140,8 +140,8 @@ describe("MemberWallet and MemberOrderResult exact points display", () => {
     // Debt is zero, should not show debt alert
     expect(screen.queryByText(/Nợ điểm:/)).toBeNull();
 
-    // Net lifetime exact points
-    expect(screen.getByText("1.2")).toBeDefined();
+    // Net lifetime earned is hidden from the main wallet card per seasonal rank spec
+    expect(screen.queryByText("Tổng điểm đã tích lũy")).toBeNull();
 
     // Ledger exact deltas and balances
     const deltas = screen.getAllByText("+0.6");

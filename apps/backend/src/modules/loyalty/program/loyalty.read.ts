@@ -12,7 +12,19 @@ export const VALID_TRANSACTION_TYPES: readonly PointTransactionType[] = [
   "REDEEM_REWARD",
   "EARN_REVERSAL",
   "REDEMPTION_REVERSAL",
+  "SEASON_RESET",
 ];
+
+function extractPreviousSeasonTier(reason: string): string | null {
+  const match = /\(Mùa trước:\s*(.+?)\)$/.exec(reason);
+  return match?.[1]?.trim() ?? null;
+}
+
+function extractSeasonYear(reason: string, fallbackIso: string): number {
+  const match = /mùa\s+(\d{4})/i.exec(reason);
+  if (match?.[1]) return Number(match[1]);
+  return new Date(fallbackIso).getFullYear();
+}
 
 async function readWallet(memberId: number, merchantId: number) {
   return prisma.$transaction(async (tx) => {
@@ -30,17 +42,45 @@ async function readWallet(memberId: number, merchantId: number) {
       tx.loyaltyTier.findMany({ where: { merchantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
     ]);
     const tiers = configuredTiers.length ? configuredTiers : defaultTiers;
-    const ranked = membership && (membership.tierId !== null || membership.wallet?.transactions.some((entry) => entry.type === "EARN"));
+    const ranked = membership && (membership.tierId !== null || membership.wallet?.transactions.some((entry) => entry.type === "EARN" || entry.type === "SEASON_RESET"));
+    const currentTierLevel = ranked ? selectQualifiedTier(membership.qualificationProgress, tiers, rule?.qualificationMode ?? "POINTS") ?? "UNRANKED" : "UNRANKED";
+    const transactions = membership?.wallet?.transactions ?? [];
+    const seasonHistory = transactions
+      .filter((entry) => entry.type === "SEASON_RESET")
+      .map((entry) => {
+        const resetYear = extractSeasonYear(entry.reason, entry.createdAt.toISOString());
+        const newTierObj = tiers.find((t) => t.level === entry.promotedToTier);
+        return {
+          seasonYear: resetYear - 1,
+          previousTierName: extractPreviousSeasonTier(entry.reason) ?? "Chưa xếp hạng",
+          newSeasonYear: resetYear,
+          newTierLevel: entry.promotedToTier ?? "default",
+          newTierName: newTierObj?.name ?? entry.promotedToTier ?? "Default",
+          resetToPoints: exactPoints(entry.balanceAfter),
+          delta: exactPoints(entry.delta),
+          resetAt: entry.createdAt.toISOString(),
+        };
+      });
     const wallet = {
       merchantId,
       policy: {
         merchantId, vndPerPoint: rule?.vndPerPoint ?? 10000, isActive: rule?.isActive ?? true,
         qualificationMode: rule?.qualificationMode ?? "POINTS",
+        reset: {
+          enabled: rule?.resetEnabled ?? false,
+          month: rule?.resetMonth ?? 1,
+          day: rule?.resetDay ?? 1,
+          targetPoints: rule?.resetTargetPoints ?? 0,
+        },
         tiers: tiers.map((tier) => ({ level: tier.level, name: tier.name, minLifetimePoints: tier.minLifetimePoints, minSpendVnd: tier.minSpendVnd === null || tier.minSpendVnd === undefined ? null : typeof tier.minSpendVnd === "string" ? tier.minSpendVnd : tier.minSpendVnd.toFixed(0), multiplier: typeof tier.multiplier === "string" ? tier.multiplier : tier.multiplier.toFixed(2), benefits: Array.isArray(tier.benefits) ? tier.benefits : [], iconUrl: tier.iconUrl, color: tier.color })),
       },
       ...describeWallet(membership?.wallet),
-      tier: ranked ? selectQualifiedTier(membership.qualificationProgress, tiers, rule?.qualificationMode ?? "POINTS") ?? "UNRANKED" : "UNRANKED",
-      transactions: (membership?.wallet?.transactions ?? []).map((entry) => ({
+      qualificationProgress: exactPoints(membership?.qualificationProgress ?? "0"),
+      currentSeason: membership?.lastResetCycleYear ?? new Date().getFullYear(),
+      lastResetAt: membership?.lastResetAt?.toISOString() ?? null,
+      seasonHistory,
+      tier: currentTierLevel,
+      transactions: transactions.map((entry) => ({
         id: entry.id, type: entry.type, ...describeTransaction(entry), reason: entry.reason,
         eventRef: entry.eventRef, source: entry.source, actorId: entry.actorId,
         orderId: entry.orderId, memberVoucherId: entry.memberVoucherId, createdAt: entry.createdAt.toISOString(),
@@ -107,6 +147,7 @@ export async function listMerchantMembers(merchantId: number, { email, cursor, l
         ...member,
         availablePoints,
         netLifetimeEarned,
+        qualificationProgress: exactPoints(qualificationProgress),
         pointDebt,
         tier,
         latestChange: latest ? {

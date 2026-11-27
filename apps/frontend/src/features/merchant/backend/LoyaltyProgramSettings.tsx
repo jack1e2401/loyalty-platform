@@ -8,19 +8,6 @@ import type {
 import { LoyaltyFormula } from "../../../components/LoyaltyFormula";
 import { Button, BusyLabel, Field, Input, Select } from "../../../components/ui";
 
-function changeQualificationMode(form: LoyaltyConfigInput, mode: "POINTS" | "SPEND"): LoyaltyConfigInput {
-  if (form.qualificationMode === mode) return form;
-  return {
-    ...form,
-    qualificationMode: mode,
-    tiers: form.tiers.map((tier, index) => ({
-      ...tier,
-      minLifetimePoints: mode === "POINTS" && index === 0 ? 0 : undefined,
-      minSpendVnd: mode === "SPEND" && index === 0 ? "0" : undefined,
-    })),
-  };
-}
-
 type Props = {
   configSection: "program" | "tiers" | "reset";
   config: LoyaltyConfigDto;
@@ -77,15 +64,7 @@ export function LoyaltyProgramSettings({
             </Field>
           </div>
           <Field label="Điều kiện xếp hạng">
-            <Select
-              value={form.qualificationMode}
-              onChange={(event) =>
-                setDraft(changeQualificationMode(form, event.target.value as "POINTS" | "SPEND"))
-              }
-            >
-              <option value="POINTS">Điểm tích lũy</option>
-              <option value="SPEND">Chi tiêu</option>
-            </Select>
+            <Input readOnly value="Điểm xét hạng theo mùa" />
           </Field>
           <details className="rounded-lg border border-[#e5ece3] p-3">
             <summary className="cursor-pointer text-sm font-medium">Xem trước công thức (tùy chọn)</summary>
