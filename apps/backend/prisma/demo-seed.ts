@@ -458,6 +458,7 @@ async function main(): Promise<void> {
       member.finalBalance = balanceAfterRedemption;
 
       if (openingPoints.greaterThan(0)) {
+        const openingAt = addDays(-10);
         const eventRef = `local-demo-seed:opening:${spec.email}`;
         await tx.pointTransaction.upsert({
           where: { eventRef },
@@ -471,8 +472,14 @@ async function main(): Promise<void> {
             eventRef,
             source: "SYSTEM",
             actorId: owner.id,
+            createdAt: openingAt,
           },
-          update: {},
+          update: {
+            delta: openingPoints,
+            balanceAfter: openingPoints,
+            promotedToTier: tier.level,
+            createdAt: openingAt,
+          },
         });
       }
       const earnEventRef = `local-demo-seed:payment:${spec.key}`;
@@ -489,8 +496,14 @@ async function main(): Promise<void> {
           source: "MOCK_PAYMENT",
           actorId: member.id,
           orderId,
+          createdAt: paidAt,
         },
-        update: {},
+        update: {
+          delta: earned,
+          balanceAfter: lifetimeAfterOrder,
+          promotedToTier: tier.level,
+          createdAt: paidAt,
+        },
       });
       const activityEventKey = `local-demo-seed:paid:${spec.key}`;
       const activity = await tx.memberActivity.upsert({
@@ -587,8 +600,8 @@ async function main(): Promise<void> {
         seasonNumber: 3,
         effectiveAt: new Date("2026-01-01T00:00:00+07:00"),
         prevTierLabel: "Silver",
-        newTierLevel: "silver",
-        targetPoints: 500,
+        newTierLevel: "default",
+        targetPoints: 0,
       },
     ];
     for (const hist of historicalResets) {
@@ -618,12 +631,13 @@ async function main(): Promise<void> {
       if (!m?.walletId) continue;
       for (const hist of historicalResets) {
         const ref = `${hist.cycleKey}:${email}`;
+        const resetDelta = hist.cycleYear === 2025 ? -420 : -1150;
         await tx.pointTransaction.upsert({
           where: { eventRef: ref },
           create: {
             walletId: m.walletId,
             type: "SEASON_RESET",
-            delta: new Prisma.Decimal(hist.targetPoints === 0 ? -420 : 500),
+            delta: new Prisma.Decimal(resetDelta),
             balanceAfter: new Prisma.Decimal(hist.targetPoints),
             promotedToTier: hist.newTierLevel,
             reason: `Reset điểm tự động sang Mùa ${hist.seasonNumber} · ${hist.cycleYear} (Mùa trước: ${hist.prevTierLabel})`,
@@ -632,6 +646,7 @@ async function main(): Promise<void> {
             createdAt: hist.effectiveAt,
           },
           update: {
+            delta: new Prisma.Decimal(resetDelta),
             reason: `Reset điểm tự động sang Mùa ${hist.seasonNumber} · ${hist.cycleYear} (Mùa trước: ${hist.prevTierLabel})`,
             promotedToTier: hist.newTierLevel,
             balanceAfter: new Prisma.Decimal(hist.targetPoints),
