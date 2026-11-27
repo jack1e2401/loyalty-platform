@@ -87,7 +87,13 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
         <Field label="Mô tả ngắn">
           <Textarea maxLength={500} value={draft.footerDescription ?? ""} onChange={(event) => change("footerDescription", event.target.value || null)} />
         </Field>
-        <StorefrontImageField label="Logo cửa hàng" value={draft.logoUrl} onChange={(url) => change("logoUrl", url)} onUpload={upload} />
+        <StorefrontImageField
+          label="Logo cửa hàng"
+          layout="horizontal"
+          value={draft.logoUrl}
+          onChange={(url) => change("logoUrl", url)}
+          onUpload={upload}
+        />
         <details className="space-y-3">
           <summary className="cursor-pointer text-sm font-semibold">Ảnh cửa hàng (tùy chọn)</summary>
           <StorefrontImageField label="Ảnh ở thẻ thông tin" value={draft.storeImageUrl ?? null} onChange={(url) => change("storeImageUrl", url)} onUpload={upload} />
