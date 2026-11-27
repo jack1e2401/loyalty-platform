@@ -23,7 +23,7 @@ export function StorefrontImageField({
   onChange,
   onUpload,
   hint,
-  previewClassName = "h-32 sm:h-36",
+  previewClassName = "w-full max-w-md h-32 sm:h-36",
   layout = "vertical",
 }: {
   label: string;
@@ -180,7 +180,7 @@ export function StorefrontImageField({
         </p>
       )}
       {previewSrc && (
-        <div className={`mt-3 w-full overflow-hidden rounded-xl border border-[#e5ece3] bg-[#edf2e9] ${previewClassName}`}>
+        <div className={`mt-3 overflow-hidden rounded-xl border border-[#e5ece3] bg-[#edf2e9] ${previewClassName}`}>
           <img src={previewSrc} alt={label} className="h-full w-full object-cover" />
         </div>
       )}

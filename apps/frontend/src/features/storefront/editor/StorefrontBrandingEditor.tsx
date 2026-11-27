@@ -20,7 +20,7 @@ export function StorefrontBrandingEditor({ branding, slug, onChange, onUpload }:
         onChange={(url) => onChange("bannerUrl", url)}
         onUpload={onUpload}
         hint="Khuyến nghị 1200 × 400 px. Hiển thị đầu trang chủ."
-        previewClassName="aspect-[3/1]"
+        previewClassName="w-full aspect-[3/1]"
       />
       <div className="space-y-4 border-t border-[#e4ece1] pt-5">
         <h3 className="font-bold text-[#20392a]">Hero trang chủ</h3>
@@ -30,7 +30,7 @@ export function StorefrontBrandingEditor({ branding, slug, onChange, onUpload }:
           onChange={(url) => onChange("heroImageUrl", url)}
           onUpload={onUpload}
           hint="Khuyến nghị 800 × 600 px. Dùng làm nền cho phần giới thiệu."
-          previewClassName="aspect-[4/3] max-h-52"
+          previewClassName="w-full max-w-md aspect-[4/3]"
         />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Tiêu đề Hero *">
