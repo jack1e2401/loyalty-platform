@@ -1,6 +1,6 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Alert, Button, Flex, Form, Input, InputNumber, Typography, type TableColumnsType } from "antd";
-import { ArrowClockwise, MagnifyingGlass, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Alert, Button, Flex, Form, Input, InputNumber, Tooltip, Typography, type TableColumnsType } from "antd";
+import { ArrowClockwise, ArrowDown, ArrowUp, DotsSixVertical, MagnifyingGlass, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { createCommerceClient, translateApiError } from "../../api/commerce-http";
 import type { ProductCategoryDto } from "../../api/commerce-types";
 import { CmsConfirmAction, CmsDataTable, CmsFilterBar, CmsFormDrawer } from "./cms";
@@ -14,19 +14,29 @@ const emptyForm: CategoryFormState = { id: null, name: "", slug: "", description
 export function MerchantCategoriesPanel({ token, categories, loading, error, onChanged, heading, backAction }: Props) {
   const [form, setForm] = useState<CategoryFormState | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
+  const [orderedCategories, setOrderedCategories] = useState<ProductCategoryDto[]>(categories);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setOrderedCategories(categories);
+  }, [categories]);
+
+  const canReorder = !search.trim() && !loading && !busy && !reordering && orderedCategories.length > 1;
 
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return categories;
-    return categories.filter((category) =>
+    if (!query) return orderedCategories;
+    return orderedCategories.filter((category) =>
       category.name.toLowerCase().includes(query)
       || category.slug.toLowerCase().includes(query)
       || (category.description ?? "").toLowerCase().includes(query),
     );
-  }, [categories, search]);
+  }, [orderedCategories, search]);
 
   function openNew() { setForm(emptyForm); setActionError(""); setNotice(""); }
   function openEdit(category: ProductCategoryDto) {
@@ -73,10 +83,96 @@ export function MerchantCategoriesPanel({ token, categories, loading, error, onC
     } finally { setBusy(false); }
   }
 
+  async function applyReorder(sourceIndex: number, targetIndex: number) {
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex || reordering || busy) return;
+    const previous = orderedCategories;
+    const next = [...orderedCategories];
+    const [moved] = next.splice(sourceIndex, 1);
+    if (!moved) return;
+    next.splice(targetIndex, 0, moved);
+
+    const minSort = previous.reduce((min, item) => Math.min(min, item.sortOrder), previous[0]?.sortOrder ?? 0);
+    const updated = next.map((item, idx) => ({ ...item, sortOrder: minSort + idx }));
+    const changed = updated.filter((item) => {
+      const original = previous.find((entry) => entry.id === item.id);
+      return original && original.sortOrder !== item.sortOrder;
+    });
+
+    setOrderedCategories(updated);
+    if (changed.length === 0) return;
+
+    setReordering(true);
+    setActionError("");
+    setNotice("");
+    try {
+      await Promise.all(changed.map((item) => api.updateCategory(item.id, { sortOrder: item.sortOrder }, token)));
+      setNotice("Đã cập nhật thứ tự danh mục.");
+      onChanged();
+    } catch (reason) {
+      setOrderedCategories(previous);
+      setActionError(translateApiError(reason instanceof Error ? reason.message : "Không thể cập nhật thứ tự danh mục."));
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  function reorderById(sourceId: number, targetId: number) {
+    const sourceIndex = orderedCategories.findIndex((item) => item.id === sourceId);
+    const targetIndex = orderedCategories.findIndex((item) => item.id === targetId);
+    void applyReorder(sourceIndex, targetIndex);
+  }
+
   const columns: TableColumnsType<ProductCategoryDto> = [
-    { title: "Tên danh mục", dataIndex: "name", key: "name", width: 300, render: (name: string, category) => <div className="break-words"><strong>{name}</strong><div className="text-xs text-[#68776d]">/{category.slug}</div></div> },
+    {
+      title: "",
+      key: "drag",
+      width: 48,
+      align: "center",
+      render: (_: unknown, category) => (
+        <Tooltip title={search.trim() ? "Xóa bộ lọc tìm kiếm để kéo thả thứ tự" : "Kéo thả để sắp xếp thứ tự"}>
+          <span
+            aria-label={`Kéo thả danh mục ${category.name}`}
+            className={`inline-flex items-center justify-center rounded p-1 text-[#68776d] ${canReorder ? "cursor-grab hover:bg-[#eef5ee] hover:text-[#20392a] active:cursor-grabbing" : "cursor-not-allowed opacity-40"}`}
+          >
+            <DotsSixVertical size={16} />
+          </span>
+        </Tooltip>
+      ),
+    },
+    { title: "Tên danh mục", dataIndex: "name", key: "name", width: 280, render: (name: string, category) => <div className="break-words"><strong>{name}</strong><div className="text-xs text-[#68776d]">/{category.slug}</div></div> },
     { title: "Mô tả", dataIndex: "description", key: "description", render: (value: string | null) => value || "—" },
-    { title: "Thứ tự", dataIndex: "sortOrder", key: "sortOrder", align: "right", width: 100 },
+    {
+      title: "Thứ tự",
+      dataIndex: "sortOrder",
+      key: "sortOrder",
+      align: "right",
+      width: 136,
+      render: (sortOrder: number, category, index) => (
+        <Flex align="center" justify="end" gap={4}>
+          <span className="min-w-[24px] text-right font-medium tabular-nums">{sortOrder}</span>
+          {!search.trim() ? (
+            <>
+              <Button
+                size="small"
+                type="text"
+                aria-label={`Đưa danh mục ${category.name} lên`}
+                icon={<ArrowUp size={13} />}
+                disabled={!canReorder || index === 0}
+                onClick={() => void applyReorder(index, index - 1)}
+              />
+              <Button
+                size="small"
+                type="text"
+                aria-label={`Đưa danh mục ${category.name} xuống`}
+                icon={<ArrowDown size={13} />}
+                disabled={!canReorder || index === orderedCategories.length - 1}
+                onClick={() => void applyReorder(index, index + 1)}
+              />
+            </>
+          ) : null}
+        </Flex>
+      ),
+    },
     {
       title: "Thao tác",
       key: "actions",
@@ -85,7 +181,7 @@ export function MerchantCategoriesPanel({ token, categories, loading, error, onC
         <Flex gap={8} wrap>
           <Button size="small" aria-label={`Sửa danh mục ${category.name}`} icon={<PencilSimple size={15} />} onClick={() => openEdit(category)}>Sửa</Button>
           <CmsConfirmAction title={`Xóa danh mục ${category.name}?`} description="Sản phẩm vẫn được giữ nhưng sẽ không còn thuộc danh mục này." confirmLabel="Xóa danh mục" destructive onConfirm={() => remove(category)}>
-            <Button size="small" danger aria-label={`Xóa danh mục ${category.name}`} icon={<Trash size={15} />} disabled={busy}>Xóa</Button>
+            <Button size="small" danger aria-label={`Xóa danh mục ${category.name}`} icon={<Trash size={15} />} disabled={busy || reordering}>Xóa</Button>
           </CmsConfirmAction>
         </Flex>
       ),
@@ -128,10 +224,47 @@ export function MerchantCategoriesPanel({ token, categories, loading, error, onC
         rows={filteredCategories}
         columns={columns}
         rowKey="id"
-        loading={loading}
+        loading={loading || reordering}
         emptyText={search.trim() && categories.length > 0 ? "Không tìm thấy danh mục phù hợp." : "Chưa có danh mục nào."}
         tableLayout="fixed"
-        scroll={{ x: 760 }}
+        scroll={{ x: 800 }}
+        onRow={(record) => ({
+          draggable: canReorder,
+          className: [
+            draggingId === record.id ? "opacity-50" : "",
+            dragOverId === record.id && draggingId !== record.id ? "bg-[#eef5ee]" : "",
+          ].filter(Boolean).join(" "),
+          onDragStart: (event) => {
+            if (!canReorder) return;
+            setDraggingId(record.id);
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(record.id));
+          },
+          onDragOver: (event) => {
+            if (!canReorder) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            if (dragOverId !== record.id) setDragOverId(record.id);
+          },
+          onDragLeave: () => {
+            if (dragOverId === record.id) setDragOverId(null);
+          },
+          onDrop: (event) => {
+            if (!canReorder) return;
+            event.preventDefault();
+            const raw = event.dataTransfer.getData("text/plain");
+            const sourceId = draggingId ?? (raw ? Number(raw) : NaN);
+            setDraggingId(null);
+            setDragOverId(null);
+            if (Number.isFinite(sourceId) && sourceId !== record.id) {
+              reorderById(sourceId, record.id);
+            }
+          },
+          onDragEnd: () => {
+            setDraggingId(null);
+            setDragOverId(null);
+          },
+        })}
       />
       <CmsFormDrawer
         open={form !== null}

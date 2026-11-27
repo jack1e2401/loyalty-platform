@@ -47,9 +47,9 @@
   - **Phân trang & lọc phía server cho lịch sử biến động kho:** Hiện `/inventory` mới trả tối đa 100 giao dịch gần nhất; cần bổ sung `page`, `limit`, `q`, `direction` (`in`/`out`), `from`/`to` cho kho hàng có nhiều biến động dài hạn.
 
 ## 7. Tối ưu API cho trang Danh mục (`/merchant/categories`)
-- **Hiện trạng:** Trang Danh mục ([`MerchantCategoriesPanel.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/MerchantCategoriesPanel.tsx)) đã có `CmsFilterBar` tìm kiếm theo tên/slug/mô tả trên trang hiện tại và nút **Làm mới**.
+- **Hiện trạng:** Trang Danh mục ([`MerchantCategoriesPanel.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/MerchantCategoriesPanel.tsx)) đã có `CmsFilterBar` tìm kiếm theo tên/slug/mô tả trên trang hiện tại, nút **Làm mới**, và **kéo thả / nút lên-xuống để sắp xếp thứ tự** (đang gọi tuần tự `PATCH /api/merchant/categories/:id` cho các dòng thay đổi `sortOrder`).
 - **Cần làm ở Backend:**
   - **Số lượng sản phẩm theo danh mục (`productCount`):** `GET /api/merchant/categories` trả thêm `productCount` cho từng danh mục để FE hiển thị cột `Số sản phẩm` và liên kết sang `/merchant/products?categoryId=...`.
   - **Tìm kiếm phía server (`q`):** Hỗ trợ query `q` trên `GET /api/merchant/categories` để tìm kiếm xuyên suốt khi merchant có nhiều hơn 1 trang danh mục.
-  - **Cập nhật thứ tự nhanh (`sortOrder`):** Hỗ trợ endpoint hoặc batch reorder để FE làm nút tăng/giảm thứ tự nhanh hoặc kéo thả thay vì phải mở Drawer từng danh mục.
+  - **Batch reorder nguyên tử (`sortOrder`):** Bổ sung 1 endpoint `PATCH /api/merchant/categories/reorder` (nhận danh sách `{ id, sortOrder }[]` trong 1 transaction) để thay cho việc FE phải gọi nhiều request `PATCH` song song khi kéo thả.
 
