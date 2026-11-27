@@ -346,10 +346,124 @@ describe("Merchant Orders & Rewards Queue", () => {
     const fulfillBtn = screen.getByRole("button", { name: /xác nhận đã trao/i });
     fireEvent.click(fulfillBtn);
 
+    const confirmFulfillBtn = await screen.findByRole("button", { name: /xác nhận trao quà/i });
+    fireEvent.click(confirmFulfillBtn);
+
     await waitFor(() => {
       expect(screen.getByText(/đã xác nhận trao “áo thun kỷ niệm”/i)).toBeInTheDocument();
       expect(screen.getByText("Người xác nhận #2")).toBeInTheDocument();
       expect(screen.getByText("Ghi chú: Trao quà tại quầy")).toBeInTheDocument();
     });
+  });
+
+  it("shows payment info, refund request details, and loyalty events on order detail", async () => {
+    const order = {
+      id: 88,
+      merchantId: 7,
+      memberId: 12,
+      memberEmail: "vip@test.local",
+      status: "PAID",
+      paymentProvider: "MOCK",
+      paymentProviderReference: "MOCK-REF-88",
+      subtotal: "200000",
+      discountAmount: "0",
+      total: "200000",
+      paidAt: "2026-11-10T10:00:00.000Z",
+      promotedToTier: "GOLD",
+      items: [{ productId: 1, productName: "Cà phê hạt", unitPrice: "200000", quantity: 1, lineTotal: "200000" }],
+      earnedPointsExact: "20",
+      refundRequest: {
+        id: 19,
+        status: "REJECTED",
+        reason: "Đổi ý",
+        requestedAt: "2026-11-11T09:00:00.000Z",
+        merchantReviewedAt: "2026-11-11T10:00:00.000Z",
+        merchantDecisionReason: "Đã quá hạn đổi trả",
+      },
+      loyaltyEvents: [
+        {
+          id: 501,
+          type: "EARN",
+          delta: "20",
+          balanceAfter: "120",
+          availablePointsAfter: 120,
+          fractionalCarryAfter: "0",
+          pointDebtAfter: "0",
+          reason: "Tích điểm đơn #88",
+          orderId: 88,
+          memberVoucherId: null,
+          createdAt: "2026-11-10T10:00:00.000Z",
+        },
+      ],
+    };
+
+    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/merchant/orders/88")) return Response.json({ order });
+      return Response.json({ error: "Not found" }, { status: 404 });
+    });
+
+    renderMerchantPage("/merchant/orders?orderId=88", <MerchantOrders />);
+
+    expect(await screen.findByText("MOCK-REF-88")).toBeInTheDocument();
+    expect(screen.getByText("Lên hạng GOLD")).toBeInTheDocument();
+    expect(screen.getByText("Đổi ý")).toBeInTheDocument();
+    expect(screen.getByText("Đã quá hạn đổi trả")).toBeInTheDocument();
+    expect(screen.getByText("Tích điểm đơn #88")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "#12" })).toHaveAttribute("href", "/merchant/customers/12");
+  });
+
+  it("filters rewards by search query and keeps state unchanged when closing fulfill modal", async () => {
+    const rewards = [
+      {
+        id: 21,
+        definitionId: 5,
+        merchantId: 7,
+        memberId: 15,
+        title: "Ly sứ Hikari",
+        type: "REWARD",
+        status: "AVAILABLE",
+        pointsCost: 40,
+        discountAmount: null,
+        rewardDescription: "Ly sứ trắng",
+        redeemedAt: "2026-11-10T10:00:00.000Z",
+        usedAt: null,
+      },
+      {
+        id: 22,
+        definitionId: 6,
+        merchantId: 7,
+        memberId: 18,
+        title: "Túi vải canvas",
+        type: "REWARD",
+        status: "AVAILABLE",
+        pointsCost: 60,
+        discountAmount: null,
+        rewardDescription: "Túi vải",
+        redeemedAt: "2026-11-10T10:00:00.000Z",
+        usedAt: null,
+      },
+    ];
+
+    mockFetchHandler = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/merchant/orders")) return Response.json({ orders: [] });
+      if (url.includes("/api/merchant/rewards")) return Response.json({ rewards });
+      return Response.json({ error: "Not found" }, { status: 404 });
+    });
+
+    renderMerchantPage("/merchant/orders?tab=rewards", <MerchantOrders />);
+    expect(await screen.findByText("Ly sứ Hikari")).toBeInTheDocument();
+    expect(screen.getByText("Túi vải canvas")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Tìm quà đổi thưởng"), { target: { value: "Ly sứ" } });
+    expect(screen.getByText("Ly sứ Hikari")).toBeInTheDocument();
+    expect(screen.queryByText("Túi vải canvas")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /xác nhận đã trao/i }));
+    expect(await screen.findByText("Xác nhận đã trao quà")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /^đóng$/i })[1]);
+    await waitFor(() => expect(screen.queryByText("Xác nhận đã trao quà")).not.toBeInTheDocument());
+    expect(mockFetchHandler).not.toHaveBeenCalledWith(expect.stringContaining("/fulfill"), expect.anything());
   });
 });

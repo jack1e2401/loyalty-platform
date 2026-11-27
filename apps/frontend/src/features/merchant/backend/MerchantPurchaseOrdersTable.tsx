@@ -1,4 +1,4 @@
-import { Space, Typography, type TableColumnsType } from "antd";
+import { Space, Tag, Tooltip, Typography, type TableColumnsType } from "antd";
 import { Link } from "react-router-dom";
 import type { OrderDto } from "../../../api/commerce-types";
 import { formatPrice, orderStatusLabel } from "../merchant-page-support";
@@ -42,32 +42,62 @@ export function MerchantPurchaseOrdersTable({
     {
       title: "Thành viên",
       key: "member",
-      width: 170,
+      width: 175,
       render: (_: unknown, order) => (
         <div className="min-w-0 break-words">
-          <div>#{order.memberId}</div>
-          {order.memberEmail ? <Typography.Text type="secondary">{order.memberEmail}</Typography.Text> : null}
+          <Link to={`/merchant/customers/${order.memberId}`} className="font-medium text-[#20392a] hover:underline">
+            #{order.memberId}
+          </Link>
+          {order.memberEmail ? (
+            <div>
+              <Typography.Text type="secondary" className="text-xs">
+                {order.memberEmail}
+              </Typography.Text>
+            </div>
+          ) : null}
         </div>
       ),
     },
     {
       title: "Sản phẩm",
       key: "items",
-      width: 180,
-      render: (_: unknown, order) => (
-        <Typography.Text>
-          {order.items.map((item) => `${item.productName} × ${item.quantity}`).join(", ")}
-        </Typography.Text>
-      ),
+      width: 210,
+      render: (_: unknown, order) => {
+        if (order.items.length === 0) return <Typography.Text type="secondary">—</Typography.Text>;
+        const preview = order.items.slice(0, 2).map((item) => `${item.productName} × ${item.quantity}`);
+        const remaining = order.items.length - 2;
+        const fullText = order.items.map((item) => `${item.productName} × ${item.quantity}`).join(", ");
+        return (
+          <Tooltip title={remaining > 0 ? fullText : undefined}>
+            <div className="flex flex-col gap-0.5 text-xs text-[#20392a]">
+              {preview.map((line, index) => (
+                <span key={index} className="truncate">
+                  {line}
+                </span>
+              ))}
+              {remaining > 0 && (
+                <Tag className="w-fit rounded-md border-[#d7e4d8] bg-[#f4f7f4] text-[11px] text-[#4c6253]">
+                  +{remaining} sản phẩm khác
+                </Tag>
+              )}
+            </div>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 160,
+      width: 175,
       render: (status: OrderDto["status"], order) => (
         <Space orientation="vertical" size={4}>
           <CmsStatusTag label={orderStatusLabel(status)} tone={tone(status)} />
+          {status === "PENDING" && order.stockReservedUntil ? (
+            <Typography.Text type="secondary" style={{ fontSize: 12, whiteSpace: "normal" }}>
+              Giữ chỗ đến {new Date(order.stockReservedUntil).toLocaleString("vi-VN")}
+            </Typography.Text>
+          ) : null}
           {refundLabel(order).map((label) => (
             <Typography.Text key={label} type="secondary" style={{ fontSize: 12, whiteSpace: "normal" }}>{label}</Typography.Text>
           ))}
@@ -101,10 +131,19 @@ export function MerchantPurchaseOrdersTable({
     {
       title: "Thao tác",
       key: "actions",
-      width: 160,
-      render: (_: unknown, order) => order.refundRequest?.status === "PENDING_MERCHANT"
-        ? <Link to={`/merchant/refund-requests?requestId=${order.refundRequest.id}`}>Xử lý yêu cầu hoàn tiền</Link>
-        : null,
+      width: 165,
+      render: (_: unknown, order) => (
+        <Space orientation="vertical" size={2}>
+          <Link to={`/merchant/orders?orderId=${order.id}`} className="text-xs font-medium text-[#20392a] hover:underline">
+            Xem chi tiết
+          </Link>
+          {order.refundRequest?.status === "PENDING_MERCHANT" ? (
+            <Link to={`/merchant/refund-requests?requestId=${order.refundRequest.id}`} className="text-xs font-medium text-[#b54708] hover:underline">
+              Xử lý yêu cầu hoàn tiền
+            </Link>
+          ) : null}
+        </Space>
+      ),
     },
   ];
 

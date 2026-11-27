@@ -1,7 +1,8 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Alert, Button, Empty, Form, Input, Segmented, Space, Spin, Typography, type TableColumnsType } from "antd";
-import { X } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
+import { Alert, Button, Empty, Flex, Form, Input, Segmented, Space, Spin, Typography, type TableColumnsType } from "antd";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import { useAuthSession } from "../../api/auth-session";
 import { createCommerceClient } from "../../api/commerce-http";
 import type { MemberVoucherDto } from "../../api/commerce-types";
@@ -37,10 +38,12 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
     [token, voucherId],
   );
   const [filterTab, setFilterTab] = useState<RewardFilterTab>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [rewardToFulfill, setRewardToFulfill] = useState<MemberVoucherDto | null>(null);
   const [rewardToCancel, setRewardToCancel] = useState<MemberVoucherDto | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
@@ -107,7 +110,8 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
   const fulfilled = allRewards.filter((v) => v.status === "FULFILLED");
   const cancelled = allRewards.filter((v) => v.status === "CANCELLED");
 
-  const displayedRewards =
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const statusFiltered =
     filterTab === "PENDING"
       ? pending
       : filterTab === "FULFILLED"
@@ -115,6 +119,12 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
         : filterTab === "CANCELLED"
           ? cancelled
           : allRewards;
+  const displayedRewards = normalizedQuery
+    ? statusFiltered.filter((reward) => {
+        const haystack = `${reward.title} ${reward.rewardDescription ?? ""} #${reward.id} #${reward.memberId}`.toLowerCase();
+        return haystack.includes(normalizedQuery);
+      })
+    : statusFiltered;
 
   const columns: TableColumnsType<MemberVoucherDto> = [
     {
@@ -136,7 +146,11 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
       dataIndex: "memberId",
       key: "memberId",
       width: 105,
-      render: (memberId: number) => `#${memberId}`,
+      render: (memberId: number) => (
+        <Link to={`/merchant/customers/${memberId}`} className="font-medium text-[#20392a] hover:underline">
+          #{memberId}
+        </Link>
+      ),
     },
     {
       title: "Điểm đổi",
@@ -217,7 +231,7 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
               size="small"
               loading={busyId === voucher.id}
               disabled={busyId !== null}
-              onClick={() => void fulfill(voucher)}
+              onClick={() => setRewardToFulfill(voucher)}
               className="bg-[#20392a] text-xs hover:!bg-[#2e523c]"
             >
               {busyId === voucher.id ? "Đang xác nhận" : "Xác nhận đã trao"}
@@ -246,20 +260,31 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
       {error && <Alert type="error" showIcon title={error} className="rounded-lg text-xs" />}
       {notice && <Alert type="success" showIcon title={notice} className="rounded-lg text-xs" />}
 
-      <div className="min-w-0 overflow-x-auto pb-1">
-        <Segmented
-          aria-label="Lọc trạng thái quà đổi thưởng"
-          style={{ background: "#e9f0e9", border: "1px solid #d7e4d8", padding: 4 }}
-          value={filterTab}
-          onChange={(value) => setFilterTab(value as RewardFilterTab)}
-          options={[
-            { label: `Tất cả (${allRewards.length})`, value: "ALL" },
-            { label: `Chờ trao (${pending.length})`, value: "PENDING" },
-            { label: `Đã trao (${fulfilled.length})`, value: "FULFILLED" },
-            { label: `Đã hủy (${cancelled.length})`, value: "CANCELLED" },
-          ]}
+      <Flex gap={12} wrap="wrap" align="center" justify="space-between">
+        <div className="min-w-0 overflow-x-auto pb-1">
+          <Segmented
+            aria-label="Lọc trạng thái quà đổi thưởng"
+            style={{ background: "#e9f0e9", border: "1px solid #d7e4d8", padding: 4 }}
+            value={filterTab}
+            onChange={(value) => setFilterTab(value as RewardFilterTab)}
+            options={[
+              { label: `Tất cả (${allRewards.length})`, value: "ALL" },
+              { label: `Chờ trao (${pending.length})`, value: "PENDING" },
+              { label: `Đã trao (${fulfilled.length})`, value: "FULFILLED" },
+              { label: `Đã hủy (${cancelled.length})`, value: "CANCELLED" },
+            ]}
+          />
+        </div>
+        <Input
+          aria-label="Tìm quà đổi thưởng"
+          placeholder="Tìm tên quà, mã voucher hoặc #mã thành viên..."
+          prefix={<MagnifyingGlass size={16} className="text-[#7d8a80]" />}
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          className="h-9 min-w-[240px] sm:max-w-xs"
+          allowClear
         />
-      </div>
+      </Flex>
 
       <CmsDataTable<MemberVoucherDto>
         label="Danh sách quà đổi thưởng"
@@ -273,6 +298,53 @@ export function MerchantRewardQueue({ voucherId }: { voucherId?: number } = {}) 
           />
         }
       />
+
+      {rewardToFulfill && (
+        <Dialog.Root open onOpenChange={(open) => busyId === null && !open && setRewardToFulfill(null)}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1d14]/40 backdrop-blur-[2px]" />
+            <Dialog.Content className="surface fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#e3e9e1] p-6 shadow-2xl outline-none">
+              <div className="relative mb-3 pr-8">
+                <Dialog.Title className="text-base font-bold text-[#1f3829]">Xác nhận đã trao quà</Dialog.Title>
+                <Dialog.Description className="mt-1 text-xs text-[#607767]">
+                  Xác nhận đã trao “{rewardToFulfill.title}” ({rewardToFulfill.pointsCost.toLocaleString("vi-VN")} điểm) cho thành viên #{rewardToFulfill.memberId}.
+                </Dialog.Description>
+                <button
+                  type="button"
+                  onClick={() => setRewardToFulfill(null)}
+                  disabled={busyId !== null}
+                  aria-label="Đóng"
+                  className="absolute -right-1 -top-1 rounded-lg p-1.5 text-[#738879] transition hover:bg-[#edf2ed] hover:text-[#1f3829]"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </div>
+              {notes[rewardToFulfill.id]?.trim() && (
+                <div className="mb-4 rounded-lg border border-[#e3e9e1] bg-[#f7faf7] px-3 py-2 text-xs text-[#20392a]">
+                  Ghi chú: {notes[rewardToFulfill.id].trim()}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 border-t border-[#edf1ea] pt-3">
+                <Button disabled={busyId !== null} onClick={() => setRewardToFulfill(null)} className="rounded-lg text-xs">
+                  Đóng
+                </Button>
+                <Button
+                  type="primary"
+                  loading={busyId === rewardToFulfill.id}
+                  onClick={async () => {
+                    const target = rewardToFulfill;
+                    await fulfill(target);
+                    setRewardToFulfill(null);
+                  }}
+                  className="rounded-lg bg-[#20392a] text-xs font-semibold hover:!bg-[#2e523c]"
+                >
+                  Xác nhận trao quà
+                </Button>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      )}
 
       {rewardToCancel && (
         <Dialog.Root open onOpenChange={(open) => !cancelBusy && !open && setRewardToCancel(null)}>

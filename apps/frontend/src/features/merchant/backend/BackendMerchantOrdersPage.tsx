@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Flex, Input, Segmented, Select, Spin, Typography } from "antd";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { ArrowClockwise, MagnifyingGlass } from "@phosphor-icons/react";
 import type { OrderDto } from "../../../api/commerce-types";
 import { useResource } from "../../../api/useResource";
 import { EmptyState, ErrorState } from "../../../components/ui";
@@ -123,6 +123,25 @@ function MerchantPurchaseOrders({ orderId }: { orderId: number | null }) {
             { value: "REFUNDED", label: "Đã hoàn tiền" },
           ]}
         />
+        {(query !== "" || status !== "ALL") && (
+          <Button
+            onClick={() => {
+              setPage(1);
+              setQuery("");
+              setStatus("ALL");
+            }}
+          >
+            Đặt lại
+          </Button>
+        )}
+        <Button
+          icon={<ArrowClockwise size={16} />}
+          loading={resource.loading}
+          onClick={resource.reload}
+          aria-label="Làm mới danh sách đơn hàng"
+        >
+          Làm mới
+        </Button>
       </CmsFilterBar>
       {resource.loading ? <Flex justify="center" className="py-10"><Spin description="Đang tải đơn hàng…" /></Flex>
         : resource.error ? <ErrorState message={resource.error} retry={resource.reload} />

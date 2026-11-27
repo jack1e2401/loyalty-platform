@@ -24,3 +24,11 @@
 ## 3. Chỉ số Loyalty tổng hợp trên Dashboard
 - **Cần làm ở Backend:**
   - Bổ sung vào `AnalyticsKpisDto` các chỉ số về sức khỏe chương trình Loyalty theo kỳ (ví dụ: tổng điểm đã phát hành trong kỳ, tổng điểm đã quy đổi/đổi quà trong kỳ, số voucher đã sử dụng) để merchant theo dõi hiệu quả giữ chân khách hàng ngay trên Tổng quan.
+
+## 4. Tối ưu API cho tab Đơn hàng & Quà đổi thưởng
+- **Hiện trạng:** Tab Đơn hàng ([`BackendMerchantOrdersPage.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/backend/BackendMerchantOrdersPage.tsx)) và Quà đổi thưởng ([`MerchantRewardQueue.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/MerchantRewardQueue.tsx)) đã được nâng cấp UX ở Frontend, nhưng một số tính năng cần dữ liệu tổng hợp từ server.
+- **Cần làm ở Backend:**
+  - **Đếm số đơn theo từng trạng thái toàn cục:** `GET /api/merchant/orders` trả thêm `statusCounts` (`PENDING`, `PAID`, `REFUND_PENDING`, `REFUNDED`, `CANCELLED`) để hiển thị badge số lượng ngay trên bộ lọc nhanh.
+  - **Bộ lọc khoảng ngày & sắp xếp phía server:** Hỗ trợ query `from`, `to` (theo ngày tạo/thanh toán) và `sortBy` / `sortOrder` trên `GET /api/merchant/orders`.
+  - **Xuất CSV danh sách đơn:** Hỗ trợ endpoint hoặc query xuất CSV theo bộ lọc hiện tại.
+  - **Thông tin thành viên trong Quà đổi thưởng:** `GET /api/merchant/rewards` trả kèm `memberEmail` / `memberName` (hoặc hỗ trợ tìm kiếm server-side + phân trang) để merchant đối chiếu nhanh khi khách tới nhận quà tại quầy.
