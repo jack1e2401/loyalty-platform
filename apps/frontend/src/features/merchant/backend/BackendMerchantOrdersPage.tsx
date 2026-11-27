@@ -118,7 +118,6 @@ function MerchantPurchaseOrders({ orderId }: { orderId: number | null }) {
             { value: "ALL", label: "Trạng thái: Tất cả" },
             { value: "PENDING", label: "Chờ thanh toán" },
             { value: "PAID", label: "Đã thanh toán" },
-            { value: "FAILED", label: "Thất bại" },
             { value: "CANCELLED", label: "Đã hủy" },
             { value: "REFUND_PENDING", label: "Đang hoàn tiền" },
             { value: "REFUNDED", label: "Đã hoàn tiền" },
