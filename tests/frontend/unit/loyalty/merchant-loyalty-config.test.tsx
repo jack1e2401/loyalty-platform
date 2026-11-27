@@ -153,6 +153,7 @@ describe("Merchant Loyalty Configuration & Ledger", () => {
     await waitFor(() => expect(writes).toHaveLength(1));
     expect(writes[0]).toContain("POST http://localhost:3000/api/merchant/loyalty/tier-reset/run");
 
+    fireEvent.click(screen.getByRole("tab", { name: /Reset mùa thủ công/i }));
     fireEvent.change(screen.getByLabelText("Điểm mục tiêu reset ngay"), { target: { value: "500" } });
     fireEvent.click(screen.getByRole("button", { name: "Reset mùa ngay" }));
     expect(await screen.findByText(/Reset mùa thủ công ngay\?/i)).toBeInTheDocument();
