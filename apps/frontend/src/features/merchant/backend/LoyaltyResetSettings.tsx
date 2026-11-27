@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { LoyaltyConfigInput } from "../../../api/commerce-types";
-import { Button, Field, Input, BusyLabel, Select } from "../../../components/ui";
+import { CalendarBlank, Lightning } from "@phosphor-icons/react";
+import type { LoyaltyConfigInput, LoyaltyTierDto } from "../../../api/commerce-types";
+import { BusyLabel, Button, Field, Input } from "../../../components/ui";
 
 type Props = {
   configSection: "program" | "tiers" | "reset";
@@ -14,12 +15,93 @@ type Props = {
   onRequestManualReset: () => void;
 };
 
-export function resolvePreviewTierName(form: LoyaltyConfigInput, targetPoints: number): string {
+function resolvePreviewTier(form: LoyaltyConfigInput, targetPoints: number): LoyaltyTierDto | undefined {
   const sorted = [...form.tiers]
     .filter((tier) => (tier.minLifetimePoints ?? 0) <= targetPoints)
     .sort((a, b) => (b.minLifetimePoints ?? 0) - (a.minLifetimePoints ?? 0));
-  const matched = sorted[0] ?? form.tiers[0];
+  return sorted[0] ?? form.tiers[0];
+}
+
+export function resolvePreviewTierName(form: LoyaltyConfigInput, targetPoints: number): string {
+  const matched = resolvePreviewTier(form, targetPoints);
   return matched?.name ?? matched?.level ?? "Default";
+}
+
+function tierDotColor(tier: LoyaltyTierDto | undefined): string {
+  return tier?.color && /^#[0-9A-Fa-f]{6}$/.test(tier.color) ? tier.color : "#315e3c";
+}
+
+function TierPresetChips({
+  tiers,
+  activeTarget,
+  disabled,
+  onSelect,
+}: {
+  tiers: LoyaltyTierDto[];
+  activeTarget: number;
+  disabled: boolean;
+  onSelect: (points: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1" role="group" aria-label="Chọn nhanh theo ngưỡng hạng">
+      {tiers.map((tier) => {
+        const threshold = Math.max(0, Math.floor(tier.minLifetimePoints ?? 0));
+        const selected = activeTarget === threshold;
+        return (
+          <button
+            key={tier.level}
+            type="button"
+            disabled={disabled}
+            onClick={() => onSelect(threshold)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+              selected
+                ? "border-[#315e3c] bg-[#edf5ea] text-[#20392a]"
+                : "border-[#e2e9e0] bg-white text-[#53685a] hover:border-[#b9ccb4] hover:text-[#20392a]"
+            } disabled:pointer-events-none disabled:opacity-60`}
+          >
+            <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: tierDotColor(tier) }} />
+            <span>{tier.name ?? tier.level}</span>
+            <span className="tabular-nums opacity-75">· {threshold.toLocaleString("vi-VN")}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResetOutcomePreview({
+  targetPoints,
+  tier,
+  label,
+}: {
+  targetPoints: number;
+  tier: LoyaltyTierDto | undefined;
+  label: string;
+}) {
+  const tierName = tier?.name ?? tier?.level ?? "Default";
+  const formatted = targetPoints.toLocaleString("vi-VN");
+  return (
+    <div className="rounded-2xl border border-[#e3ebe0] bg-[#f7faf6] p-3.5">
+      <p className="text-[11px] font-bold uppercase tracking-[.08em] text-[#5c7262]">{label}</p>
+      <div className="mt-2.5 grid grid-cols-3 gap-2">
+        <div className="rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_2px_rgba(32,57,42,0.04)]">
+          <p className="text-[11px] text-[#637269]">Điểm khả dụng</p>
+          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-[#20392a]">{formatted}</p>
+        </div>
+        <div className="rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_2px_rgba(32,57,42,0.04)]">
+          <p className="text-[11px] text-[#637269]">Điểm xét hạng</p>
+          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-[#20392a]">{formatted}</p>
+        </div>
+        <div className="rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_2px_rgba(32,57,42,0.04)]">
+          <p className="text-[11px] text-[#637269]">Hạng sau reset</p>
+          <p className="mt-1 flex items-center gap-1.5 truncate text-sm font-extrabold text-[#20392a]">
+            <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: tierDotColor(tier) }} />
+            <span className="truncate">{tierName}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function LoyaltyResetSettings({
@@ -33,166 +115,188 @@ export function LoyaltyResetSettings({
   onRequestReset,
   onRequestManualReset,
 }: Props) {
+  if (configSection !== "reset") return null;
+
   const scheduledTarget = Number.isFinite(form.reset.targetPoints)
     ? Math.max(0, Math.floor(form.reset.targetPoints ?? 0))
     : 0;
-  const scheduledTierName = resolvePreviewTierName(form, scheduledTarget);
+  const scheduledTier = resolvePreviewTier(form, scheduledTarget);
   const manualTarget = Number.isFinite(manualResetTarget) ? Math.max(0, Math.floor(manualResetTarget)) : 0;
-  const manualTierName = resolvePreviewTierName(form, manualTarget);
+  const manualTier = resolvePreviewTier(form, manualTarget);
+
+  function updateScheduledTarget(nextVal: number) {
+    setDraft({ ...form, reset: { ...form.reset, targetPoints: nextVal } });
+    onManualResetTargetChange(nextVal);
+  }
 
   return (
-    <>
-      {configSection === "reset" && (
-        <>
-          <section
-            aria-label="Thiết lập reset hạng"
-            className="space-y-4 rounded-lg border border-[#e5ece3] p-4"
-          >
-            <div>
-              <h2 className="font-extrabold text-[#20392a]">Lịch reset tự động theo chu kỳ (Cronjob)</h2>
-              <p className="mt-1 text-xs muted">
-                Hệ thống tự động kiểm tra vào 00:05 hằng ngày (giờ Việt Nam) và reset 1 lần mỗi năm khi trùng ngày đã cấu hình.
-              </p>
-            </div>
-            <Field label="Lịch reset">
-              <Select
-                value={form.reset.enabled ? "true" : "false"}
-                onChange={(event) =>
-                  setDraft({ ...form, reset: { ...form.reset, enabled: event.target.value === "true" } })
-                }
-              >
-                <option value="false">Tắt</option>
-                <option value="true">Bật reset tự động</option>
-              </Select>
-            </Field>
-            {form.reset.enabled && (
-              <>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="Ngày reset hằng năm">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={31}
-                      value={form.reset.day}
-                      onChange={(event) =>
-                        setDraft({ ...form, reset: { ...form.reset, day: Number(event.target.value) } })
-                      }
-                    />
-                  </Field>
-                  <Field label="Tháng reset">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={12}
-                      value={form.reset.month}
-                      onChange={(event) =>
-                        setDraft({ ...form, reset: { ...form.reset, month: Number(event.target.value) } })
-                      }
-                    />
-                  </Field>
-                  <Field label="Điểm mục tiêu sau reset">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={form.reset.targetPoints ?? 0}
-                      onChange={(event) => {
-                        const raw = event.target.value === "" ? 0 : Math.max(0, Math.floor(Number(event.target.value)));
-                        const nextVal = Number.isFinite(raw) ? raw : 0;
-                        setDraft({ ...form, reset: { ...form.reset, targetPoints: nextVal } });
-                        onManualResetTargetChange(nextVal);
-                      }}
-                    />
-                  </Field>
-                </div>
-                <div className="rounded-xl border border-[#dce6d9] bg-[#f7f9f5] p-4">
-                  <p className="text-xs font-bold uppercase tracking-[.06em] text-[#53685a]">Kết quả dự kiến</p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg border border-[#e5ece3] bg-white p-3">
-                      <p className="text-xs text-[#637269]">Điểm khả dụng</p>
-                      <p className="mt-1 text-xl font-extrabold tabular-nums text-[#20392a]">
-                        {scheduledTarget.toLocaleString("vi-VN")}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-[#e5ece3] bg-white p-3">
-                      <p className="text-xs text-[#637269]">Điểm xét hạng</p>
-                      <p className="mt-1 text-xl font-extrabold tabular-nums text-[#20392a]">
-                        {scheduledTarget.toLocaleString("vi-VN")}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-[#e5ece3] bg-white p-3">
-                      <p className="text-xs text-[#637269]">Hạng sau reset</p>
-                      <p className="mt-1 text-xl font-extrabold text-[#315e3c]">{scheduledTierName}</p>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </section>
-
-          <section
-            aria-label="Reset mùa thủ công"
-            className="space-y-4 rounded-lg border border-[#dce6d9] bg-[#f8fbf7] p-4"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+      <section
+        aria-label="Thiết lập reset hạng"
+        className="flex flex-col justify-between gap-5 rounded-2xl border border-[#e3ebe0] bg-white p-5"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef4ec] text-[#315e3c]">
+                <CalendarBlank size={20} weight="duotone" aria-hidden="true" />
+              </span>
               <div>
-                <h3 className="font-extrabold text-[#20392a]">Reset mùa thủ công ngay</h3>
-                <p className="mt-1 text-xs muted">
-                  Chốt mùa hiện tại và đưa toàn bộ hội viên về điểm mục tiêu ngay lập tức, không cần đợi đến ngày cronjob.
-                </p>
-              </div>
-              <Button
-                type="button"
-                disabled={resetBusy || !canEditPolicy}
-                onClick={() => onRequestManualReset()}
-              >
-                {resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Reset mùa ngay"}
-              </Button>
-            </div>
-            <div className="grid items-end gap-4 sm:grid-cols-3">
-              <Field label="Điểm mục tiêu reset ngay">
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={manualTarget}
-                  onChange={(event) => {
-                    const raw = event.target.value === "" ? 0 : Math.max(0, Math.floor(Number(event.target.value)));
-                    onManualResetTargetChange(Number.isFinite(raw) ? raw : 0);
-                  }}
-                />
-              </Field>
-              <div className="rounded-lg border border-[#e5ece3] bg-white p-3 sm:col-span-2">
-                <p className="text-xs text-[#637269]">Dự kiến sau khi bấm Reset mùa ngay</p>
-                <p className="mt-1 text-sm font-bold text-[#20392a]">
-                  Điểm khả dụng &amp; xét hạng: <span className="tabular-nums">{manualTarget.toLocaleString("vi-VN")}</span> điểm · Hạng:{" "}
-                  <span className="text-[#315e3c]">{manualTierName}</span>
+                <h2 className="text-base font-extrabold text-[#20392a]">Lịch reset tự động</h2>
+                <p className="mt-0.5 text-xs text-[#637269]">
+                  Cronjob kiểm tra 00:05 hằng ngày (UTC+7), tối đa 1 lần/năm.
                 </p>
               </div>
             </div>
-          </section>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.reset.enabled}
+              aria-label="Bật lịch reset tự động"
+              onClick={() => setDraft({ ...form, reset: { ...form.reset, enabled: !form.reset.enabled } })}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                form.reset.enabled
+                  ? "border-[#315e3c] bg-[#315e3c] text-white"
+                  : "border-[#dbe2d8] bg-[#f4f7f3] text-[#5d6e62]"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`size-2 rounded-full ${form.reset.enabled ? "bg-[#c5e89b]" : "bg-[#97a69b]"}`}
+              />
+              {form.reset.enabled ? "Đang bật" : "Đang tắt"}
+            </button>
+          </div>
 
-          <section
-            aria-label="Thực hiện reset"
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#ead8d4] bg-[#fcf8f7] p-3"
+          {form.reset.enabled ? (
+            <div className="space-y-4 border-t border-[#eef3ec] pt-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Ngày reset hằng năm">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={form.reset.day}
+                    onChange={(event) =>
+                      setDraft({ ...form, reset: { ...form.reset, day: Number(event.target.value) } })
+                    }
+                  />
+                </Field>
+                <Field label="Tháng reset">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={form.reset.month}
+                    onChange={(event) =>
+                      setDraft({ ...form, reset: { ...form.reset, month: Number(event.target.value) } })
+                    }
+                  />
+                </Field>
+              </div>
+
+              <div className="space-y-2">
+                <Field label="Điểm mục tiêu sau reset">
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={scheduledTarget}
+                    onChange={(event) => {
+                      const raw = event.target.value === "" ? 0 : Math.max(0, Math.floor(Number(event.target.value)));
+                      updateScheduledTarget(Number.isFinite(raw) ? raw : 0);
+                    }}
+                  />
+                </Field>
+                <TierPresetChips
+                  tiers={form.tiers}
+                  activeTarget={scheduledTarget}
+                  disabled={!canEditPolicy}
+                  onSelect={updateScheduledTarget}
+                />
+              </div>
+
+              <ResetOutcomePreview targetPoints={scheduledTarget} tier={scheduledTier} label="Kết quả dự kiến theo lịch" />
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#dce5d9] bg-[#fafcf9] p-4 text-xs leading-5 text-[#637269]">
+              Lịch reset tự động đang tắt. Bật công tắc phía trên nếu muốn hệ thống tự động đặt lại điểm vào một ngày cố định hằng năm, hoặc dùng thao tác reset thủ công ở khung bên cạnh.
+            </div>
+          )}
+        </div>
+
+        <section
+          aria-label="Thực hiện reset"
+          className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eef3ec] pt-4"
+        >
+          <p className="text-xs text-[#637269]">
+            Chạy thử cronjob khi hôm nay trùng{" "}
+            <span className="font-semibold text-[#20392a]">
+              {String(form.reset.day).padStart(2, "0")}/{String(form.reset.month).padStart(2, "0")}
+            </span>
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!form.reset.enabled || resetBusy || !canEditPolicy}
+            onClick={() => onRequestReset()}
           >
+            {resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Chạy reset đến hạn"}
+          </Button>
+        </section>
+      </section>
+
+      <section
+        aria-label="Reset mùa thủ công"
+        className="flex flex-col justify-between gap-5 rounded-2xl border border-[#cfe0ca] bg-gradient-to-b from-[#f6faf4] to-white p-5"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#315e3c] text-white">
+              <Lightning size={20} weight="fill" aria-hidden="true" />
+            </span>
             <div>
-              <h3 className="text-sm font-semibold text-[#7a4038]">Kiểm tra chạy reset định kỳ đến hạn</h3>
-              <p className="mt-1 text-xs muted">
-                Chỉ chạy khi hôm nay (giờ Việt Nam) trùng ngày/tháng đã bật ở lịch tự động phía trên, tối đa 1 lần mỗi năm.
+              <h3 className="text-base font-extrabold text-[#20392a]">Reset mùa thủ công</h3>
+              <p className="mt-0.5 text-xs text-[#53685a]">
+                Chốt mùa hiện tại và mở mùa mới ngay lập tức cho toàn bộ hội viên.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!form.reset.enabled || resetBusy || !canEditPolicy}
-              onClick={() => onRequestReset()}
-            >
-              {resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Chạy reset đến hạn"}
-            </Button>
-          </section>
-        </>
-      )}
-    </>
+          </div>
+
+          <div className="space-y-2 border-t border-[#e5efe2] pt-4">
+            <Field label="Điểm mục tiêu reset ngay">
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={manualTarget}
+                onChange={(event) => {
+                  const raw = event.target.value === "" ? 0 : Math.max(0, Math.floor(Number(event.target.value)));
+                  onManualResetTargetChange(Number.isFinite(raw) ? raw : 0);
+                }}
+              />
+            </Field>
+            <TierPresetChips
+              tiers={form.tiers}
+              activeTarget={manualTarget}
+              disabled={!canEditPolicy}
+              onSelect={onManualResetTargetChange}
+            />
+          </div>
+
+          <ResetOutcomePreview targetPoints={manualTarget} tier={manualTier} label="Áp dụng ngay cho mọi hội viên" />
+        </div>
+
+        <Button
+          type="button"
+          className="w-full"
+          disabled={resetBusy || !canEditPolicy}
+          onClick={() => onRequestManualReset()}
+        >
+          {resetBusy ? <BusyLabel>Đang xử lý</BusyLabel> : "Reset mùa ngay"}
+        </Button>
+      </section>
+    </div>
   );
 }
