@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -138,11 +139,23 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
       {error ? <Alert type="error" showIcon title={error} className="mb-4" /> : null}
       <Card title="Thông tin yêu cầu" size="small">
         <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }}>
-          <Descriptions.Item label="Đơn hàng">#{data.order.id}</Descriptions.Item>
+          <Descriptions.Item label="Đơn hàng">
+            <Link to={`/merchant/orders?orderId=${data.order.id}`} className="font-medium text-[#20392a] hover:underline">
+              #{data.order.id}
+            </Link>
+          </Descriptions.Item>
           <Descriptions.Item label="Thành viên">
-            {data.member?.email ?? `#${data.order.memberId}`}
+            <Link to={`/merchant/customers/${data.order.memberId}`} className="font-medium text-[#20392a] hover:underline">
+              {data.member?.email ?? `#${data.order.memberId}`}
+            </Link>
           </Descriptions.Item>
           <Descriptions.Item label="Tổng tiền">{money(data.order.total)}</Descriptions.Item>
+          <Descriptions.Item label="Voucher giảm giá">
+            {Number(data.order.discountAmount) > 0 ? `−${money(data.order.discountAmount)}` : "Không"}
+          </Descriptions.Item>
+          <Descriptions.Item label="Thanh toán đơn">
+            {data.order.paidAt ? new Date(data.order.paidAt).toLocaleString("vi-VN") : "—"}
+          </Descriptions.Item>
           <Descriptions.Item label="Nguồn thanh toán">{paymentProviderLabel}</Descriptions.Item>
           {data.order.paymentProviderReference ? <Descriptions.Item label="Mã thanh toán">{data.order.paymentProviderReference}</Descriptions.Item> : null}
           {data.order.paymentProviderTransactionNo ? <Descriptions.Item label="Mã giao dịch nhà cung cấp">{data.order.paymentProviderTransactionNo}</Descriptions.Item> : null}
@@ -175,10 +188,31 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
         </Card>
       ) : (
         <Card title="Kết quả xử lý" size="small">
-          <Typography.Paragraph className="!mb-0">
-            {data.refundRequest.merchantDecisionReason ??
-              refundRequestStatusLabel(data.refundRequest.status)}
-          </Typography.Paragraph>
+          <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
+            <Descriptions.Item label="Trạng thái">
+              <CmsStatusTag label={refundRequestStatusLabel(data.refundRequest.status)} tone={statusTone} />
+            </Descriptions.Item>
+            <Descriptions.Item label="Thời gian xử lý">
+              {data.refundRequest.merchantReviewedAt
+                ? new Date(data.refundRequest.merchantReviewedAt).toLocaleString("vi-VN")
+                : "—"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ghi chú cửa hàng" span={{ xs: 1, sm: 2 }}>
+              {data.refundRequest.merchantDecisionReason ?? refundRequestStatusLabel(data.refundRequest.status)}
+            </Descriptions.Item>
+            {data.settlement ? (
+              <>
+                <Descriptions.Item label="Số tiền hoàn thực tế">
+                  {money(data.settlement.amountVnd)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Hoàn tất giao dịch">
+                  {data.settlement.completedAt
+                    ? new Date(data.settlement.completedAt).toLocaleString("vi-VN")
+                    : data.settlement.status}
+                </Descriptions.Item>
+              </>
+            ) : null}
+          </Descriptions>
         </Card>
       )}
       {pending ? (
@@ -193,6 +227,9 @@ export function MerchantRefundReviewDetail({ requestId, token, onClose, onUpdate
               placeholder="Nhập ghi chú; bắt buộc khi từ chối"
               autoSize={{ minRows: 2, maxRows: 4 }}
             />
+            <Typography.Text type="secondary" className="text-xs">
+              Bắt buộc nhập lý do nếu từ chối yêu cầu hoàn tiền.
+            </Typography.Text>
             {confirming ? (
               <Alert
                 type="warning"

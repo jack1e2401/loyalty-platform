@@ -178,8 +178,46 @@ describe("merchant refund request approvals", () => {
     renderPage();
     await screen.findByText("Hàng lỗi");
     fireEvent.click(screen.getByRole("button", { name: "Xem & Duyệt" }));
-    expect(await screen.findByText(/nợ 0\.4/)).toBeInTheDocument();
+    expect((await screen.findAllByText(/nợ 0\.4/)).length).toBeGreaterThan(0);
+    expect(screen.getByText("Lưu ý tác động loyalty")).toBeInTheDocument();
+    expect(screen.getByText("Điểm tích lũy thu hồi")).toBeInTheDocument();
     expect(screen.getByText("SILVER")).toBeInTheDocument();
     expect(screen.getByText("BRONZE")).toBeInTheDocument();
+  });
+  it("filters refund list by search query and links to customer and order", async () => {
+    const secondItem = { ...item, id: 12, orderId: 22, memberId: 9, memberEmail: "other@test.local", reason: "Đặt nhầm" };
+    mocks.list.mockResolvedValue({
+      items: [item, secondItem],
+      pagination: { page: 1, limit: 20, totalItems: 2, totalPages: 1 },
+    });
+    renderPage();
+    expect(await screen.findByText("Hàng lỗi")).toBeInTheDocument();
+    expect(screen.getByText("Đặt nhầm")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "m@test.local" })).toHaveAttribute("href", "/merchant/customers/4");
+
+    fireEvent.change(screen.getByLabelText("Tìm yêu cầu hoàn tiền"), { target: { value: "Đặt nhầm" } });
+    expect(screen.queryByText("Hàng lỗi")).not.toBeInTheDocument();
+    expect(screen.getByText("Đặt nhầm")).toBeInTheDocument();
+  });
+  it("displays settlement details on reviewed refund requests", async () => {
+    mocks.get.mockResolvedValue({
+      ...detail,
+      refundRequest: {
+        ...item,
+        status: "COMPLETED",
+        merchantReviewedAt: "2026-11-18T08:00:00Z",
+        merchantDecisionReason: "Đã kiểm tra hàng hoàn",
+      },
+      settlement: {
+        status: "COMPLETED",
+        amountVnd: "50000",
+        completedAt: "2026-11-18T08:05:00Z",
+      },
+    });
+    renderPage("/merchant/refund-requests?requestId=11");
+    expect(await screen.findByText("Đã kiểm tra hàng hoàn")).toBeInTheDocument();
+    expect(screen.getByText("Số tiền hoàn thực tế")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "#21" })).toHaveAttribute("href", "/merchant/orders?orderId=21");
+    expect(screen.getByRole("link", { name: "#4" })).toHaveAttribute("href", "/merchant/customers/4");
   });
 });

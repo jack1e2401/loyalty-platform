@@ -1,4 +1,4 @@
-import { Space, type TableColumnsType } from "antd";
+import { Alert, Space, type TableColumnsType } from "antd";
 import type { ExtendedRefundPreviewDto } from "../../../api/refunds-types";
 import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable } from "../cms";
@@ -12,8 +12,16 @@ export function MerchantRefundPreview({ preview, onChallengePageChange }: {
   preview: ExtendedRefundPreviewDto;
   onChallengePageChange: (page: number, limit: number) => void;
 }) {
+  const hasPointDebt = Number(preview.walletAfter.pointDebt ?? 0) > 0;
+  const hasTierChange = preview.tierBefore !== preview.tierAfter;
   const rows: PreviewRow[] = [
     { key: "amount", metric: "Số tiền hoàn", before: "0 ₫", after: money(preview.refundAmountVnd) },
+    {
+      key: "reversal",
+      metric: "Điểm tích lũy thu hồi",
+      before: "—",
+      after: `−${formatPts(preview.earningReversalExact)} điểm`,
+    },
     {
       key: "available",
       metric: "Điểm khả dụng",
@@ -48,6 +56,17 @@ export function MerchantRefundPreview({ preview, onChallengePageChange }: {
 
   return (
     <Space orientation="vertical" size={12} className="w-full">
+      {(hasPointDebt || hasTierChange) && (
+        <Alert
+          type="warning"
+          showIcon
+          title="Lưu ý tác động loyalty"
+          description={[
+            hasPointDebt ? `Khách đã sử dụng một phần điểm nên sẽ phát sinh nợ ${preview.walletAfter.pointDebt} điểm.` : null,
+            hasTierChange ? `Hạng thành viên sẽ thay đổi từ ${preview.tierBefore} sang ${preview.tierAfter}.` : null,
+          ].filter(Boolean).join(" ")}
+        />
+      )}
       <CmsDataTable label="Tác động dự kiến" rows={rows} columns={columns} rowKey="key" />
       {challengeRows.length > 0 ? (
         <CmsDataTable label="Tác động đến nhiệm vụ" rows={challengeRows} columns={columns} rowKey="key" />

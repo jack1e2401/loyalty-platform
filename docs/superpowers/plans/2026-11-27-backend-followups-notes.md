@@ -32,3 +32,10 @@
   - **Bộ lọc khoảng ngày & sắp xếp phía server:** Hỗ trợ query `from`, `to` (theo ngày tạo/thanh toán) và `sortBy` / `sortOrder` trên `GET /api/merchant/orders`.
   - **Xuất CSV danh sách đơn:** Hỗ trợ endpoint hoặc query xuất CSV theo bộ lọc hiện tại.
   - **Thông tin thành viên trong Quà đổi thưởng:** `GET /api/merchant/rewards` trả kèm `memberEmail` / `memberName` (hoặc hỗ trợ tìm kiếm server-side + phân trang) để merchant đối chiếu nhanh khi khách tới nhận quà tại quầy.
+
+## 5. Tối ưu API cho trang Yêu cầu hoàn tiền (`/merchant/refund-requests`)
+- **Hiện trạng:** Trang Yêu cầu hoàn tiền ([`MerchantRefundRequestsPage.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/refunds/MerchantRefundRequestsPage.tsx)) đã có tìm kiếm phía client trên trang hiện tại, nút làm mới/đặt lại, liên kết chéo và hiển thị `settlement`, nhưng vẫn phụ thuộc một số dữ liệu tổng hợp từ server.
+- **Cần làm ở Backend:**
+  - **Tìm kiếm & lọc nâng cao phía server (`GET /api/merchant/refund-requests`):** Hỗ trợ query `q` (tìm theo mã yêu cầu, mã đơn, email thành viên trên toàn bộ dữ liệu) và lọc theo khoảng ngày (`from`, `to`).
+  - **Đếm số lượng theo trạng thái (`statusCounts`):** Trả thêm số lượng yêu cầu theo từng trạng thái (`PENDING_MERCHANT`, `COMPLETED`, `REJECTED`) để hiển thị badge đếm trên bộ lọc và sidebar.
+  - **Thông tin người duyệt (`merchantReviewedByEmail` / `Name`):** Bổ sung tên/email người duyệt tương ứng với `merchantReviewedById` trong chi tiết yêu cầu hoàn tiền để audit lịch sử rõ ràng hơn.

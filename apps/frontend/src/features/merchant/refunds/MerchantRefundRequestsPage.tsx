@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Button, Empty, Select, type TableColumnsType } from "antd";
+import { Alert, Button, Empty, Input, Select, type TableColumnsType } from "antd";
+import { ArrowClockwise, MagnifyingGlass } from "@phosphor-icons/react";
 import { createRefundsClient } from "../../../api/refunds-client";
 import type { RefundRequestListItemDto, RefundRequestStatus } from "../../../api/refunds-types";
 import { useResource } from "../../../api/useResource";
+import { ErrorState } from "../../../components/ui";
 import { MerchantPagination } from "../cms/MerchantPagination";
 import { CmsDataTable, CmsFilterBar, CmsPageHeader, CmsStatusTag } from "../cms";
 import { isRefundAwaitingMerchant, refundRequestStatusLabel } from "../../refunds/refund-status";
@@ -29,6 +31,7 @@ export function MerchantRefundRequestsPage() {
   const token = useToken();
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState<RefundRequestStatus | "ALL">("PENDING_MERCHANT");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [decision, setDecision] = useState<RefundRequestStatus | null>(null);
@@ -43,7 +46,14 @@ export function MerchantRefundRequestsPage() {
       : api.listMerchantRefundRequests({ status: status === "ALL" ? "" : status, page, limit }, token),
     [status, page, limit, token, requestId, invalidRequestId],
   );
-  const items = resource.data?.items ?? [];
+  const rawItems = resource.data?.items ?? [];
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const items = normalizedQuery
+    ? rawItems.filter((item) => {
+        const haystack = `#${item.id} #${item.orderId} ${item.memberEmail} ${item.reason}`.toLowerCase();
+        return haystack.includes(normalizedQuery);
+      })
+    : rawItems;
   const pagination = resource.data?.pagination;
 
   function openRequest(id: number) {
@@ -69,7 +79,18 @@ export function MerchantRefundRequestsPage() {
       width: 115,
       render: (id: number) => <Link to={`/merchant/orders?orderId=${id}`}>Đơn #{id}</Link>,
     },
-    { title: "Thành viên", dataIndex: "memberEmail", key: "memberEmail", width: 210, ellipsis: true },
+    {
+      title: "Thành viên",
+      dataIndex: "memberEmail",
+      key: "memberEmail",
+      width: 210,
+      ellipsis: true,
+      render: (email: string, item) => (
+        <Link to={`/merchant/customers/${item.memberId}`} className="text-[#20392a] hover:underline">
+          {email}
+        </Link>
+      ),
+    },
     {
       title: "Tổng tiền",
       dataIndex: "orderTotalVnd",
@@ -134,11 +155,24 @@ export function MerchantRefundRequestsPage() {
         description="Xem lý do, kiểm tra tác động dự kiến rồi chọn cách xử lý."
       />
       {decision ? (
-        <p role="status" className="mb-3 text-sm text-[#357044]">
-          Đã cập nhật: {refundRequestStatusLabel(decision)}
-        </p>
+        <Alert
+          type="success"
+          showIcon
+          closable
+          onClose={() => setDecision(null)}
+          title={`Đã cập nhật: ${refundRequestStatusLabel(decision)}`}
+        />
       ) : null}
       <CmsFilterBar label="Lọc yêu cầu hoàn tiền">
+        <Input
+          aria-label="Tìm yêu cầu hoàn tiền"
+          placeholder="Tìm mã yêu cầu, mã đơn, email hoặc lý do..."
+          prefix={<MagnifyingGlass size={16} className="text-[#7d8a80]" />}
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          className="h-9 min-w-[240px] flex-1 sm:max-w-xs"
+          allowClear
+        />
         <Select
           aria-label="Lọc trạng thái"
           value={status}
@@ -153,9 +187,29 @@ export function MerchantRefundRequestsPage() {
           }}
           className="min-w-56"
         />
+        {(searchQuery !== "" || status !== "PENDING_MERCHANT") && (
+          <Button
+            onClick={() => {
+              setSearchQuery("");
+              setStatus("PENDING_MERCHANT");
+              setPage(1);
+              setDecision(null);
+            }}
+          >
+            Đặt lại
+          </Button>
+        )}
+        <Button
+          icon={<ArrowClockwise size={16} />}
+          loading={resource.loading}
+          onClick={resource.reload}
+          aria-label="Làm mới danh sách hoàn tiền"
+        >
+          Làm mới
+        </Button>
       </CmsFilterBar>
       {resource.error ? (
-        <p role="alert" className="text-sm text-red-700">{resource.error}</p>
+        <ErrorState message={resource.error} retry={resource.reload} />
       ) : (
         <>
         <CmsDataTable
