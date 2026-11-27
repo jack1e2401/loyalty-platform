@@ -10,10 +10,8 @@ import {
   Button,
   EmptyState,
   ErrorState,
-  Input,
   LoadingState,
   PageHeader,
-  Select,
   StatusText,
 } from "../../components/ui";
 import { MerchantPagination } from "../merchant/cms/MerchantPagination";
@@ -67,44 +65,42 @@ export function MerchantCustomersPage() {
       />
 
       <form onSubmit={handleSearch}>
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-border,#e3e9e1)] bg-white p-4 shadow-sm">
-          <div className="min-w-64 flex-1">
-            <Input
-              type="search"
-              placeholder="Tên, email hoặc điện thoại..."
-              value={draftQuery}
-              maxLength={191}
-              onChange={(event) => setDraftQuery(event.target.value)}
-              className="min-h-9 w-full rounded-lg border border-[var(--color-border,#dbe3d9)] text-sm"
-            />
-          </div>
-          <Select
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#e3e9e2] bg-white p-3.5 shadow-2xs">
+          <input
+            type="search"
+            placeholder="Tìm theo tên, email hoặc số điện thoại..."
+            value={draftQuery}
+            maxLength={191}
+            onChange={(event) => setDraftQuery(event.target.value)}
+            className="h-9 min-w-[220px] flex-1 rounded-lg border border-[#dbe3d9] bg-transparent px-3 text-sm text-[#20392a] outline-none transition focus:border-[#356b43]"
+          />
+          <select
             aria-label="Hạng thành viên"
             value={tier}
             onChange={(event) => {
               setTier(event.target.value as MemberTier | "");
               setPage(1);
             }}
-            className="min-h-9 rounded-lg border border-[var(--color-border,#dbe3d9)] bg-white px-3 text-sm text-[var(--color-ink,#20392a)]"
+            className="h-9 min-w-[130px] rounded-lg border border-[#dbe3d9] bg-white px-3 text-xs font-medium text-[#20392a] outline-none"
           >
             <option value="">Tất cả hạng</option>
             <option value="UNRANKED">Chưa xếp hạng</option>
             {(resource.data?.tiers ?? []).map((item) => <option key={item.level} value={item.level}>{item.name}</option>)}
-          </Select>
-          <Select
+          </select>
+          <select
             aria-label="Trạng thái mua hàng"
             value={purchaseStatus}
             onChange={(event) => {
               setPurchaseStatus(event.target.value as CustomerPurchaseStatus);
               setPage(1);
             }}
-            className="min-h-9 rounded-lg border border-[var(--color-border,#dbe3d9)] bg-white px-3 text-sm text-[var(--color-ink,#20392a)]"
+            className="h-9 min-w-[140px] rounded-lg border border-[#dbe3d9] bg-white px-3 text-xs font-medium text-[#20392a] outline-none"
           >
             <option value="all">Trạng thái: Tất cả</option>
             <option value="buyers">Đã có đơn</option>
             <option value="non_buyers">Chưa mua hàng</option>
-          </Select>
-          <Button type="submit" variant="outline" className="min-h-9 px-4">
+          </select>
+          <Button type="submit" variant="outline" className="h-9 px-4 text-xs font-medium">
             Tìm
           </Button>
         </div>

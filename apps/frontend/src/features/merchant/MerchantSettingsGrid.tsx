@@ -4,7 +4,6 @@ import {
   Crown,
   Gear,
   ListDashes,
-  MapPin,
   Receipt,
   Storefront,
   Ticket,
@@ -33,14 +32,6 @@ export function MerchantSettingsGrid({
       title: "Cấu hình chung",
       description: "Cấu hình thông tin chung cửa hàng của bạn",
       onClick: () => onSelectSection?.("general"),
-    },
-    {
-      id: "location",
-      icon: MapPin,
-      title: "Địa điểm",
-      description: "Quản lý danh sách địa chỉ và khung giờ mở cửa",
-      onClick: () => onSelectSection?.("location"),
-      highlighted: true,
     },
     {
       id: "storefront",
