@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp } from "@phosphor-icons/react";
-import { Button, Card, Input } from "../../../components/ui";
+import { Button, Flex, Input, Switch } from "antd";
 import type { StorefrontSectionConfig, StorefrontSectionKey } from "../../../api/storefront-types";
+import { CmsCard } from "../../merchant/cms";
 
 const SECTION_LABELS: Record<StorefrontSectionKey, string> = {
   hero: "Hero đầu trang",
@@ -19,23 +20,22 @@ type Props = {
 
 export function StorefrontSectionsEditor({ sections, onUpdate, onMove }: Props) {
   return (
-    <Card className="space-y-4 p-5 sm:p-6">
-      <h2 className="text-lg font-extrabold text-[#20392a]">Bố cục các mục hiển thị</h2>
+    <CmsCard title="Bố cục các mục hiển thị">
       <div className="space-y-3">
         {sections.map((section, index) => (
           <div
             key={section.key}
-            className="grid gap-3 rounded-2xl border border-[#e5ece3] bg-[#fcfdf9] p-4 md:grid-cols-[auto_1fr_1fr_auto] md:items-center"
+            className="grid gap-3 rounded-xl border border-[#e5ece3] bg-[#fcfdf9] p-3.5 md:grid-cols-[200px_1fr_1fr_auto] md:items-center"
           >
-            <label className="flex items-center gap-2 text-sm font-bold text-[#24452f]">
-              <input
-                type="checkbox"
+            <Flex align="center" gap={10}>
+              <Switch
+                size="small"
                 checked={section.enabled}
-                onChange={(event) => onUpdate(section.key, { enabled: event.target.checked })}
-                className="size-4 accent-[#335e3d]"
+                aria-label={`Hiển thị ${SECTION_LABELS[section.key]}`}
+                onChange={(checked) => onUpdate(section.key, { enabled: checked })}
               />
-              {SECTION_LABELS[section.key]}
-            </label>
+              <span className="text-sm font-bold text-[#24452f]">{SECTION_LABELS[section.key]}</span>
+            </Flex>
             <Input
               value={section.title ?? ""}
               maxLength={120}
@@ -48,31 +48,25 @@ export function StorefrontSectionsEditor({ sections, onUpdate, onMove }: Props) 
               placeholder="Phụ đề mục (tùy chọn)"
               onChange={(event) => onUpdate(section.key, { subtitle: event.target.value || null })}
             />
-            <div className="flex items-center gap-1 justify-end">
+            <Flex align="center" justify="end" gap={4}>
               <Button
-                type="button"
-                size="sm"
-                variant="outline"
+                size="small"
                 disabled={index === 0}
                 aria-label={`Đưa ${SECTION_LABELS[section.key]} lên`}
+                icon={<ArrowUp size={14} />}
                 onClick={() => onMove(index, -1)}
-              >
-                <ArrowUp aria-hidden="true" size={14} />
-              </Button>
+              />
               <Button
-                type="button"
-                size="sm"
-                variant="outline"
+                size="small"
                 disabled={index === sections.length - 1}
                 aria-label={`Đưa ${SECTION_LABELS[section.key]} xuống`}
+                icon={<ArrowDown size={14} />}
                 onClick={() => onMove(index, 1)}
-              >
-                <ArrowDown aria-hidden="true" size={14} />
-              </Button>
-            </div>
+              />
+            </Flex>
           </div>
         ))}
       </div>
-    </Card>
+    </CmsCard>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, FloppyDisk } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, ArrowUpRight, FloppyDisk } from "@phosphor-icons/react";
+import { Alert, Button, Flex, Skeleton, Tag, Typography } from "antd";
 import { useAuthSession } from "../../../api/auth-session";
 import { createCommerceClient } from "../../../api/commerce-http";
 import type { ProductDto } from "../../../api/commerce-types";
@@ -11,14 +12,8 @@ import type {
   StorefrontSectionKey,
 } from "../../../api/storefront-types";
 import { useResource } from "../../../api/useResource";
-import {
-  BusyLabel,
-  Button,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "../../../components/ui";
 import { ConfirmActionDialog } from "../../../components/ui/ConfirmActionDialog";
+import { CmsCard, CmsPageHeader } from "../../merchant/cms";
 import { StorefrontBrandingEditor } from "./StorefrontBrandingEditor";
 import { StorefrontSectionsEditor } from "./StorefrontSectionsEditor";
 import { FeaturedProductsEditor } from "./FeaturedProductsEditor";
@@ -76,8 +71,32 @@ export function MerchantStorefrontEditor() {
     [draft],
   );
 
-  if (state.loading && !draft) return <LoadingState cards={3} />;
-  if (state.error && !draft) return <ErrorState message={state.error} retry={state.reload} />;
+  if (state.loading && !draft) {
+    return (
+      <CmsCard>
+        <Skeleton active paragraph={{ rows: 6 }} />
+      </CmsCard>
+    );
+  }
+  if (state.error && !draft) {
+    return (
+      <section className="grid min-w-0 gap-5">
+        <CmsPageHeader title="Giao diện cửa hàng" />
+        <Alert
+          role="alert"
+          type="error"
+          showIcon
+          title="Không tải được cấu hình giao diện"
+          description={state.error}
+          action={
+            <Button size="small" onClick={state.reload}>
+              Thử lại
+            </Button>
+          }
+        />
+      </section>
+    );
+  }
   if (!state.data || !draft) return null;
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(savedDraft);
@@ -161,32 +180,34 @@ export function MerchantStorefrontEditor() {
     }
   }
 
+  function resetDraft() {
+    if (!savedDraft || busy) return;
+    setDraft(savedDraft);
+    setError("");
+    setNotice("Đã hoàn tác các thay đổi chưa lưu.");
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader
+      <CmsPageHeader
         title="Giao diện cửa hàng"
         description={`Đường dẫn công khai: /s/${merchant.slug}`}
         action={
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to={`/s/${merchant.slug}`} target="_blank" rel="noopener noreferrer">
-                Trang công khai <ArrowUpRight aria-hidden="true" size={15} />
-              </Link>
+          <Flex gap={8} wrap>
+            <Button icon={<ArrowClockwise size={15} />} loading={state.loading} onClick={state.reload}>
+              Làm mới
             </Button>
-          </div>
+            <Link to={`/s/${merchant.slug}`} target="_blank" rel="noopener noreferrer">
+              <Button icon={<ArrowUpRight size={15} />} iconPlacement="end">
+                Trang công khai
+              </Button>
+            </Link>
+          </Flex>
         }
       />
 
-      {error && (
-        <div role="alert" className="rounded-xl bg-[#fae7e3] p-3 text-sm font-semibold text-[#a4473a]">
-          {error}
-        </div>
-      )}
-      {notice && (
-        <div role="status" className="rounded-xl bg-[#e8f1e2] p-3 text-sm font-semibold text-[#357044]">
-          {notice}
-        </div>
-      )}
+      {error ? <Alert role="alert" type="error" showIcon title={error} /> : null}
+      {notice ? <Alert role="status" type="success" showIcon title={notice} /> : null}
 
       <StorefrontBrandingEditor
         branding={draft.branding}
@@ -203,14 +224,36 @@ export function MerchantStorefrontEditor() {
         onToggle={toggleFeaturedProduct}
       />
 
-      {dirty && (
-        <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-t-xl border border-[#dce6d9] bg-white px-4 py-3 shadow-sm">
-          <span className="text-sm text-[#53685a]">Có thay đổi chưa lưu</span>
-          <Button type="button" disabled={busy} onClick={() => { setError(""); setPending(true); }}>
-            {savingDraft ? <BusyLabel>Đang lưu</BusyLabel> : <><FloppyDisk aria-hidden="true" size={16} /> Lưu thay đổi</>}
-          </Button>
+      {dirty ? (
+        <div
+          role="region"
+          aria-label="Thanh lưu giao diện cửa hàng"
+          className="sticky bottom-4 z-20 rounded-xl border border-[#e5b869] bg-[#fffcf5]/95 p-3.5 shadow-[0_6px_20px_rgba(32,57,42,0.10)] backdrop-blur"
+        >
+          <Flex align="center" justify="space-between" gap={12} wrap>
+            <Flex align="center" gap={8} wrap>
+              <Tag color="warning" className="m-0">Có thay đổi chưa lưu</Tag>
+              <Typography.Text type="secondary" className="text-xs">
+                Thay đổi sẽ hiển thị trên trang cửa hàng công khai sau khi lưu.
+              </Typography.Text>
+            </Flex>
+            <Flex align="center" gap={8} wrap>
+              <Button icon={<ArrowCounterClockwise size={15} />} disabled={busy} onClick={resetDraft}>
+                Hoàn tác
+              </Button>
+              <Button
+                type="primary"
+                icon={<FloppyDisk size={15} />}
+                loading={savingDraft}
+                disabled={busy}
+                onClick={() => { setError(""); setPending(true); }}
+              >
+                {savingDraft ? "Đang lưu..." : "Lưu thay đổi"}
+              </Button>
+            </Flex>
+          </Flex>
         </div>
-      )}
+      ) : null}
       <ConfirmActionDialog open={pending} onOpenChange={setPending} title="Lưu giao diện?"
         description="Thay đổi sẽ hiển thị ngay trên trang cửa hàng công khai." confirmLabel="Xác nhận lưu"
         busy={busy} error={error} onConfirm={() => void handleSave()} />

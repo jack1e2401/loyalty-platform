@@ -53,3 +53,8 @@
   - **Tìm kiếm phía server (`q`):** Hỗ trợ query `q` trên `GET /api/merchant/categories` để tìm kiếm xuyên suốt khi merchant có nhiều hơn 1 trang danh mục.
   - **Batch reorder nguyên tử (`sortOrder`):** Bổ sung 1 endpoint `PATCH /api/merchant/categories/reorder` (nhận danh sách `{ id, sortOrder }[]` trong 1 transaction) để thay cho việc FE phải gọi nhiều request `PATCH` song song khi kéo thả.
 
+## 8. Tối ưu API cho trang Giao diện cửa hàng (`/merchant/storefront`)
+- **Hiện trạng:** [`MerchantStorefrontEditor.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/storefront/editor/MerchantStorefrontEditor.tsx) đã được nâng cấp Ant Design CMS, bổ sung nút **Làm mới**, nút **Hoàn tác** trên thanh sticky và ô tìm kiếm trong [`FeaturedProductsEditor.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/storefront/editor/FeaturedProductsEditor.tsx).
+- **Cần làm ở Backend:**
+  - **Tìm kiếm / chọn sản phẩm nổi bật khi cửa hàng có >100 sản phẩm:** Hiện FE đang gọi `GET /api/merchant/products?limit=100` để lấy danh sách sản phẩm đang bán. Nếu cửa hàng có hơn 100 sản phẩm, cần hỗ trợ tìm kiếm server-side (`q`, `kind=SALE`, `status=ACTIVE`) và `GET /api/merchant/storefront` trả kèm tóm tắt các sản phẩm đang nằm trong `featuredProductIds` để không bị thiếu khi hiển thị/chỉnh sửa.
+
