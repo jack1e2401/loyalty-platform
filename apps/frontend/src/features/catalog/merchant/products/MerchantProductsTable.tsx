@@ -1,6 +1,5 @@
 import { Button, Dropdown, Flex, Typography, type TableColumnsType } from "antd";
 import type { ProductDto, ProductKind, ProductStatus } from "../../../../api/commerce-types";
-import { Button as UiButton } from "../../../../components/ui";
 import { money } from "../../../../lib/utils";
 import { MerchantPagination } from "../../../merchant/cms/MerchantPagination";
 import { CmsDataTable, CmsStatusTag } from "../../../merchant/cms";
@@ -82,23 +81,11 @@ export function MerchantProductsTable({
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status: ProductStatus, product) => (
-        <Flex align="center" gap={8} wrap>
-          <CmsStatusTag
-            label={status === "ACTIVE" ? "Đang hoạt động" : "Đã ẩn"}
-            tone={status === "ACTIVE" ? "success" : "neutral"}
-          />
-          <UiButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            aria-label={`${status === "ACTIVE" ? "Ẩn" : "Hiển thị"} sản phẩm ${product.name}`}
-            onClick={() => onStatusChange(product)}
-          >
-            {status === "ACTIVE" ? "Ẩn" : "Hiển thị"}
-          </UiButton>
-        </Flex>
+      render: (status: ProductStatus) => (
+        <CmsStatusTag
+          label={status === "ACTIVE" ? "Đang hoạt động" : "Đã ẩn"}
+          tone={status === "ACTIVE" ? "success" : "neutral"}
+        />
       ),
     },
     {
@@ -116,6 +103,11 @@ export function MerchantProductsTable({
                 label: product.kind === "REWARD" ? "Điều chỉnh số lượng quà" : "Điều chỉnh tồn kho",
               },
               { key: "history", label: product.kind === "REWARD" ? "Lịch sử số lượng" : "Lịch sử tồn kho" },
+              { type: "divider" },
+              {
+                key: "toggleStatus",
+                label: product.status === "ACTIVE" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm",
+              },
             ],
             onClick: ({ key }) => {
               if (key === "edit") onNavigate(`/merchant/products/${product.id}/edit`);
@@ -123,6 +115,7 @@ export function MerchantProductsTable({
                 onNavigate(
                   `/merchant/inventory/${product.kind === "REWARD" ? "reward" : "product"}/${product.id}${key === "history" ? "?tab=history" : ""}`,
                 );
+              if (key === "toggleStatus") onStatusChange(product);
             },
           }}
         >

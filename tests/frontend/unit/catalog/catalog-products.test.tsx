@@ -123,8 +123,8 @@ describe("Workstream B — Product Catalog V2 UI", () => {
     );
 
     expect(await screen.findByRole("table", { name: "Sản phẩm" })).toBeInTheDocument();
-    const hideButton = screen.getByRole("button", { name: "Ẩn sản phẩm Cà phê muối" });
-    fireEvent.click(hideButton);
+    fireEvent.click(screen.getByRole("button", { name: "Thao tác sản phẩm Cà phê muối" }));
+    fireEvent.click(await screen.findByText("Ẩn sản phẩm"));
     expect(screen.getByText("Ẩn sản phẩm?")).toBeInTheDocument();
     expect(patches).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận ẩn" }));
