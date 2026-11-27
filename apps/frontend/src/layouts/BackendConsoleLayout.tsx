@@ -5,6 +5,7 @@ import {
   CaretDown,
   ChartBar,
   Gauge,
+  Gear,
   List,
   Megaphone,
   Package,
@@ -154,17 +155,19 @@ export function BackendConsoleLayout() {
           : undefined
       : undefined;
   const pageTitle =
-    loyaltyEditorTitle ??
-    (location.pathname.split("/").filter(Boolean).length > 1
-      ? (location.pathname.startsWith("/merchant/inventory/") ? "Tồn kho" : undefined) ??
-        challengePageTitle ??
-        routeLabels.find(
-          ([to]) =>
-            to !== "/merchant" &&
-            (location.pathname === to || location.pathname.startsWith(`${to}/`)),
-        )?.[1] ??
-        "Cửa hàng"
-      : "Tổng quan");
+    location.pathname === "/merchant/settings"
+      ? "Cấu hình hệ thống"
+      : loyaltyEditorTitle ??
+        (location.pathname.split("/").filter(Boolean).length > 1
+          ? (location.pathname.startsWith("/merchant/inventory/") ? "Tồn kho" : undefined) ??
+            challengePageTitle ??
+            routeLabels.find(
+              ([to]) =>
+                to !== "/merchant" &&
+                (location.pathname === to || location.pathname.startsWith(`${to}/`)),
+            )?.[1] ??
+            "Cửa hàng"
+          : "Tổng quan");
   const breadcrumbs = merchantBreadcrumbItems(location.pathname, location.search, pageTitle);
 
   return (
@@ -325,8 +328,21 @@ export function BackendConsoleLayout() {
             })}
           </nav>
 
-          {/* User Profile & Sign out at Bottom */}
-          <div className="shrink-0 border-t border-white/[0.08] p-3">
+          {/* Fixed Bottom: Settings & User Profile (Pinned to bottom-left) */}
+          <div className="shrink-0 border-t border-white/[0.08] p-3 space-y-1.5">
+            <NavLink
+              to="/merchant/settings"
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  "group flex h-9.5 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-white/75 transition duration-150 hover:bg-white/[0.06] hover:text-white",
+                  isActive && "bg-white/[0.12] text-white font-semibold shadow-xs",
+                )
+              }
+            >
+              <Gear size={18} weight="regular" className="shrink-0 text-white/70 group-hover:text-white" />
+              <span>Cấu hình</span>
+            </NavLink>
             <div className="flex items-center justify-between rounded-lg bg-white/[0.04] p-2">
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#315b3b] text-xs font-bold text-[#d8f5bb]">
@@ -407,6 +423,7 @@ function merchantBreadcrumbItems(
   pageTitle: string,
 ): BreadcrumbProps["items"] {
   if (pathname === "/merchant") return [{ title: "Tổng quan" }];
+  if (pathname === "/merchant/settings") return [{ title: <Link to="/merchant">Tổng quan</Link> }, { title: "Cấu hình" }];
 
   let parent: { path: string; label: string } | null = null;
   let current = pageTitle;

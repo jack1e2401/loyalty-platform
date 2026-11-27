@@ -172,8 +172,12 @@ a {
 }
 
 /* ==========================================================================
-   Merchant CMS - IncomSG Unified Ant Design Table Styling
+   Merchant CMS - IncomSG Unified Ant Design Table Styling & 80% Scale
    ========================================================================== */
+.merchant-cms {
+  zoom: 0.82;
+}
+
 .merchant-cms .ant-table {
   font-family: var(--font-sans);
   color: var(--color-ink-secondary);

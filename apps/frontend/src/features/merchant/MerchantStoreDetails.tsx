@@ -6,7 +6,6 @@ import { useResource } from "../../api/useResource";
 import { Button, Card, Skeleton, StatusText } from "../../components/ui";
 import { money, number } from "../../lib/utils";
 import { MerchantStoreProfileForm } from "./MerchantStoreProfileForm";
-import { MerchantSettingsGrid } from "./MerchantSettingsGrid";
 
 const api = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 const tierName: Record<string, string> = {
@@ -22,11 +21,9 @@ export function MerchantStoreDetails({ data, token }: { data: StoreProfileRespon
   ] as const;
 
   return (
-    <div className="space-y-6">
-      <MerchantSettingsGrid />
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]">
-        <MerchantStoreProfileForm key={merchant.id} data={data} token={token} />
-        <div className="grid min-w-0 gap-6">
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]">
+      <MerchantStoreProfileForm key={merchant.id} data={data} token={token} />
+      <div className="grid min-w-0 gap-6">
           <Card className="space-y-4 border-[#284c35] bg-[#284c35] p-5 text-white sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold">Trạng thái hoạt động & kênh bán</h2>
@@ -49,7 +46,6 @@ export function MerchantStoreDetails({ data, token }: { data: StoreProfileRespon
           <MerchantLoyaltySummary token={token} />
         </div>
       </div>
-    </div>
   );
 }
 

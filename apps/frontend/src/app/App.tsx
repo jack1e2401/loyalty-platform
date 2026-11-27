@@ -14,6 +14,7 @@ import {
   MerchantVouchers,
 } from "../features/merchant/BackendMerchantPages";
 import { MerchantCategoriesPage } from "../features/merchant/MerchantCategoriesPage";
+import { MerchantSettingsPage } from "../features/merchant/MerchantSettingsPage";
 import { MerchantInventoryPage } from "../features/merchant/MerchantInventoryPage";
 import { MerchantProductEditorPage } from "../features/catalog/merchant/products/MerchantProductEditorPage";
 import { MerchantCustomersPage } from "../features/customers/MerchantCustomersPage";
@@ -67,6 +68,7 @@ function BackendRoutes() {
         <Route path="/merchant" element={<BackendConsoleLayout />}>
           <Route index element={<MerchantOverview />} />
           <Route path="store" element={<MerchantStore />} />
+          <Route path="settings" element={<MerchantSettingsPage />} />
           <Route path="storefront" element={<MerchantStorefrontEditor />} />
           <Route path="products/new" element={<MerchantProductEditorPage />} />
           <Route path="products/:productId/edit" element={<MerchantProductEditorPage />} />
