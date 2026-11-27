@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowClockwise, ArrowLeft } from "@phosphor-icons/react";
-import { Alert, Button, Descriptions, Flex, Skeleton } from "antd";
+import { Alert, Button, Descriptions, Flex, Skeleton, Tag } from "antd";
 import { Link, useParams } from "react-router-dom";
 import { createAnalyticsClient } from "../../api/analytics-client";
 import { useAuthSession } from "../../api/auth-session";
@@ -26,6 +26,15 @@ export function MerchantCustomerDetailPage() {
   );
 
   const customer = resource.data?.customer;
+  const currentTier = customer?.wallet.policy?.tiers?.find((t) => t.level === customer.wallet.tier);
+  const currentTierLabel = !customer
+    ? ""
+    : customer.wallet.tier === "UNRANKED"
+      ? "Chưa xếp hạng"
+      : currentTier?.name ?? customer.wallet.tier;
+  const currentTierColor = currentTier?.color && /^#[0-9A-Fa-f]{6}$/.test(currentTier.color)
+    ? currentTier.color
+    : null;
   return (
     <section className="grid min-w-0 gap-5">
       <div>
@@ -116,10 +125,28 @@ export function MerchantCustomerDetailPage() {
             <CmsCard title="Ví điểm Loyalty">
               <Descriptions column={{ xs: 1, sm: 2, lg: 5 }} size="small">
                 <Descriptions.Item label="Hạng hiện tại">
-                  <CmsStatusTag
-                    label={customer.wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : customer.wallet.tier}
-                    tone={customer.wallet.tier === "UNRANKED" ? "neutral" : "info"}
-                  />
+                  {currentTierColor ? (
+                    <Tag
+                      className="m-0 font-semibold"
+                      style={{
+                        borderColor: currentTierColor,
+                        color: "#20392a",
+                        backgroundColor: `${currentTierColor}22`,
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mr-1.5 inline-block size-2 rounded-full align-middle"
+                        style={{ backgroundColor: currentTierColor }}
+                      />
+                      {currentTierLabel}
+                    </Tag>
+                  ) : (
+                    <CmsStatusTag
+                      label={currentTierLabel}
+                      tone={customer.wallet.tier === "UNRANKED" ? "neutral" : "info"}
+                    />
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Điểm khả dụng">
                   <strong className="tabular-nums">{customer.wallet.availablePoints.toLocaleString("vi-VN")}</strong>

@@ -156,7 +156,7 @@ describe("V4 Workstreams D & E UI", () => {
                 merchantId: 1,
                 vndPerPoint: 10000,
                 isActive: true,
-                tiers: [{ level: "BRONZE", minLifetimePoints: 0, multiplier: "1.00" }],
+                tiers: [{ level: "tier-1795430031648", name: "Thành viên Vàng", color: "#d49b27", minLifetimePoints: 0, multiplier: "1.00" }],
               },
               exactBalance: "15.25",
               availablePoints: 15,
@@ -164,7 +164,7 @@ describe("V4 Workstreams D & E UI", () => {
               pointDebt: "0",
               netLifetimeEarned: "15.25",
               lifetimeEarnedPoints: 15,
-              tier: "BRONZE",
+              tier: "tier-1795430031648",
             },
             pointLedger: [
               {
@@ -229,6 +229,8 @@ describe("V4 Workstreams D & E UI", () => {
       expect(screen.getByText("Giảm 20k")).toBeInTheDocument();
       expect(screen.getByText("Matcha ×1")).toBeInTheDocument();
       expect(screen.getByText("0.25")).toBeInTheDocument();
+      expect(screen.getByText("Thành viên Vàng")).toBeInTheDocument();
+      expect(screen.queryByText("tier-1795430031648")).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Nhãn riêng của cửa hàng/)).not.toBeInTheDocument();
     });
   });
