@@ -147,13 +147,16 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
       {target && (
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1d14]/40 backdrop-blur-[2px] transition-opacity" />
-          <Dialog.Content className="surface fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#e3e9e1] p-6 shadow-xl outline-none">
+          <Dialog.Content
+            className="surface merchant-cms fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#e3e9e1] p-5 shadow-xl outline-none"
+            style={{ zoom: 0.8 }}
+          >
             {/* Header with Close button */}
             <div className="relative pr-8">
-              <Dialog.Title className="text-base font-bold text-[#1f3829]">
+              <Dialog.Title className="text-sm font-bold text-[#1f3829]">
                 {target === "new" ? "Tạo sự kiện mới" : `Chỉnh sửa sự kiện #${target.id}`}
               </Dialog.Title>
-              <Dialog.Description className="mt-0.5 text-xs text-[#607767]">
+              <Dialog.Description className="mt-0.5 text-[11.5px] text-[#607767]">
                 Nội dung hiển thị dạng văn bản an toàn trên trang sự kiện cửa hàng.
               </Dialog.Description>
               <button
@@ -161,15 +164,15 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                 onClick={onClose}
                 disabled={busy}
                 aria-label="Đóng"
-                className="absolute -right-1 -top-1 rounded-lg p-1.5 text-[#738879] transition hover:bg-[#edf2ed] hover:text-[#1f3829]"
+                className="absolute -right-1 -top-1 rounded-lg p-1 text-[#738879] transition hover:bg-[#edf2ed] hover:text-[#1f3829]"
               >
-                <X size={18} aria-hidden="true" />
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
 
             {/* Segmented Control Tabs */}
             <div
-              className="mt-4 flex rounded-xl bg-[#edf2ed] p-1 gap-1"
+              className="mt-3.5 flex rounded-xl bg-[#edf2ed] p-1 gap-1"
               role="tablist"
               aria-label="Phân nhóm sự kiện"
             >
@@ -178,13 +181,13 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                 role="tab"
                 aria-selected={activeTab === "schedule"}
                 onClick={() => setActiveTab("schedule")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all ${
                   activeTab === "schedule"
                     ? "bg-white text-[#1f3829] shadow-xs"
                     : "text-[#607767] hover:text-[#1f3829]"
                 }`}
               >
-                <CalendarDots size={15} aria-hidden="true" />
+                <CalendarDots size={14} aria-hidden="true" />
                 Thông tin & Lịch trình
               </button>
               <button
@@ -192,25 +195,25 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                 role="tab"
                 aria-selected={activeTab === "content"}
                 onClick={() => setActiveTab("content")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all ${
                   activeTab === "content"
                     ? "bg-white text-[#1f3829] shadow-xs"
                     : "text-[#607767] hover:text-[#1f3829]"
                 }`}
               >
-                <MapPin size={15} aria-hidden="true" />
+                <MapPin size={14} aria-hidden="true" />
                 Địa điểm & Nội dung
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="mt-3.5 space-y-3" noValidate>
               {/* Tab 1: Thông tin & Lịch trình */}
               <div
-                className={activeTab === "schedule" ? "space-y-3.5" : "hidden"}
+                className={activeTab === "schedule" ? "space-y-3" : "hidden"}
                 role="tabpanel"
                 aria-label="Thông tin & Lịch trình"
               >
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 sm:grid-cols-2">
                   <Field label="Tiêu đề sự kiện">
                     <Input
                       required
@@ -249,11 +252,11 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
 
               {/* Tab 2: Địa điểm & Nội dung */}
               <div
-                className={activeTab === "content" ? "space-y-3.5" : "hidden"}
+                className={activeTab === "content" ? "space-y-3" : "hidden"}
                 role="tabpanel"
                 aria-label="Địa điểm & Nội dung"
               >
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 sm:grid-cols-2">
                   <Field label="Tên địa điểm">
                     <Input
                       required
@@ -289,7 +292,7 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                       <Textarea
                         required
                         maxLength={5000}
-                        rows={4}
+                        rows={3}
                         placeholder="Chia sẻ lịch trình, nội dung nổi bật và lưu ý cho khách ghé thăm..."
                         value={form.description}
                         onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -305,7 +308,7 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
                 </p>
               )}
 
-              <div className="flex justify-end gap-2.5 border-t border-[#edf1ea] pt-4">
+              <div className="flex justify-end gap-2 border-t border-[#edf1ea] pt-3">
                 <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onClose}>
                   Hủy
                 </Button>
