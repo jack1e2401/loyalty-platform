@@ -148,16 +148,12 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1d14]/40 backdrop-blur-[2px] transition-opacity" />
           <Dialog.Content className="surface fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#e3e9e1] p-6 shadow-2xl outline-none">
-            {/* Nội dung bên trong scale 80% */}
-            <div className="merchant-cms" style={{ zoom: 0.82 }}>
+            <div>
               {/* Header with Close button */}
               <div className="relative mb-3.5 pr-8">
                 <Dialog.Title className="text-base font-bold text-[#1f3829]">
                   {target === "new" ? "Tạo sự kiện mới" : `Chỉnh sửa sự kiện #${target.id}`}
                 </Dialog.Title>
-                <Dialog.Description className="mt-0.5 text-xs text-[#607767]">
-                  Nội dung hiển thị dạng văn bản an toàn trên trang sự kiện cửa hàng.
-                </Dialog.Description>
                 <button
                   type="button"
                   onClick={onClose}
