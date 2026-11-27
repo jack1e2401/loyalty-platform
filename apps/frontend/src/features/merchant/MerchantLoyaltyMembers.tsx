@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { createCommerceClient } from "../../api/commerce-http";
 import { useResource } from "../../api/useResource";
-import { Button, EmptyState, ErrorState, Field, Input, LoadingState } from "../../components/ui";
+import { Button, EmptyState, ErrorState, LoadingState } from "../../components/ui";
 import {
   formatPointDelta,
   LoyaltyWalletContent,
@@ -37,18 +37,21 @@ export function MerchantLoyaltyMembers({ token, memberId }: { token: string; mem
   const pagination = resource.data?.pagination;
   return (
     <section aria-label="Thành viên Loyalty" className="space-y-4">
-      <form className="flex flex-wrap items-end gap-2" onSubmit={search}>
-        <Field label="Email thành viên">
-          <Input
+      <form onSubmit={search}>
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#e3e9e2] bg-white p-3.5 shadow-2xs">
+          <input
             type="search"
+            aria-label="Email thành viên"
+            placeholder="Tìm theo email thành viên..."
             value={draftEmail}
             maxLength={191}
             onChange={(event) => setDraftEmail(event.target.value)}
+            className="h-9 min-w-[240px] flex-1 rounded-lg border border-[#dbe3d9] bg-transparent px-3 text-sm text-[#20392a] outline-none transition focus:border-[#356b43]"
           />
-        </Field>
-        <Button type="submit" variant="outline">
-          Tìm
-        </Button>
+          <Button type="submit" variant="outline" className="h-9 px-4 text-xs font-medium">
+            Tìm
+          </Button>
+        </div>
       </form>
       {resource.loading ? (
         <LoadingState cards={2} />
