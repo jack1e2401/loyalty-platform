@@ -1,4 +1,6 @@
 import { useId, useState } from "react";
+import { Alert, Button, Empty, Flex, Input, Segmented, Tag, Typography } from "antd";
+import { ArrowDownLeft, ArrowUpRight, Package } from "@phosphor-icons/react";
 import { ConfirmActionDialog } from "../../components/ui/ConfirmActionDialog";
 
 export type InventoryBalance = {
@@ -82,10 +84,22 @@ export function InventoryPanel({
   const subjectLabel = isVoucher ? "Lượt phát hành" : "Tồn kho";
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState("");
+  const [historyFilter, setHistoryFilter] = useState<"ALL" | "IN" | "OUT">("ALL");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [pending, setPending] = useState<InventoryAdjustment | null>(null);
+
+  const parsedQty = Number(quantity);
+  const validPreviewQty = Number.isSafeInteger(parsedQty) && parsedQty > 0 && parsedQty <= 2_147_483_647 ? parsedQty : null;
+  const quickReasons = isVoucher
+    ? ["Bổ sung lượt phát hành", "Điều chỉnh chiến dịch", "Thu hồi lượt"]
+    : ["Nhập lô hàng mới", "Kiểm kê bổ sung", "Hàng hỏng / hết hạn", "Khách trả hàng"];
+  const filteredMovements = movements.filter((m) => {
+    if (historyFilter === "IN") return m.quantityDelta > 0;
+    if (historyFilter === "OUT") return m.quantityDelta < 0;
+    return true;
+  });
 
   async function submit(event: { preventDefault: () => void }, direction: InventoryAdjustment["direction"]) {
     event.preventDefault();
@@ -138,77 +152,110 @@ export function InventoryPanel({
       </h2>
       {mode !== "history" && (
         <>
-          {!uninitialized && <dl className="grid grid-cols-3 gap-3 text-sm">
-            {!isVoucher && (
-              <>
-                <div>
-                  <dt className="muted">Tồn thực tế</dt>
-                  <dd className="mt-1 text-xl font-bold">{balance.onHandQuantity}</dd>
+          {!uninitialized && (
+            <div className={`grid gap-3 ${isVoucher ? "grid-cols-1" : "grid-cols-3"}`}>
+              {!isVoucher && (
+                <>
+                  <div className="rounded-xl border border-[#e3e9e1] bg-[#fcfdfc] p-3">
+                    <div className="text-xs text-[#607767]">Tồn thực tế</div>
+                    <div className="mt-1 text-xl font-bold tabular-nums text-[#1f3829]">{balance.onHandQuantity}</div>
+                  </div>
+                  <div className="rounded-xl border border-[#e3e9e1] bg-[#fcfdfc] p-3">
+                    <div className="text-xs text-[#607767]">Đã giữ chỗ</div>
+                    <div className="mt-1 text-xl font-bold tabular-nums text-[#8c5a17]">{balance.reservedQuantity}</div>
+                  </div>
+                </>
+              )}
+              <div className="rounded-xl border border-[#d7e4d8] bg-[#f7faf7] p-3">
+                <div className="text-xs font-medium text-[#2f5a3e]">
+                  {isVoucher ? "Lượt còn lại" : "Có thể bán"}
                 </div>
-                <div>
-                  <dt className="muted">Đã giữ chỗ</dt>
-                  <dd className="mt-1 text-xl font-bold">{balance.reservedQuantity}</dd>
-                </div>
-              </>
-            )}
-            <div>
-              <dt className="muted">{isVoucher ? "Lượt còn lại" : "Có thể bán"}</dt>
-              <dd className="mt-1 text-xl font-bold">{balance.availableQuantity}</dd>
+                <div className="mt-1 text-xl font-bold tabular-nums text-[#1f3829]">{balance.availableQuantity}</div>
+              </div>
             </div>
-          </dl>}
+          )}
 
-          <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => event.preventDefault()}>
-            <label className="grid gap-1 text-sm font-semibold">
-              Số lượng
-              <input
+          <form
+            className="grid gap-3 rounded-xl border border-[#e3e9e1] bg-[#fcfdfc] p-4 sm:grid-cols-2"
+            onSubmit={(event) => event.preventDefault()}
+          >
+            <div className="grid gap-1.5">
+              <label htmlFor={`${titleId}-qty`} className="text-xs font-semibold text-[#20392a]">
+                Số lượng
+              </label>
+              <Input
+                id={`${titleId}-qty`}
                 aria-label="Số lượng"
-                className="rounded-lg border px-3 py-2"
                 inputMode="numeric"
                 type="number"
                 min="1"
                 max="2147483647"
                 step="1"
+                placeholder="Nhập số lượng..."
                 value={quantity}
                 onChange={(event) => setQuantity(event.target.value)}
               />
-            </label>
-            <label className="grid gap-1 text-sm font-semibold">
-              Ghi chú
-              <input
+            </div>
+            <div className="grid gap-1.5">
+              <label htmlFor={`${titleId}-reason`} className="text-xs font-semibold text-[#20392a]">
+                Ghi chú
+              </label>
+              <Input
+                id={`${titleId}-reason`}
                 aria-label="Ghi chú"
-                className="rounded-lg border px-3 py-2"
                 maxLength={255}
+                placeholder="Lý do điều chỉnh kho..."
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
+                allowClear
               />
-            </label>
-            <div className="flex gap-2 sm:col-span-2">
-              <button
-                type="button"
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2">
+              <Typography.Text type="secondary" className="text-xs">Gợi ý:</Typography.Text>
+              {quickReasons.map((item) => (
+                <Tag
+                  key={item}
+                  onClick={() => setReason(item)}
+                  className="cursor-pointer rounded-md border-[#d7e4d8] bg-white text-xs text-[#2f5a3e] hover:border-[#2f5a3e]"
+                >
+                  {item}
+                </Tag>
+              ))}
+            </div>
+            {validPreviewQty !== null && !uninitialized && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-[#e3e9e1] bg-white px-3 py-2 text-xs text-[#607767] sm:col-span-2">
+                <span>
+                  Nếu nhập: <strong className="text-[#1f6a3f]">{balance.availableQuantity} → {balance.availableQuantity + validPreviewQty}</strong>
+                </span>
+                <span>
+                  Nếu xuất: <strong className="text-[#a4473a]">{balance.availableQuantity} → {Math.max(0, balance.availableQuantity - validPreviewQty)}</strong>
+                </span>
+              </div>
+            )}
+            <Flex gap={8} wrap className="sm:col-span-2">
+              <Button
+                type="primary"
+                icon={<ArrowDownLeft size={15} />}
                 disabled={loading}
                 onClick={(event) => void submit(event, "in")}
-                className="rounded-lg bg-[#315c3c] px-4 py-2 font-semibold text-white disabled:opacity-60"
+                className="bg-[#20392a] hover:!bg-[#2e523c]"
               >
                 {loading ? "Đang lưu…" : isVoucher ? "Tăng lượt phát hành" : "Nhập kho"}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                danger
+                icon={<ArrowUpRight size={15} />}
                 disabled={loading || uninitialized}
                 onClick={(event) => void submit(event, "out")}
-                className="rounded-lg border px-4 py-2 font-semibold disabled:opacity-60"
               >
                 {loading ? "Đang lưu…" : isVoucher ? "Giảm lượt phát hành" : "Xuất kho"}
-              </button>
-            </div>
+              </Button>
+            </Flex>
             {error && !pending && (
-              <p role="alert" className="sm:col-span-2 text-sm text-red-700">
-                {error}
-              </p>
+              <Alert role="alert" type="error" showIcon title={error} className="sm:col-span-2" />
             )}
             {success && (
-              <p role="status" className="sm:col-span-2 text-sm text-green-800">
-                {success}
-              </p>
+              <Alert role="status" type="success" showIcon title={success} className="sm:col-span-2" />
             )}
           </form>
         </>
@@ -220,42 +267,80 @@ export function InventoryPanel({
         confirmLabel="Xác nhận điều chỉnh" busy={loading} error={error} onConfirm={() => void confirmAdjustment()} />
 
       {mode !== "adjust" && (
-        <div>
-          {mode !== "history" && <h3 className="mb-2 font-bold">Lịch sử điều chỉnh</h3>}
-          {movements.length === 0 ? (
-            <p className="text-sm muted">
-              {isVoucher ? "Chưa có lịch sử phát hành." : "Chưa có lịch sử tồn kho."}
-            </p>
+        <div className="space-y-3">
+          <Flex justify="space-between" align="center" wrap gap={8}>
+            {mode !== "history" ? (
+              <Typography.Title level={5} style={{ margin: 0 }}>Lịch sử điều chỉnh</Typography.Title>
+            ) : <span />}
+            {movements.length > 0 && (
+              <Segmented
+                size="small"
+                aria-label="Lọc chiều biến động"
+                value={historyFilter}
+                onChange={(val) => setHistoryFilter(val as "ALL" | "IN" | "OUT")}
+                options={[
+                  { label: `Tất cả (${movements.length})`, value: "ALL" },
+                  { label: "Nhập / Tăng", value: "IN" },
+                  { label: "Xuất / Giảm", value: "OUT" },
+                ]}
+              />
+            )}
+          </Flex>
+          {filteredMovements.length === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={isVoucher ? "Chưa có lịch sử phát hành." : "Chưa có lịch sử tồn kho."}
+            />
           ) : (
-            <ul className="divide-y divide-[#edf1ea]">
-              {movements.map((movement) => (
-                <li key={movement.id} className="py-3 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <span className="font-semibold">{movement.reason}</span>
-                    <span>
-                      {movement.quantityDelta > 0 ? "+" : ""}
-                      {movement.quantityDelta}
-                    </span>
-                  </div>
-                  <p className="mt-1">
-                    {(isVoucher ? voucherMovementLabels[movement.movementType] : undefined) ??
-                      movementLabels[movement.movementType] ??
-                      movement.movementType}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 muted">
-                    <span>
-                      {isVoucher ? "Lượt còn lại" : "Tồn"}: {movement.onHandBefore} → {movement.onHandAfter}
-                    </span>
-                    {!isVoucher && (
-                      <span>
-                        Đã giữ: {movement.reservedBefore} → {movement.reservedAfter}
+            <ul className="grid gap-2.5">
+              {filteredMovements.map((movement) => {
+                const isPositive = movement.quantityDelta > 0;
+                const typeText =
+                  (isVoucher ? voucherMovementLabels[movement.movementType] : undefined) ??
+                  movementLabels[movement.movementType] ??
+                  movement.movementType;
+                return (
+                  <li
+                    key={movement.id}
+                    className="rounded-xl border border-[#e3e9e1] bg-white p-3.5 text-sm transition hover:border-[#cddac9]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-[#1f3829]">{movement.reason}</span>
+                          <Tag
+                            className="m-0 rounded-md border-0 text-[11px]"
+                            color={isPositive ? "green" : "volcano"}
+                          >
+                            {typeText}
+                          </Tag>
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-lg px-2 py-0.5 text-xs font-bold tabular-nums ${
+                          isPositive ? "bg-[#e8f5ee] text-[#1f6a3f]" : "bg-[#fdeceb] text-[#a4473a]"
+                        }`}
+                      >
+                        {isPositive ? "+" : ""}
+                        {movement.quantityDelta}
                       </span>
-                    )}
-                    <span>Thực hiện bởi {actorLabel(movement)}</span>
-                    <time dateTime={movement.createdAt}>{dateTime(movement.createdAt)}</time>
-                  </div>
-                </li>
-              ))}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#607767]">
+                      <span className="inline-flex items-center gap-1 font-medium text-[#20392a]">
+                        <Package size={13} aria-hidden="true" />
+                        {isVoucher ? "Lượt còn lại" : "Tồn"}: {movement.onHandBefore} → {movement.onHandAfter}
+                      </span>
+                      {!isVoucher && (
+                        <span>
+                          Đã giữ: {movement.reservedBefore} → {movement.reservedAfter}
+                        </span>
+                      )}
+                      <span>Thực hiện bởi {actorLabel(movement)}</span>
+                      <time dateTime={movement.createdAt}>{dateTime(movement.createdAt)}</time>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

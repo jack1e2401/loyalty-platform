@@ -39,3 +39,9 @@
   - **Tìm kiếm & lọc nâng cao phía server (`GET /api/merchant/refund-requests`):** Hỗ trợ query `q` (tìm theo mã yêu cầu, mã đơn, email thành viên trên toàn bộ dữ liệu) và lọc theo khoảng ngày (`from`, `to`).
   - **Đếm số lượng theo trạng thái (`statusCounts`):** Trả thêm số lượng yêu cầu theo từng trạng thái (`PENDING_MERCHANT`, `COMPLETED`, `REJECTED`) để hiển thị badge đếm trên bộ lọc và sidebar.
   - **Thông tin người duyệt (`merchantReviewedByEmail` / `Name`):** Bổ sung tên/email người duyệt tương ứng với `merchantReviewedById` trong chi tiết yêu cầu hoàn tiền để audit lịch sử rõ ràng hơn.
+
+## 6. Tối ưu API cho Quản lý Kho (`/merchant/products` & `/merchant/inventory`)
+- **Hiện trạng:** Giao diện điều chỉnh và lịch sử kho ([`InventoryPanel.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/InventoryPanel.tsx), [`MerchantProductInventoryCell.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/MerchantProductInventoryCell.tsx), [`MerchantInventoryPage.tsx`](file:///d:/.Learn/IncomSG/apps/frontend/src/features/merchant/MerchantInventoryPage.tsx)) đã được nâng cấp Ant Design và bổ sung preview/lọc chiều biến động/xuất CSV.
+- **Cần làm ở Backend:**
+  - **Loại bỏ N+1 request trên bảng Sản phẩm:** `GET /api/merchant/products` nên trả đầy đủ `inventory` (`onHandQuantity`, `reservedQuantity`, `availableQuantity`) và `isLowStock` cho từng sản phẩm để FE không phải gọi riêng `GET /inventory` cho từng dòng khi render bảng, chỉ fetch `/inventory` khi mở Drawer chi tiết.
+  - **Phân trang & lọc phía server cho lịch sử biến động kho:** Hiện `/inventory` mới trả tối đa 100 giao dịch gần nhất; cần bổ sung `page`, `limit`, `q`, `direction` (`in`/`out`), `from`/`to` cho kho hàng có nhiều biến động dài hạn.

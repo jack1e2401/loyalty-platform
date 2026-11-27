@@ -79,4 +79,35 @@ describe("Merchant inventory panel", () => {
     expect(screen.queryByRole("status")).toBeNull();
     expect((screen.getByRole("button", { name: "Xác nhận điều chỉnh" }) as HTMLButtonElement).disabled).toBe(false);
   });
+
+  it("supports quick reason tags, live balance preview, and movement direction filtering", () => {
+    const mixedMovements: InventoryMovement[] = [
+      ...movements,
+      {
+        id: 2,
+        movementType: "MANUAL_OUT",
+        quantityDelta: -2,
+        onHandBefore: 10,
+        onHandAfter: 8,
+        reservedBefore: 1,
+        reservedAfter: 1,
+        reason: "Hàng hỏng",
+        actorId: 7,
+        actorEmail: "merchant@example.com",
+        createdAt: "2026-11-13T10:00:00.000Z",
+      },
+    ];
+    render(<InventoryPanel {...props({ movements: mixedMovements })} />);
+
+    fireEvent.click(screen.getByText("Kiểm kê bổ sung"));
+    expect((screen.getByLabelText("Ghi chú") as HTMLInputElement).value).toBe("Kiểm kê bổ sung");
+
+    fireEvent.change(screen.getByLabelText("Số lượng"), { target: { value: "3" } });
+    expect(screen.getByText("5 → 8")).toBeTruthy();
+    expect(screen.getByText("5 → 2")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Xuất / Giảm"));
+    expect(screen.getByText("Hàng hỏng")).toBeTruthy();
+    expect(screen.queryByText("Nhập hàng mới")).toBeNull();
+  });
 });

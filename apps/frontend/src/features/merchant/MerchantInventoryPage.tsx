@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { Button, Input, Segmented } from "antd";
+import { Alert, Button, Flex, Input, Segmented } from "antd";
+import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { createCommerceClient } from "../../api/commerce-http";
 import { useResource } from "../../api/useResource";
 import { ErrorState, LoadingState } from "../../components/ui";
+import { CmsCard, CmsPageHeader } from "./cms";
 import { useToken } from "./merchant-page-support";
 import { InventoryPanel, type InventoryAdjustment, type InventoryMovement } from "./InventoryPanel";
 
@@ -58,14 +60,74 @@ export function MerchantInventoryPage() {
   }
 
   const movements = (resource.data?.movements ?? []).filter((m) => [m.reason, m.actorEmail, m.movementType, String(m.id)].some((value) => value?.toLocaleLowerCase("vi-VN").includes(query.trim().toLocaleLowerCase("vi-VN"))));
-  return <section className="mx-auto grid w-full max-w-6xl gap-6">
-    <Link to={isVoucher ? "/merchant/vouchers" : "/merchant/products"}>← {isVoucher ? "Quay lại voucher" : "Quay lại sản phẩm"}</Link>
-    <h1 className="text-2xl font-bold">{isVoucher ? "Lượt phát hành voucher" : kind === "reward" ? "Tồn kho quà tặng" : "Tồn kho sản phẩm"} #{id}</h1>
-    <div><Segmented aria-label="Chế độ tồn kho" value={mode} onChange={(value) => setParams(value === "history" ? { tab: "history" } : {})} options={[{ label: "Điều chỉnh", value: "adjust" }, { label: "Lịch sử", value: "history" }]} /></div>
-    {resource.loading ? <LoadingState /> : resource.error || !resource.data ? <ErrorState message={resource.error ?? "Không tải được tồn kho."} retry={resource.reload} /> : <div className="surface min-w-0 rounded-2xl p-5 sm:p-7">
-      {mode === "history" && <div className="mb-5 grid gap-3"><p className="text-sm text-[#53645a]">Tìm kiếm và xuất tối đa 100 giao dịch gần nhất.</p><div className="flex flex-wrap gap-3"><Input aria-label="Tìm lịch sử" placeholder="Ghi chú, loại hoặc người thực hiện" value={query} onChange={(event) => setQuery(event.target.value)} style={{ maxWidth: 360 }} allowClear /><Button disabled={!movements.length} onClick={() => exportMovements(movements)}>Xuất CSV</Button></div></div>}
-      {resource.data.inventory === null && <p role="status" className="mb-4 text-sm text-[#53645a]">Voucher chưa có số dư lượt phát hành. Nhập lượt để bắt đầu; số dư ban đầu sẽ được ghi nhận là 0.</p>}
-      {mode === "history" && query.trim() && !movements.length && resource.data.movements.length ? <p className="text-sm text-[#53645a]">Không có giao dịch phù hợp.</p> : <InventoryPanel balance={resource.data.inventory ?? { onHandQuantity: 0, reservedQuantity: 0, availableQuantity: 0 }} uninitialized={resource.data.inventory === null} movements={movements} onAdjust={adjust} mode={mode} subject={isVoucher ? "voucher" : "product"} />}
-    </div>}
-  </section>;
+  return (
+    <section className="mx-auto grid w-full max-w-6xl gap-5">
+      <div>
+        <Link to={isVoucher ? "/merchant/vouchers" : "/merchant/products"} className="text-sm font-medium text-[#2f5a3e] hover:underline">
+          ← {isVoucher ? "Quay lại voucher" : "Quay lại sản phẩm"}
+        </Link>
+      </div>
+      <CmsPageHeader title={`${isVoucher ? "Lượt phát hành voucher" : kind === "reward" ? "Tồn kho quà tặng" : "Tồn kho sản phẩm"} #${id}`} />
+      <div>
+        <Segmented
+          aria-label="Chế độ tồn kho"
+          style={{ background: "#e9f0e9", border: "1px solid #d7e4d8", padding: 4 }}
+          value={mode}
+          onChange={(value) => setParams(value === "history" ? { tab: "history" } : {})}
+          options={[
+            { label: "Điều chỉnh", value: "adjust" },
+            { label: "Lịch sử", value: "history" },
+          ]}
+        />
+      </div>
+      {resource.loading ? (
+        <LoadingState />
+      ) : resource.error || !resource.data ? (
+        <ErrorState message={resource.error ?? "Không tải được tồn kho."} retry={resource.reload} />
+      ) : (
+        <CmsCard>
+          {mode === "history" && (
+            <div className="mb-5 grid gap-3">
+              <p className="text-sm text-[#53645a]">Tìm kiếm và xuất tối đa 100 giao dịch gần nhất.</p>
+              <Flex gap={12} wrap>
+                <Input
+                  aria-label="Tìm lịch sử"
+                  placeholder="Ghi chú, loại hoặc người thực hiện"
+                  prefix={<MagnifyingGlass size={16} className="text-[#7d8a80]" />}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  style={{ maxWidth: 360 }}
+                  allowClear
+                />
+                <Button icon={<DownloadSimple size={16} />} disabled={!movements.length} onClick={() => exportMovements(movements)}>
+                  Xuất CSV
+                </Button>
+              </Flex>
+            </div>
+          )}
+          {resource.data.inventory === null && (
+            <Alert
+              role="status"
+              type="info"
+              showIcon
+              className="mb-4"
+              title="Voucher chưa có số dư lượt phát hành. Nhập lượt để bắt đầu; số dư ban đầu sẽ được ghi nhận là 0."
+            />
+          )}
+          {mode === "history" && query.trim() && !movements.length && resource.data.movements.length ? (
+            <p className="text-sm text-[#53645a]">Không có giao dịch phù hợp.</p>
+          ) : (
+            <InventoryPanel
+              balance={resource.data.inventory ?? { onHandQuantity: 0, reservedQuantity: 0, availableQuantity: 0 }}
+              uninitialized={resource.data.inventory === null}
+              movements={movements}
+              onAdjust={adjust}
+              mode={mode}
+              subject={isVoucher ? "voucher" : "product"}
+            />
+          )}
+        </CmsCard>
+      )}
+    </section>
+  );
 }
