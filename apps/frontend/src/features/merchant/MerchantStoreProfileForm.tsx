@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { ArrowCounterClockwise, ArrowUpRight, Copy } from "@phosphor-icons/react";
+import { Alert, Button, Collapse, Flex, Form, Input, Tag, Typography } from "antd";
 import { createStorefrontClient } from "../../api/storefront-client";
 import type { StoreProfile, StoreProfileResponse } from "../../api/storefront-types";
-import { Button, Card, Field, Input, Textarea } from "../../components/ui";
 import { ConfirmActionDialog } from "../../components/ui/ConfirmActionDialog";
 import { StorefrontImageField } from "../storefront/StorefrontImageField";
 import { StorefrontOpeningHoursEditor } from "../storefront/StorefrontOpeningHoursEditor";
+import { CmsCard } from "./cms";
 
 const api = createStorefrontClient();
 
@@ -21,6 +23,12 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
   function change<K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
     setNotice("");
+  }
+
+  function resetDraft() {
+    setDraft(saved);
+    setError("");
+    setNotice("Đã hoàn tác các thay đổi chưa lưu.");
   }
 
   async function save() {
@@ -60,50 +68,137 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
   ] as const satisfies readonly [keyof StoreProfile, string, number, string][];
 
   return (
-    <form className="min-w-0 space-y-5" onSubmit={(event) => {
-      event.preventDefault();
-      if (!changed || busy) return;
-      setError("");
-      setConfirming(true);
-    }}>
-      <Card className="space-y-4 p-5 sm:p-6">
-        <h2 className="text-lg font-extrabold">Hồ sơ cửa hàng</h2>
-        <Field label="Tên cửa hàng">
-          <Input required value={draft.name} maxLength={191} onChange={(event) => change("name", event.target.value)} />
-        </Field>
-        <div className="flex flex-wrap items-end gap-2 [&>label]:flex-1">
-          <Field label="Đường dẫn cửa hàng">
-            <Input readOnly value={path} />
-          </Field>
-          <Button type="button" variant="outline" onClick={() => void copyLink()}>Sao chép liên kết</Button>
+    <Form
+      layout="vertical"
+      className="min-w-0 space-y-5"
+      onSubmitCapture={(event) => {
+        event.preventDefault();
+        if (!changed || busy) return;
+        setError("");
+        setConfirming(true);
+      }}
+    >
+      <CmsCard title="Hồ sơ cửa hàng">
+        <div className="space-y-1">
+          <Form.Item label="Tên cửa hàng" htmlFor="store-profile-name" required>
+            <Input
+              id="store-profile-name"
+              required
+              maxLength={191}
+              value={draft.name}
+              onChange={(event) => change("name", event.target.value)}
+            />
+          </Form.Item>
+
+          <Form.Item label="Đường dẫn cửa hàng" htmlFor="store-profile-slug">
+            <Flex gap={8} wrap>
+              <Input id="store-profile-slug" readOnly value={path} className="min-w-[200px] flex-1 bg-[#f7faf6]" />
+              <Button icon={<Copy size={15} />} onClick={() => void copyLink()}>
+                Sao chép liên kết
+              </Button>
+              <Button
+                icon={<ArrowUpRight size={15} />}
+                href={path}
+                target="_blank"
+                rel="noopener"
+              >
+                Xem gian hàng
+              </Button>
+            </Flex>
+          </Form.Item>
+
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            {contacts.map(([key, label, maxLength, type]) => (
+              <Form.Item key={key} label={label} htmlFor={`store-profile-${key}`}>
+                <Input
+                  id={`store-profile-${key}`}
+                  type={type}
+                  maxLength={maxLength}
+                  value={draft[key] ?? ""}
+                  onChange={(event) => change(key, event.target.value || null)}
+                />
+              </Form.Item>
+            ))}
+          </div>
+
+          <Form.Item label="Mô tả ngắn" htmlFor="store-profile-description">
+            <Input.TextArea
+              id="store-profile-description"
+              rows={3}
+              maxLength={500}
+              value={draft.footerDescription ?? ""}
+              onChange={(event) => change("footerDescription", event.target.value || null)}
+            />
+          </Form.Item>
+
+          <StorefrontImageField
+            label="Logo cửa hàng"
+            layout="horizontal"
+            value={draft.logoUrl}
+            onChange={(url) => change("logoUrl", url)}
+            onUpload={upload}
+          />
+
+          <Collapse
+            ghost
+            className="mt-2 -mx-3"
+            items={[
+              {
+                key: "store-image",
+                label: <span className="font-semibold text-[#20392a]">Ảnh cửa hàng (tùy chọn)</span>,
+                children: (
+                  <StorefrontImageField
+                    label="Ảnh ở thẻ thông tin"
+                    value={draft.storeImageUrl ?? null}
+                    onChange={(url) => change("storeImageUrl", url)}
+                    onUpload={upload}
+                  />
+                ),
+              },
+            ]}
+          />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {contacts.map(([key, label, maxLength, type]) => (
-            <Field key={key} label={label}>
-              <Input type={type} maxLength={maxLength} value={draft[key] ?? ""} onChange={(event) => change(key, event.target.value || null)} />
-            </Field>
-          ))}
-        </div>
-        <Field label="Mô tả ngắn">
-          <Textarea maxLength={500} value={draft.footerDescription ?? ""} onChange={(event) => change("footerDescription", event.target.value || null)} />
-        </Field>
-        <StorefrontImageField
-          label="Logo cửa hàng"
-          layout="horizontal"
-          value={draft.logoUrl}
-          onChange={(url) => change("logoUrl", url)}
-          onUpload={upload}
-        />
-        <details className="space-y-3">
-          <summary className="cursor-pointer text-sm font-semibold">Ảnh cửa hàng (tùy chọn)</summary>
-          <StorefrontImageField label="Ảnh ở thẻ thông tin" value={draft.storeImageUrl ?? null} onChange={(url) => change("storeImageUrl", url)} onUpload={upload} />
-        </details>
-      </Card>
+      </CmsCard>
+
       <StorefrontOpeningHoursEditor value={draft.openingHours ?? null} onChange={(hours) => change("openingHours", hours)} />
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={!changed || busy}>Lưu thông tin</Button>
-        {notice && <p role="status" className="text-sm">{notice}</p>}
+
+      <div
+        role="region"
+        aria-label="Thanh lưu thông tin cửa hàng"
+        className={`sticky bottom-4 z-20 rounded-xl border p-3.5 shadow-[0_6px_20px_rgba(32,57,42,0.10)] backdrop-blur transition-colors ${
+          changed ? "border-[#e5b869] bg-[#fffcf5]/95" : "border-[#e3e9e2] bg-white/95"
+        }`}
+      >
+        <Flex align="center" justify="space-between" gap={12} wrap>
+          <Flex align="center" gap={8} wrap className="min-w-0 flex-1">
+            {changed ? (
+              <>
+                <Tag color="warning" className="m-0">Có thay đổi chưa lưu</Tag>
+                <Typography.Text type="secondary" className="text-xs">
+                  Lưu để cập nhật ngay lên trang cửa hàng công khai.
+                </Typography.Text>
+              </>
+            ) : notice ? (
+              <Alert role="status" type="success" showIcon title={notice} className="w-full py-1" />
+            ) : (
+              <Typography.Text type="secondary" className="text-xs">
+                Mọi thay đổi đã được lưu.
+              </Typography.Text>
+            )}
+          </Flex>
+          <Flex align="center" gap={8} wrap>
+            {changed ? (
+              <Button icon={<ArrowCounterClockwise size={15} />} disabled={busy} onClick={resetDraft}>
+                Hoàn tác
+              </Button>
+            ) : null}
+            <Button type="primary" htmlType="submit" disabled={!changed || busy} loading={busy}>
+              Lưu thông tin
+            </Button>
+          </Flex>
+        </Flex>
       </div>
+
       <ConfirmActionDialog
         open={confirming}
         onOpenChange={setConfirming}
@@ -114,6 +209,6 @@ export function MerchantStoreProfileForm({ data, token }: { data: StoreProfileRe
         error={error}
         onConfirm={() => void save()}
       />
-    </form>
+    </Form>
   );
 }
