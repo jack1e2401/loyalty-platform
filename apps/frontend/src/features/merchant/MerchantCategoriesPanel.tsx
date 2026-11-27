@@ -1,9 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from "react";
-import { Alert, Button, Flex, Form, Input, InputNumber, type TableColumnsType } from "antd";
-import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Alert, Button, Flex, Form, Input, InputNumber, Typography, type TableColumnsType } from "antd";
+import { ArrowClockwise, MagnifyingGlass, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { createCommerceClient, translateApiError } from "../../api/commerce-http";
 import type { ProductCategoryDto } from "../../api/commerce-types";
-import { CmsConfirmAction, CmsDataTable, CmsFormDrawer } from "./cms";
+import { CmsConfirmAction, CmsDataTable, CmsFilterBar, CmsFormDrawer } from "./cms";
 
 const api = createCommerceClient(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000");
 
@@ -16,6 +16,17 @@ export function MerchantCategoriesPanel({ token, categories, loading, error, onC
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const [search, setSearch] = useState("");
+
+  const filteredCategories = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return categories;
+    return categories.filter((category) =>
+      category.name.toLowerCase().includes(query)
+      || category.slug.toLowerCase().includes(query)
+      || (category.description ?? "").toLowerCase().includes(query),
+    );
+  }, [categories, search]);
 
   function openNew() { setForm(emptyForm); setActionError(""); setNotice(""); }
   function openEdit(category: ProductCategoryDto) {
@@ -90,15 +101,35 @@ export function MerchantCategoriesPanel({ token, categories, loading, error, onC
           <Button type="primary" icon={<Plus size={16} />} onClick={openNew}>Thêm danh mục</Button>
         </Flex>
       </Flex>
-      {notice ? <Alert type="success" showIcon title={notice} /> : null}
-      {error || (actionError && !form) ? <Alert type="error" showIcon title={error || actionError} /> : null}
+      {notice ? <Alert role="status" type="success" showIcon title={notice} /> : null}
+      {error || (actionError && !form) ? <Alert role="alert" type="error" showIcon title={error || actionError} /> : null}
+      <CmsFilterBar label="Bộ lọc danh mục" className="mb-0">
+        <Input
+          allowClear
+          aria-label="Tìm danh mục"
+          prefix={<MagnifyingGlass size={15} className="text-[#68776d]" />}
+          placeholder="Tìm theo tên hoặc slug danh mục..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="w-full sm:max-w-xs"
+        />
+        {search.trim() ? (
+          <Button size="middle" onClick={() => setSearch("")}>Đặt lại</Button>
+        ) : null}
+        <Flex align="center" gap={12} className="ml-auto">
+          <Typography.Text type="secondary" className="text-xs">
+            {search.trim() ? `Hiển thị ${filteredCategories.length} / ${categories.length} danh mục` : `${categories.length} danh mục`}
+          </Typography.Text>
+          <Button icon={<ArrowClockwise size={15} />} loading={loading} onClick={onChanged}>Làm mới</Button>
+        </Flex>
+      </CmsFilterBar>
       <CmsDataTable
         label="Danh mục sản phẩm"
-        rows={categories}
+        rows={filteredCategories}
         columns={columns}
         rowKey="id"
         loading={loading}
-        emptyText="Chưa có danh mục nào."
+        emptyText={search.trim() && categories.length > 0 ? "Không tìm thấy danh mục phù hợp." : "Chưa có danh mục nào."}
         tableLayout="fixed"
         scroll={{ x: 760 }}
       />
