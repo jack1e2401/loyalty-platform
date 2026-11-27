@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ArrowLeft } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowLeft } from "@phosphor-icons/react";
+import { Alert, Button, Descriptions, Flex, Skeleton } from "antd";
 import { Link, useParams } from "react-router-dom";
 import { createAnalyticsClient } from "../../api/analytics-client";
 import { useAuthSession } from "../../api/auth-session";
 import { useResource } from "../../api/useResource";
-import { Button, Card, ErrorState, LoadingState, PageHeader, StatCard } from "../../components/ui";
+import { CmsCard, CmsPageHeader, CmsStatCard, CmsStatusTag } from "../merchant/cms";
 import { MemberLoyaltyPolicyDialog } from "../member/MemberLoyaltyPolicyDialog";
 import { money } from "../../lib/utils";
 import { CustomerHistorySections } from "./CustomerHistorySections";
@@ -26,69 +27,83 @@ export function MerchantCustomerDetailPage() {
 
   const customer = resource.data?.customer;
   return (
-    <div className="space-y-6">
-      <Button asChild variant="outline" size="sm">
+    <section className="grid min-w-0 gap-5">
+      <div>
         <Link to="/merchant/customers">
-          <ArrowLeft size={16} aria-hidden="true" /> Danh sách khách hàng
+          <Button icon={<ArrowLeft size={15} />}>Danh sách khách hàng</Button>
         </Link>
-      </Button>
+      </div>
 
-      {resource.loading ? (
-        <LoadingState cards={3} />
-      ) : resource.error ? (
-        <ErrorState message={resource.error} retry={resource.reload} />
+      {resource.loading && !customer ? (
+        <CmsCard>
+          <Skeleton active paragraph={{ rows: 6 }} />
+        </CmsCard>
+      ) : resource.error && !customer ? (
+        <Alert
+          role="alert"
+          type="error"
+          showIcon
+          title="Không tải được chi tiết khách hàng"
+          description={resource.error}
+          action={
+            <Button size="small" onClick={resource.reload}>
+              Thử lại
+            </Button>
+          }
+        />
       ) : (
         customer && (
           <>
-            <PageHeader
+            <CmsPageHeader
               title={customer.member.name || customer.member.email}
               description={`Thành viên #${customer.member.id} · Tham gia ${new Date(customer.member.joinedAt).toLocaleDateString("vi-VN")}`}
-              action={<MemberLoyaltyPolicyDialog policy={customer.wallet.policy} />}
+              action={
+                <Flex gap={8} wrap>
+                  <Button icon={<ArrowClockwise size={15} />} loading={resource.loading} onClick={resource.reload}>
+                    Làm mới
+                  </Button>
+                  <MemberLoyaltyPolicyDialog policy={customer.wallet.policy} />
+                </Flex>
+              }
             />
 
-            <Card className="p-5 sm:p-6">
-              <h2 className="text-lg font-extrabold text-[#20392a]">Hồ sơ khách hàng</h2>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <dt className="text-xs font-bold muted">Email</dt>
-                  <dd className="mt-1 break-all text-sm">{customer.member.email}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold muted">Điện thoại</dt>
-                  <dd className="mt-1 text-sm">{customer.member.phone || "Chưa cập nhật"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold muted">Ngày sinh</dt>
-                  <dd className="mt-1 text-sm">{customer.member.birthDate || "Chưa cập nhật"}</dd>
-                </div>
-                <div className="sm:col-span-2 lg:col-span-4">
-                  <dt className="text-xs font-bold muted">Địa chỉ</dt>
-                  <dd className="mt-1 text-sm">{customer.member.address || "Chưa cập nhật"}</dd>
-                </div>
-              </dl>
-
-            </Card>
+            <CmsCard title="Hồ sơ khách hàng">
+              <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
+                <Descriptions.Item label="Email">
+                  <span className="break-all">{customer.member.email}</span>
+                </Descriptions.Item>
+                <Descriptions.Item label="Điện thoại">
+                  {customer.member.phone || "Chưa cập nhật"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Ngày sinh">
+                  {customer.member.birthDate || "Chưa cập nhật"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Địa chỉ">
+                  {customer.member.address || "Chưa cập nhật"}
+                </Descriptions.Item>
+              </Descriptions>
+            </CmsCard>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard
+              <CmsStatCard
                 label="Tổng đơn hàng"
                 value={customer.stats.totalOrders}
-                note={`${customer.stats.paidOrderCount} đã trả · ${customer.stats.refundPendingOrderCount} chờ hoàn · ${customer.stats.refundedOrderCount} đã hoàn`}
+                description={`${customer.stats.paidOrderCount} đã trả · ${customer.stats.refundPendingOrderCount} chờ hoàn · ${customer.stats.refundedOrderCount} đã hoàn`}
               />
-              <StatCard
+              <CmsStatCard
                 label="Chi tiêu đơn đủ điều kiện"
                 value={money(Number(customer.stats.netSpendVnd))}
-                note={
+                description={
                   customer.stats.refundPendingOrderCount > 0
                     ? `Chờ hoàn: ${money(Number(customer.stats.refundPendingSpendVnd))}`
                     : "Tính trên đơn PAID + REFUND_PENDING"
                 }
               />
-              <StatCard
+              <CmsStatCard
                 label="Giá trị đơn trung bình"
                 value={money(Number(customer.stats.averageOrderValueVnd))}
               />
-              <StatCard
+              <CmsStatCard
                 label="Mua gần nhất"
                 value={
                   customer.stats.lastPurchaseAt
@@ -98,47 +113,37 @@ export function MerchantCustomerDetailPage() {
               />
             </div>
 
-            <Card className="p-5 sm:p-6">
-              <h2 className="text-lg font-extrabold text-[#20392a]">Ví điểm Loyalty</h2>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                <div>
-                  <dt className="text-xs font-bold muted">Hạng hiện tại</dt>
-                  <dd className="mt-1 text-lg font-extrabold">
-                    {customer.wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : customer.wallet.tier}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold muted">Điểm khả dụng</dt>
-                  <dd className="mt-1 text-lg font-extrabold tabular-nums">
-                    {customer.wallet.availablePoints.toLocaleString("vi-VN")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold muted">Phần lẻ tích lũy</dt>
-                  <dd className="mt-1 text-lg font-extrabold tabular-nums">
-                    {customer.wallet.fractionalCarry}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold muted">Tổng điểm tích lũy</dt>
-                  <dd className="mt-1 text-lg font-extrabold tabular-nums">
-                    {customer.wallet.netLifetimeEarned}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold muted">Nợ điểm</dt>
-                  <dd className="mt-1 text-lg font-extrabold tabular-nums text-[#a4473a]">
-                    {customer.wallet.pointDebt}
-                  </dd>
-                </div>
-              </dl>
-            </Card>
+            <CmsCard title="Ví điểm Loyalty">
+              <Descriptions column={{ xs: 1, sm: 2, lg: 5 }} size="small">
+                <Descriptions.Item label="Hạng hiện tại">
+                  <CmsStatusTag
+                    label={customer.wallet.tier === "UNRANKED" ? "Chưa xếp hạng" : customer.wallet.tier}
+                    tone={customer.wallet.tier === "UNRANKED" ? "neutral" : "info"}
+                  />
+                </Descriptions.Item>
+                <Descriptions.Item label="Điểm khả dụng">
+                  <strong className="tabular-nums">{customer.wallet.availablePoints.toLocaleString("vi-VN")}</strong>
+                </Descriptions.Item>
+                <Descriptions.Item label="Phần lẻ tích lũy">
+                  <strong className="tabular-nums">{customer.wallet.fractionalCarry}</strong>
+                </Descriptions.Item>
+                <Descriptions.Item label="Tổng điểm tích lũy">
+                  <strong className="tabular-nums">{customer.wallet.netLifetimeEarned}</strong>
+                </Descriptions.Item>
+                <Descriptions.Item label="Nợ điểm">
+                  <strong className="tabular-nums text-[#a4473a]">{customer.wallet.pointDebt}</strong>
+                </Descriptions.Item>
+              </Descriptions>
+            </CmsCard>
 
-            <CustomerHistorySections customer={customer} onPageChange={(key, page, limit) =>
-              setPaging((current) => ({ ...current, [key]: { page, limit } }))} />
+            <CustomerHistorySections
+              customer={customer}
+              onPageChange={(key, page, limit) =>
+                setPaging((current) => ({ ...current, [key]: { page, limit } }))}
+            />
           </>
         )
       )}
-    </div>
+    </section>
   );
 }

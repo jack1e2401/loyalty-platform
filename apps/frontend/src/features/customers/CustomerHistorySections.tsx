@@ -1,10 +1,13 @@
-import { MerchantPagination } from "../merchant/cms/MerchantPagination";
+import { Tabs, type TableColumnsType } from "antd";
+import { Link } from "react-router-dom";
 import type { CustomerDetailDto } from "../../api/analytics-types";
 import type { MemberVoucherStatus } from "../../api/commerce-types";
-import { EmptyState, StatusText } from "../../components/ui";
+import { CmsCard, CmsDataTable, CmsStatusTag, type CmsStatusTone } from "../merchant/cms";
+import { MerchantPagination } from "../merchant/cms/MerchantPagination";
 import { formatPointDelta, pointTransactionLabel } from "../member/LoyaltyWalletContent";
 import { orderStatusLabel, orderStatusTone } from "../orders/order-status";
 import { money } from "../../lib/utils";
+
 function voucherStatusLabel(status: MemberVoucherStatus): string {
   switch (status) {
     case "AVAILABLE":
@@ -24,6 +27,38 @@ function voucherStatusLabel(status: MemberVoucherStatus): string {
   }
 }
 
+function voucherStatusTone(status: MemberVoucherStatus): CmsStatusTone {
+  switch (status) {
+    case "AVAILABLE":
+    case "FULFILLED":
+      return "success";
+    case "RESERVED":
+    case "PENDING_FULFILLMENT":
+      return "warning";
+    case "CANCELLED":
+      return "error";
+    default:
+      return "neutral";
+  }
+}
+
+function mapOrderTone(tone: ReturnType<typeof orderStatusTone>): CmsStatusTone {
+  switch (tone) {
+    case "green":
+      return "success";
+    case "amber":
+      return "warning";
+    case "red":
+      return "error";
+    default:
+      return "neutral";
+  }
+}
+
+type OrderRow = CustomerDetailDto["orders"][number];
+type PointRow = CustomerDetailDto["pointLedger"][number];
+type VoucherRow = CustomerDetailDto["vouchers"][number];
+
 export function CustomerHistorySections({
   customer,
   onPageChange,
@@ -31,169 +66,231 @@ export function CustomerHistorySections({
   customer: Pick<CustomerDetailDto, "orders" | "pointLedger" | "vouchers" | "pagination">;
   onPageChange: (key: "orders" | "pointLedger" | "vouchers", page: number, limit: number) => void;
 }) {
+  const orderColumns: TableColumnsType<OrderRow> = [
+    {
+      title: "Đơn hàng",
+      dataIndex: "id",
+      key: "id",
+      width: 110,
+      render: (id: number) => (
+        <Link to="/merchant/orders" className="font-bold text-[#20392a] hover:text-[#356b43]">
+          #{id}
+        </Link>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 150,
+      render: (status: OrderRow["status"]) => (
+        <CmsStatusTag label={orderStatusLabel(status)} tone={mapOrderTone(orderStatusTone(status))} />
+      ),
+    },
+    {
+      title: "Sản phẩm",
+      key: "items",
+      render: (_: unknown, order) => (
+        <span className="text-xs text-[#68776d]">
+          {order.items.map((item) => `${item.productName} ×${item.quantity}`).join(", ")}
+        </span>
+      ),
+    },
+    {
+      title: "Tổng thanh toán",
+      dataIndex: "total",
+      key: "total",
+      align: "right",
+      width: 140,
+      render: (total: string) => <span className="font-semibold tabular-nums">{money(Number(total))}</span>,
+    },
+    {
+      title: "Điểm tích",
+      dataIndex: "earnedPointsExact",
+      key: "earnedPointsExact",
+      align: "right",
+      width: 110,
+      render: (value: string | null | undefined) => <span className="tabular-nums">{value ?? "—"}</span>,
+    },
+    {
+      title: "Thanh toán lúc",
+      dataIndex: "paidAt",
+      key: "paidAt",
+      width: 170,
+      render: (paidAt: string | null) => (
+        <span className="text-xs text-[#68776d]">
+          {paidAt ? new Date(paidAt).toLocaleString("vi-VN") : "—"}
+        </span>
+      ),
+    },
+  ];
+
+  const pointColumns: TableColumnsType<PointRow> = [
+    {
+      title: "Thời gian",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 170,
+      render: (createdAt: string) => (
+        <span className="text-xs text-[#68776d]">{new Date(createdAt).toLocaleString("vi-VN")}</span>
+      ),
+    },
+    {
+      title: "Loại",
+      dataIndex: "type",
+      key: "type",
+      width: 150,
+      render: (type: PointRow["type"]) => <span className="font-medium">{pointTransactionLabel(type)}</span>,
+    },
+    {
+      title: "Lý do",
+      dataIndex: "reason",
+      key: "reason",
+    },
+    {
+      title: "Biến động",
+      dataIndex: "delta",
+      key: "delta",
+      align: "right",
+      width: 120,
+      render: (delta: string) => (
+        <span className={`font-bold tabular-nums ${delta.startsWith("-") ? "text-[#a4473a]" : "text-[#357044]"}`}>
+          {formatPointDelta(delta)}
+        </span>
+      ),
+    },
+    {
+      title: "Số dư sau",
+      dataIndex: "balanceAfter",
+      key: "balanceAfter",
+      align: "right",
+      width: 120,
+      render: (balanceAfter: string) => <span className="tabular-nums">{balanceAfter}</span>,
+    },
+  ];
+
+  const voucherColumns: TableColumnsType<VoucherRow> = [
+    {
+      title: "Voucher",
+      dataIndex: "title",
+      key: "title",
+      render: (title: string) => <strong className="text-[#20392a]">{title}</strong>,
+    },
+    {
+      title: "Loại",
+      dataIndex: "type",
+      key: "type",
+      width: 120,
+      render: (type: VoucherRow["type"]) => (type === "DISCOUNT" ? "Giảm giá" : "Quà tặng"),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 140,
+      render: (status: MemberVoucherStatus) => (
+        <CmsStatusTag label={voucherStatusLabel(status)} tone={voucherStatusTone(status)} />
+      ),
+    },
+    {
+      title: "Điểm đổi",
+      dataIndex: "pointsCost",
+      key: "pointsCost",
+      align: "right",
+      width: 110,
+      render: (pointsCost: number) => <span className="tabular-nums">{pointsCost.toLocaleString("vi-VN")}</span>,
+    },
+    {
+      title: "Ngày đổi",
+      dataIndex: "redeemedAt",
+      key: "redeemedAt",
+      width: 170,
+      render: (redeemedAt: string) => (
+        <span className="text-xs text-[#68776d]">{new Date(redeemedAt).toLocaleString("vi-VN")}</span>
+      ),
+    },
+  ];
+
+  const orderCount = customer.pagination?.orders?.totalItems ?? customer.orders.length;
+  const pointCount = customer.pagination?.pointLedger?.totalItems ?? customer.pointLedger.length;
+  const voucherCount = customer.pagination?.vouchers?.totalItems ?? customer.vouchers.length;
+
   return (
-    <>
-      <section aria-label="Lịch sử đơn hàng" className="space-y-3">
-        <h2 className="text-lg font-extrabold text-[#20392a]">Lịch sử đơn hàng</h2>
-        {customer.orders.length === 0 ? (
-          <EmptyState title="Chưa có đơn hàng" description="Khách hàng chưa phát sinh đơn hàng nào." />
-        ) : (
-          <div className="surface overflow-x-auto rounded-3xl">
-            <table className="w-full min-w-[700px] border-collapse text-left text-sm">
-              <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
-                <tr>
-                  <th scope="col" className="px-5 py-3.5">
-                    Đơn hàng
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Trạng thái
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Sản phẩm
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 text-right">
-                    Tổng thanh toán
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 text-right">
-                    Điểm tích
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Thanh toán lúc
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {customer.orders.map((order) => (
-                  <tr key={order.id} className="border-t border-[#edf1ea]">
-                    <th scope="row" className="px-5 py-3.5 font-bold">
-                      #{order.id}
-                    </th>
-                    <td className="px-4 py-3.5">
-                      <StatusText tone={orderStatusTone(order.status)}>
-                        {orderStatusLabel(order.status)}
-                      </StatusText>
-                    </td>
-                    <td className="px-4 py-3.5 text-xs muted">
-                      {order.items.map((item) => `${item.productName} ×${item.quantity}`).join(", ")}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-semibold tabular-nums">
-                      {money(Number(order.total))}
-                    </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums">{order.earnedPointsExact ?? "—"}</td>
-                    <td className="px-4 py-3.5 text-xs muted">
-                      {order.paidAt ? new Date(order.paidAt).toLocaleString("vi-VN") : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {customer.pagination?.orders && <MerchantPagination {...customer.pagination.orders}
-          onChange={(page, limit) => onPageChange("orders", page, limit)} />}
-      </section>
-
-      <section aria-label="Sổ biến động điểm" className="space-y-3">
-        <h2 className="text-lg font-extrabold text-[#20392a]">Sổ biến động điểm</h2>
-        {customer.pointLedger.length === 0 ? (
-          <EmptyState title="Chưa có giao dịch điểm" description="Chưa ghi nhận biến động điểm nào." />
-        ) : (
-          <div className="surface overflow-x-auto rounded-3xl">
-            <table className="w-full min-w-[700px] border-collapse text-left text-sm">
-              <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
-                <tr>
-                  <th scope="col" className="px-5 py-3.5">
-                    Thời gian
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Loại
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Lý do
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 text-right">
-                    Biến động
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 text-right">
-                    Số dư sau
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {customer.pointLedger.map((tx) => (
-                  <tr key={tx.id} className="border-t border-[#edf1ea]">
-                    <td className="px-5 py-3.5 text-xs muted">
-                      {new Date(tx.createdAt).toLocaleString("vi-VN")}
-                    </td>
-                    <td className="px-4 py-3.5 font-medium">{pointTransactionLabel(tx.type)}</td>
-                    <td className="px-4 py-3.5">{tx.reason}</td>
-                    <td
-                      className={`px-4 py-3.5 text-right font-bold tabular-nums ${
-                        tx.delta.startsWith("-") ? "text-[#a4473a]" : "text-[#357044]"
-                      }`}
-                    >
-                      {formatPointDelta(tx.delta)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums">{tx.balanceAfter}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {customer.pagination?.pointLedger && <MerchantPagination {...customer.pagination.pointLedger}
-          onChange={(page, limit) => onPageChange("pointLedger", page, limit)} />}
-      </section>
-
-      <section aria-label="Lịch sử voucher" className="space-y-3">
-        <h2 className="text-lg font-extrabold text-[#20392a]">Voucher đã đổi</h2>
-        {customer.vouchers.length === 0 ? (
-          <EmptyState title="Chưa đổi voucher" description="Khách hàng chưa đổi voucher hoặc quà nào." />
-        ) : (
-          <div className="surface overflow-x-auto rounded-3xl">
-            <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-              <thead className="bg-[#edf3ee] text-xs font-bold uppercase tracking-wide text-[#344b3b]">
-                <tr>
-                  <th scope="col" className="px-5 py-3.5">
-                    Voucher
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Loại
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Trạng thái
-                  </th>
-                  <th scope="col" className="px-4 py-3.5 text-right">
-                    Điểm đổi
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Ngày đổi
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {customer.vouchers.map((voucher) => (
-                  <tr key={voucher.id} className="border-t border-[#edf1ea]">
-                    <th scope="row" className="px-5 py-3.5 font-bold">
-                      {voucher.title}
-                    </th>
-                    <td className="px-4 py-3.5">{voucher.type === "DISCOUNT" ? "Giảm giá" : "Quà tặng"}</td>
-                    <td className="px-4 py-3.5">{voucherStatusLabel(voucher.status)}</td>
-                    <td className="px-4 py-3.5 text-right tabular-nums">
-                      {voucher.pointsCost.toLocaleString("vi-VN")}
-                    </td>
-                    <td className="px-4 py-3.5 text-xs muted">
-                      {new Date(voucher.redeemedAt).toLocaleString("vi-VN")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {customer.pagination?.vouchers && <MerchantPagination {...customer.pagination.vouchers}
-          onChange={(page, limit) => onPageChange("vouchers", page, limit)} />}
-      </section>
-    </>
+    <CmsCard>
+      <Tabs
+        defaultActiveKey="orders"
+        items={[
+          {
+            key: "orders",
+            label: `Lịch sử đơn hàng (${orderCount})`,
+            forceRender: true,
+            children: (
+              <div className="space-y-4">
+                <CmsDataTable
+                  label="Lịch sử đơn hàng"
+                  rows={customer.orders}
+                  columns={orderColumns}
+                  rowKey="id"
+                  emptyText="Khách hàng chưa phát sinh đơn hàng nào."
+                  scroll={{ x: 740 }}
+                />
+                {customer.pagination?.orders ? (
+                  <MerchantPagination
+                    {...customer.pagination.orders}
+                    onChange={(page, limit) => onPageChange("orders", page, limit)}
+                  />
+                ) : null}
+              </div>
+            ),
+          },
+          {
+            key: "pointLedger",
+            label: `Sổ biến động điểm (${pointCount})`,
+            forceRender: true,
+            children: (
+              <div className="space-y-4">
+                <CmsDataTable
+                  label="Sổ biến động điểm"
+                  rows={customer.pointLedger}
+                  columns={pointColumns}
+                  rowKey="id"
+                  emptyText="Chưa ghi nhận biến động điểm nào."
+                  scroll={{ x: 700 }}
+                />
+                {customer.pagination?.pointLedger ? (
+                  <MerchantPagination
+                    {...customer.pagination.pointLedger}
+                    onChange={(page, limit) => onPageChange("pointLedger", page, limit)}
+                  />
+                ) : null}
+              </div>
+            ),
+          },
+          {
+            key: "vouchers",
+            label: `Voucher đã đổi (${voucherCount})`,
+            forceRender: true,
+            children: (
+              <div className="space-y-4">
+                <CmsDataTable
+                  label="Voucher đã đổi"
+                  rows={customer.vouchers}
+                  columns={voucherColumns}
+                  rowKey="id"
+                  emptyText="Khách hàng chưa đổi voucher hoặc quà nào."
+                  scroll={{ x: 680 }}
+                />
+                {customer.pagination?.vouchers ? (
+                  <MerchantPagination
+                    {...customer.pagination.vouchers}
+                    onChange={(page, limit) => onPageChange("vouchers", page, limit)}
+                  />
+                ) : null}
+              </div>
+            ),
+          },
+        ]}
+      />
+    </CmsCard>
   );
 }
