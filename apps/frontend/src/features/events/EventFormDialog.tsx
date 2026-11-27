@@ -147,176 +147,176 @@ export function EventFormDialog({ target, busy, error, onClose, onSubmit }: Even
       {target && (
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1d14]/40 backdrop-blur-[2px] transition-opacity" />
-          <Dialog.Content
-            className="surface merchant-cms fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#e3e9e1] p-5 shadow-xl outline-none"
-            style={{ zoom: 0.8 }}
-          >
-            {/* Header with Close button */}
-            <div className="relative pr-8">
-              <Dialog.Title className="text-sm font-bold text-[#1f3829]">
-                {target === "new" ? "Tạo sự kiện mới" : `Chỉnh sửa sự kiện #${target.id}`}
-              </Dialog.Title>
-              <Dialog.Description className="mt-0.5 text-[11.5px] text-[#607767]">
-                Nội dung hiển thị dạng văn bản an toàn trên trang sự kiện cửa hàng.
-              </Dialog.Description>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={busy}
-                aria-label="Đóng"
-                className="absolute -right-1 -top-1 rounded-lg p-1 text-[#738879] transition hover:bg-[#edf2ed] hover:text-[#1f3829]"
-              >
-                <X size={16} aria-hidden="true" />
-              </button>
-            </div>
-
-            {/* Segmented Control Tabs */}
-            <div
-              className="mt-3.5 flex rounded-xl bg-[#edf2ed] p-1 gap-1"
-              role="tablist"
-              aria-label="Phân nhóm sự kiện"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "schedule"}
-                onClick={() => setActiveTab("schedule")}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all ${
-                  activeTab === "schedule"
-                    ? "bg-white text-[#1f3829] shadow-xs"
-                    : "text-[#607767] hover:text-[#1f3829]"
-                }`}
-              >
-                <CalendarDots size={14} aria-hidden="true" />
-                Thông tin & Lịch trình
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "content"}
-                onClick={() => setActiveTab("content")}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all ${
-                  activeTab === "content"
-                    ? "bg-white text-[#1f3829] shadow-xs"
-                    : "text-[#607767] hover:text-[#1f3829]"
-                }`}
-              >
-                <MapPin size={14} aria-hidden="true" />
-                Địa điểm & Nội dung
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-3.5 space-y-3" noValidate>
-              {/* Tab 1: Thông tin & Lịch trình */}
-              <div
-                className={activeTab === "schedule" ? "space-y-3" : "hidden"}
-                role="tabpanel"
-                aria-label="Thông tin & Lịch trình"
-              >
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <Field label="Tiêu đề sự kiện">
-                    <Input
-                      required
-                      maxLength={191}
-                      placeholder="Ví dụ: Workshop pha chế cuối tuần"
-                      value={form.title}
-                      onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Đường dẫn (slug)" hint="Để trống để tự tạo từ tiêu đề">
-                    <Input
-                      maxLength={191}
-                      placeholder="workshop-pha-che-cuoi-tuan"
-                      value={form.slug}
-                      onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Thời gian bắt đầu">
-                    <Input
-                      type="datetime-local"
-                      required
-                      value={form.startAt}
-                      onChange={(e) => setForm({ ...form, startAt: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Thời gian kết thúc">
-                    <Input
-                      type="datetime-local"
-                      required
-                      value={form.endAt}
-                      onChange={(e) => setForm({ ...form, endAt: e.target.value })}
-                    />
-                  </Field>
-                </div>
+          <Dialog.Content className="surface fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#e3e9e1] p-6 shadow-2xl outline-none">
+            {/* Nội dung bên trong scale 80% */}
+            <div className="merchant-cms" style={{ zoom: 0.82 }}>
+              {/* Header with Close button */}
+              <div className="relative pr-8">
+                <Dialog.Title className="text-base font-bold text-[#1f3829]">
+                  {target === "new" ? "Tạo sự kiện mới" : `Chỉnh sửa sự kiện #${target.id}`}
+                </Dialog.Title>
+                <Dialog.Description className="mt-0.5 text-xs text-[#607767]">
+                  Nội dung hiển thị dạng văn bản an toàn trên trang sự kiện cửa hàng.
+                </Dialog.Description>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={busy}
+                  aria-label="Đóng"
+                  className="absolute -right-1 -top-1 rounded-lg p-1.5 text-[#738879] transition hover:bg-[#edf2ed] hover:text-[#1f3829]"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
               </div>
 
-              {/* Tab 2: Địa điểm & Nội dung */}
+              {/* Segmented Control Tabs */}
               <div
-                className={activeTab === "content" ? "space-y-3" : "hidden"}
-                role="tabpanel"
-                aria-label="Địa điểm & Nội dung"
+                className="mt-4 flex rounded-xl bg-[#edf2ed] p-1 gap-1"
+                role="tablist"
+                aria-label="Phân nhóm sự kiện"
               >
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <Field label="Tên địa điểm">
-                    <Input
-                      required
-                      maxLength={191}
-                      placeholder="Cửa hàng Quận 1"
-                      value={form.locationName}
-                      onChange={(e) => setForm({ ...form, locationName: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Địa chỉ chi tiết (tùy chọn)">
-                    <Input
-                      maxLength={500}
-                      placeholder="123 Lê Lợi, Quận 1, TP.HCM"
-                      value={form.locationAddress}
-                      onChange={(e) => setForm({ ...form, locationAddress: e.target.value })}
-                    />
-                  </Field>
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="URL ảnh bìa (tùy chọn)"
-                      hint="Hỗ trợ https://..., http://..., /images/... hoặc /uploads/..."
-                    >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "schedule"}
+                  onClick={() => setActiveTab("schedule")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                    activeTab === "schedule"
+                      ? "bg-white text-[#1f3829] shadow-xs"
+                      : "text-[#607767] hover:text-[#1f3829]"
+                  }`}
+                >
+                  <CalendarDots size={15} aria-hidden="true" />
+                  Thông tin & Lịch trình
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "content"}
+                  onClick={() => setActiveTab("content")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                    activeTab === "content"
+                      ? "bg-white text-[#1f3829] shadow-xs"
+                      : "text-[#607767] hover:text-[#1f3829]"
+                  }`}
+                >
+                  <MapPin size={15} aria-hidden="true" />
+                  Địa điểm & Nội dung
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="mt-4 space-y-3.5" noValidate>
+                {/* Tab 1: Thông tin & Lịch trình */}
+                <div
+                  className={activeTab === "schedule" ? "space-y-3.5" : "hidden"}
+                  role="tabpanel"
+                  aria-label="Thông tin & Lịch trình"
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Tiêu đề sự kiện">
                       <Input
-                        maxLength={2048}
-                        placeholder="/images/independent-cafe.jpg"
-                        value={form.bannerUrl}
-                        onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+                        required
+                        maxLength={191}
+                        placeholder="Ví dụ: Workshop pha chế cuối tuần"
+                        value={form.title}
+                        onChange={(e) => setForm({ ...form, title: e.target.value })}
                       />
                     </Field>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field label="Mô tả sự kiện" hint="Tối đa 5.000 ký tự, giữ nguyên xuống dòng">
-                      <Textarea
+                    <Field label="Đường dẫn (slug)" hint="Để trống để tự tạo từ tiêu đề">
+                      <Input
+                        maxLength={191}
+                        placeholder="workshop-pha-che-cuoi-tuan"
+                        value={form.slug}
+                        onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Thời gian bắt đầu">
+                      <Input
+                        type="datetime-local"
                         required
-                        maxLength={5000}
-                        rows={3}
-                        placeholder="Chia sẻ lịch trình, nội dung nổi bật và lưu ý cho khách ghé thăm..."
-                        value={form.description}
-                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        value={form.startAt}
+                        onChange={(e) => setForm({ ...form, startAt: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Thời gian kết thúc">
+                      <Input
+                        type="datetime-local"
+                        required
+                        value={form.endAt}
+                        onChange={(e) => setForm({ ...form, endAt: e.target.value })}
                       />
                     </Field>
                   </div>
                 </div>
-              </div>
 
-              {displayError && (
-                <p role="alert" className="rounded-xl bg-[#fae7e3] p-2.5 text-xs text-[#a4473a]">
-                  {displayError}
-                </p>
-              )}
+                {/* Tab 2: Địa điểm & Nội dung */}
+                <div
+                  className={activeTab === "content" ? "space-y-3.5" : "hidden"}
+                  role="tabpanel"
+                  aria-label="Địa điểm & Nội dung"
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Tên địa điểm">
+                      <Input
+                        required
+                        maxLength={191}
+                        placeholder="Cửa hàng Quận 1"
+                        value={form.locationName}
+                        onChange={(e) => setForm({ ...form, locationName: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Địa chỉ chi tiết (tùy chọn)">
+                      <Input
+                        maxLength={500}
+                        placeholder="123 Lê Lợi, Quận 1, TP.HCM"
+                        value={form.locationAddress}
+                        onChange={(e) => setForm({ ...form, locationAddress: e.target.value })}
+                      />
+                    </Field>
+                    <div className="sm:col-span-2">
+                      <Field
+                        label="URL ảnh bìa (tùy chọn)"
+                        hint="Hỗ trợ https://..., http://..., /images/... hoặc /uploads/..."
+                      >
+                        <Input
+                          maxLength={2048}
+                          placeholder="/images/independent-cafe.jpg"
+                          value={form.bannerUrl}
+                          onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Field label="Mô tả sự kiện" hint="Tối đa 5.000 ký tự, giữ nguyên xuống dòng">
+                        <Textarea
+                          required
+                          maxLength={5000}
+                          rows={4}
+                          placeholder="Chia sẻ lịch trình, nội dung nổi bật và lưu ý cho khách ghé thăm..."
+                          value={form.description}
+                          onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex justify-end gap-2 border-t border-[#edf1ea] pt-3">
-                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onClose}>
-                  Hủy
-                </Button>
-                <Button type="submit" size="sm" disabled={busy}>
-                  {busy ? <BusyLabel>Đang lưu</BusyLabel> : target === "new" ? "Tạo bản nháp" : "Lưu thay đổi"}
-                </Button>
-              </div>
-            </form>
+                {displayError && (
+                  <p role="alert" className="rounded-xl bg-[#fae7e3] p-2.5 text-xs text-[#a4473a]">
+                    {displayError}
+                  </p>
+                )}
+
+                <div className="flex justify-end gap-2.5 border-t border-[#edf1ea] pt-3.5">
+                  <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onClose}>
+                    Hủy
+                  </Button>
+                  <Button type="submit" size="sm" disabled={busy}>
+                    {busy ? <BusyLabel>Đang lưu</BusyLabel> : target === "new" ? "Tạo bản nháp" : "Lưu thay đổi"}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       )}
